@@ -1,0 +1,27 @@
+# Root ignore rules. frontend/.gitignore adds the Angular-specific ones.
+
+# --- Configuration and secrets ---
+.env
+.env.*
+!.env.example
+
+# --- .NET ---
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.rsuser
+.vs/
+*.binlog
+
+# --- Coverage ---
+coverage/
+*.coverage
+*.cobertura.xml
+
+# --- Editors and OS ---
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

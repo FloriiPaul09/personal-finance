@@ -1,0 +1,91 @@
+# Testing strategy
+
+## Scope
+
+What is tested, at which level, with which tools, and how tests run locally and in CI, for both backend and frontend. Test code conventions specific to one area are documented in that area's docs.
+
+## Current state
+
+Decided ([ADR-0006](adr/0006-testing-strategy.md)). **Test projects and runners are set up** (`[DevOps]`, [local-development.md](../devops/local-development.md#tests)); feature tests arrive with the features.
+
+### Principle
+
+Test where an error is expensive. For this app that means:
+
+1. **Money correctness**: balances, transfers, budgets.
+2. **Data isolation**: a user must never see or change another user's data.
+3. **Authentication**: nothing is reachable without a session, except login.
+
+Coverage follows these risks, not a percentage.
+
+### Levels and tools
+
+| Level | Tools | What it covers | Location |
+|---|---|---|---|
+| Domain unit | xUnit v3 | Every business rule in `Domain` | `backend/tests/Domain.Tests` |
+| API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, migrations, query filters, authentication | `backend/tests/Api.Tests` |
+| Architecture | Plain reflection today; an architecture-test library (choice in `[Backend]`) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing) | `backend/tests/Architecture.Tests` |
+| Frontend unit | Vitest through the Angular `@angular/build:unit-test` builder, jsdom | Shared components and logic: amount input, date adapter, services with logic | `frontend/src/**/*.spec.ts` |
+| End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` |
+
+Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.json`), the default runner of xUnit v3 4.x and of the .NET 10 SDK. A test project that runs zero tests fails, so every project keeps at least one test.
+
+### Minimum required
+
+- **Domain**: every business rule has unit tests for normal and edge cases (e.g. a transfer produces two linked movements with opposite amounts; budget progress at month boundaries).
+- **Each endpoint**, at least:
+  - the successful case;
+  - `401` without a session;
+  - a validation error, if it accepts input;
+  - **isolation**: user B cannot read or change user A's data (expected status defined in `[Backend]`).
+- **Frontend shared components**: Italian amount parsing and formatting; dates never shifted by the time zone.
+- **End-to-end**: login, adding an expense on a phone-sized viewport, a transfer between accounts, dashboard loading.
+- **Bug fixes**: a test that reproduces the bug comes with the fix.
+
+### Integration tests
+
+- One PostgreSQL container per test run (not per test), with migrations applied at start: the same migrations used in production are exercised.
+- **Same PostgreSQL image as Docker Compose**: the version is written only in the `db` service of `compose.yaml`; tests read it through `PostgresImage.Name` (`Api.Tests/Infrastructure`) ([ADR-0008](adr/0008-local-development-environment.md)).
+- Data isolated between tests (reset strategy chosen in `[Backend]`).
+- Docker is required to run them, locally and in CI.
+
+### Coverage
+
+Measured for backend and frontend and shown in CI, **without a mandatory threshold**. It is used to spot untested areas, not as a target.
+
+### Where tests run
+
+- **Locally**: `dotnet test` in `backend/` (Docker running for integration tests), `pnpm test` in `frontend/` (`--watch=false` for a single run), Playwright for end-to-end.
+- **CI (GitHub Actions)**: build and all backend and frontend tests on every pull request and push to the main branch; when end-to-end tests run is decided in `[DevOps]` part 2.
+- A pull request is merged only with all tests green (required checks on `main`, [ADR-0009](adr/0009-repository-workflow.md)).
+
+## Decisions
+
+| Decision | Reason | Reference |
+|---|---|---|
+| Risk-focused strategy: domain unit, API integration on real PostgreSQL, architecture tests, frontend unit, a few E2E | Covers money, isolation and auth with sustainable effort for one developer | [ADR-0006](adr/0006-testing-strategy.md) |
+| Testcontainers instead of an in-memory database | Query filters, migrations and PostgreSQL behavior are tested for real | [ADR-0006](adr/0006-testing-strategy.md) |
+| Coverage measured, no threshold | Thresholds push toward tests written for the number | [ADR-0006](adr/0006-testing-strategy.md) |
+| PostgreSQL image read from `compose.yaml` | One version for development, tests and CI | [ADR-0008](adr/0008-local-development-environment.md) |
+| xUnit v3 on Microsoft Testing Platform; Vitest through the Angular builder | Default runners of the chosen tool versions | [ADR-0008](adr/0008-local-development-environment.md) |
+
+## Tests
+
+This strategy is checked by the CI pipeline (part 2) and by the pull request checklist (`.github/pull_request_template.md`), which repeats the minimum required list.
+
+## Scalability
+
+- **More contributors**: add a coverage rule (minimum threshold or "no decrease" on pull requests) with a new ADR; the minimum required list above becomes the review checklist.
+- **More modules**: test folders mirror `Features/<Module>` in the API and the modules in `Domain`.
+- **Worker** (roadmap): its own integration tests on the same PostgreSQL setup; `PostgresImage` moves to a shared test support project.
+- **Slower test suite**: run test projects in parallel, split CI jobs, move end-to-end tests to the main branch or a nightly run.
+- **Multi-user**: already covered by the isolation tests required on every endpoint.
+
+## To do / open questions
+
+- `[Backend]` Architecture-test library; Testcontainers fixture on `PostgresImage.Name`; database reset strategy between tests; how tests authenticate (real login or a test authentication handler); expected status for cross-user access; test data builders.
+- `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
+- `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
+
+---
+_Last updated: 2026-11-09_

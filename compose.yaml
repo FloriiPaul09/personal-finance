@@ -1,0 +1,36 @@
+# Docker Compose for Personal Finance — docs/devops/docker.md
+#
+# Development: start only the database and run API and frontend natively
+#   docker compose up -d db
+#
+# The api and frontend services are added when their Dockerfiles exist,
+# so that `docker compose up` starts the whole application (quick start).
+
+name: personal-finance
+
+services:
+  db:
+    # Single source of the PostgreSQL version: integration tests (Testcontainers)
+    # read this value, Dependabot updates it. Debian-based image, never Alpine.
+    image: postgres:18.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-personal_finance}
+      POSTGRES_USER: ${POSTGRES_USER:-personal_finance}
+      # Development default, also used by appsettings.Development.json.
+      # Set POSTGRES_PASSWORD in .env for anything that is not a local machine.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personal_finance_dev}
+    ports:
+      # Bound to localhost only: the database is never reachable from the network.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Since PostgreSQL 18 the image keeps its data under /var/lib/postgresql/<major>/.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

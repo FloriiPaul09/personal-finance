@@ -1,0 +1,83 @@
+# Dependency updates — docs/devops/repository-workflow.md
+# Weekly, grouped pull requests; commit messages follow type(area): description.
+version: 2
+
+updates:
+  # --- Backend (NuGet, Central Package Management) ---
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    commit-message:
+      prefix: chore(backend)
+    labels: [dependencies, backend]
+    groups:
+      backend-minor-patch:
+        update-types: [minor, patch]
+
+  # --- Frontend (pnpm) ---
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    # pnpm 11 refuses versions younger than one day by default: wait a little longer.
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore(frontend)
+    labels: [dependencies, frontend]
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular"]
+        update-types: [minor, patch]
+      frontend-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Angular majors go through `ng update`, which also runs code migrations.
+      - dependency-name: "@angular/*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@angular-devkit/*"
+        update-types: [version-update:semver-major]
+      # TypeScript majors follow the version supported by Angular.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # pnpm majors are a deliberate decision (lockfile format, Dependabot support).
+      - dependency-name: pnpm
+        update-types: [version-update:semver-major]
+
+  # --- Docker Compose (PostgreSQL image) ---
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    commit-message:
+      prefix: chore(devops)
+    labels: [dependencies, devops]
+    ignore:
+      # A PostgreSQL major upgrade needs a data migration: planned by hand.
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+
+  # --- GitHub Actions (workflows arrive with the CI, part 2) ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    commit-message:
+      prefix: chore(devops)
+    labels: [dependencies, devops]
+    groups:
+      github-actions:
+        patterns: ["*"]
