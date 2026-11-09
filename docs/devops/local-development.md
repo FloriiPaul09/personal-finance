@@ -17,6 +17,22 @@ How to set up a machine to work on the project, run each part locally and run th
 
 pnpm is installed with `npm install -g pnpm@11`. Corepack is not bundled with Node.js 25 and later, so `corepack enable` does not work out of the box.
 
+Only the versions in the table are supported. Odd Node.js releases (23, 25) are not: pnpm 11 needs the built-in `node:sqlite` module and stops with `ERR_UNKNOWN_BUILTIN_MODULE` on older ones, and Angular 22 rejects them.
+
+### Windows
+
+The commands in this document work in PowerShell, with two differences from bash:
+
+- **Windows PowerShell 5.1** (the one preinstalled) blocks `npm` and `pnpm` scripts and does not support `&&`. Allow local scripts once for your user, and run commands one per line or separated by `;`:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+  ```
+
+  PowerShell 7 (`winget install Microsoft.PowerShell`) supports `&&` as well.
+- **Node.js versions**: install the LTS with `winget install OpenJS.NodeJS.LTS`, or use [nvm-windows](https://github.com/coreybutler/nvm-windows) (`winget install CoreyButler.NVMforWindows`, then `nvm install 26` and `nvm use 26`) to switch between versions. Uninstall any Node.js installed separately before using nvm-windows, and reopen the terminal after installing either tool so the `PATH` is reloaded.
+- **Line endings**: `.gitattributes` keeps every text file in LF, also on Windows; editors that respect `.editorconfig` (Visual Studio, Rider, VS Code) keep it that way.
+
 ### Running the app
 
 ```
