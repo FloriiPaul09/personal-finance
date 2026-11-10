@@ -98,8 +98,8 @@ This document is verified by following it on a fresh clone: both test commands m
 ## To do / open questions
 
 - `[Frontend]` Playwright location and phone viewport; coverage provider for Vitest.
-- `[Backend]` Testcontainers fixture using `PostgresImage.Name`, database reset between tests.
+- ✅ Testcontainers fixture and database per test class — decided in `[DB]` ([database/testing.md](../database/testing.md)); `PostgresImage` moves to the `Testing` support project with its implementation.
 - Optional `pnpm` scripts at the repository root are not planned: each area owns its tooling.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

@@ -5,7 +5,7 @@ Index of the project documentation. Each macro category matches a conversation t
 | Macro category | Folder | Status |
 |---|---|---|
 | Architecture | [architecture/](architecture/README.md) | Initial decisions complete |
-| Database & domain | `database/` | Not started |
+| Database & domain | [database/](database/README.md) | Design decided — implementation in progress |
 | Backend API | `backend/` | Not started |
 | Frontend | [frontend/](frontend/README.md) | In progress |
 | DevOps | [devops/](devops/README.md) | In progress — repository skeleton and local environment done, CI next |
@@ -30,4 +30,4 @@ Documents written before the **Tests** section was introduced receive it at thei
 Important architectural decisions are recorded as ADRs in [architecture/adr/](architecture/README.md#architecture-decision-records).
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_
