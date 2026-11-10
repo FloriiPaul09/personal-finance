@@ -118,6 +118,7 @@ Endpoint-level isolation tests stay in `Api.Tests` ([testing-strategy.md](../arc
 
 - `[Backend]` HTTP current user implementation and the expected status for cross-user access (`404` recommended, so existence is not revealed).
 - An architecture test that forbids `IgnoreQueryFilters` in `Api` (with the library chosen in `[Backend]`).
+- Verify in `feat/backend-persistence` that EF Core maps the optional composite keys (`category_id`, `parent_id`) sharing `user_id` with other keys; fallback described in [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md#consequences).
 
 ---
 _Last updated: 2026-11-10_

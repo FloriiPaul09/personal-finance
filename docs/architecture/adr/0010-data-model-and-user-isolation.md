@@ -30,7 +30,7 @@
 6. **Signed amounts** in the domain and in the database: income positive, expense negative, transfer legs negative (source) and positive (destination). `CHECK` constraints tie the sign to the kind. The API may expose absolute values (decided in `[Backend]`).
 7. **Transfers**: a `transfers` row plus **two rows in `transactions`** linked by `transfer_id`, one per account; the database allows at most one outgoing and one incoming leg per transfer, the domain always creates both. MVP: only between accounts with the same currency.
 8. **Balances are computed**: initial balance plus the sum of the account's movements. No stored balance.
-9. **Budgets with `effective_from`**: a category's monthly limit applies from a month until a later entry changes it (or ends it); changing it adds a row and keeps history. Budgets apply to expense categories and include their subcategories.
+9. **Budgets with `effective_from`**: a category's monthly limit applies from a month until a later entry changes it (or ends it); changing it adds a row and keeps history. Budgets apply to expense categories and include their subcategories; a budget is set on a parent or on its subcategories, never on both, so no expense is counted twice.
 
 ### Lifecycle, tags, errors
 
@@ -54,6 +54,7 @@
 | Currency | ISO 4217 `char(3)` on the account; transactions inherit it |
 | Negative balances | Allowed (cards, overdraft) |
 | Subcategories | One level; same kind as the parent; a transaction may use a parent or a child |
+| Fixed once used | Account currency and category kind change only while nothing references them |
 | Text search | `ILIKE` without index in the MVP; `pg_trgm` when data grows |
 | Tags in commits | Part of the `transactions` module |
 
@@ -70,7 +71,7 @@ Details: [database/README.md](../../database/README.md).
 - Identifiers are known before saving, unguessable in URLs and portable between instances (useful for import/export).
 
 **Negative**
-- More keys and indexes: every owned table has an extra unique key `(user_id, id)`, and EF configuration of overlapping composite foreign keys is more delicate (covered by integration tests).
+- More keys and indexes: every owned table has an extra unique key `(user_id, id)`, and EF configuration of overlapping composite foreign keys is more delicate (covered by integration tests). If EF cannot map the optional ones (`category_id`, `parent_id`) cleanly, composite keys stay on the required references and the optional ones are guarded by the domain and tests; that change would be recorded as an amendment to this ADR.
 - `UserId` must be passed explicitly when creating entities.
 - A community package (`EFCore.NamingConventions`) is part of the persistence setup.
 - Balances are recomputed on every read; snapshots are needed only at volumes far above personal use.

@@ -131,6 +131,7 @@ balance(account, up to date D) = initial_balance + Σ amount of the account's tr
 - Negative balances are allowed.
 - The domain method and the SQL query must give the same result: an integration test compares them.
 - An archived account keeps its balance and appears in reports; it cannot receive new movements.
+- The **currency** can change only while the account has no movements; afterwards a new account is needed (changing it would reinterpret every amount).
 
 #### Income and expense
 
@@ -150,6 +151,7 @@ balance(account, up to date D) = initial_balance + Σ amount of the account's tr
 
 - One level: a subcategory cannot have children, and a category with children cannot become a subcategory.
 - A subcategory has the same kind as its parent.
+- The **kind** (income or expense) can change only while the category, and its subcategories, have no transactions and no budgets; afterwards a new category is needed.
 - Names are unique per user, kind and parent, without regard to case (`Spesa` and `spesa` collide; an income and an expense category may share a name).
 - Archiving a parent archives its subcategories.
 
@@ -168,6 +170,7 @@ A budget is a history of entries per expense category:
 - **Spent in month M** = −Σ amount of expense transactions of the category **and its subcategories** with date in M (from the first to the last day, inclusive).
 - **Progress** = spent / limit, computed in `decimal`; it can exceed 1 (over budget). **Remaining** = limit − spent, negative when over budget. Rounding happens only when displaying.
 - Budgets are allowed only on expense categories.
+- **One level per branch**: a budget can be set on a parent category **or** on its subcategories, never on both, so the same expense is never counted in two budgets and the total of budgets is always a plain sum. Setting a budget on a parent that has budgeted subcategories (or the opposite) is rejected; moving a subcategory under another parent follows the same rule.
 - Months are plain calendar dates (`DateOnly`): no time zone is involved.
 
 #### Tags
@@ -188,6 +191,8 @@ Every new user receives a default set of categories: [default-data.md](default-d
 | Computed balance | Always consistent with the movements | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
 | Budget entries with `effective_from` | Set once, history kept | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
 | Archive accounts and categories | Deleting would lose or orphan history | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
+| Budgets on a parent or on its subcategories, never both | No expense counted twice; the total of budgets is a plain sum | This document |
+| Account currency and category kind fixed once used | Changing them would make existing movements inconsistent | This document |
 | Category required on income and expense | Budgets and per-category reports stay complete; a default "Altro" category exists for quick entry | This document |
 | Domain errors as `DomainException` with a stable code | Mapped once to ProblemDetails by the API | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
 
@@ -199,8 +204,9 @@ Unit tests in `Domain.Tests` ([testing.md](testing.md#domain-unit-tests)):
 - balance: no movements, only income, only expense, mixed, negative result, movements after the given date excluded;
 - transfer: two legs with opposite amounts and same date, same account rejected, different currencies rejected, archived account rejected, update moves both legs;
 - income and expense: wrong category kind, archived account or category;
-- categories: second level rejected, kind different from the parent rejected, archiving a parent;
-- budget: limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
+- account: currency change allowed without movements, rejected with movements;
+- categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets;
+- budget: budget on a parent with budgeted subcategories rejected and the opposite, moving a budgeted subcategory under a budgeted parent rejected, limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
 
 Integration tests in `Infrastructure.Tests` check that constraints enforce the same rules at database level and that the balance query matches the domain.
 
