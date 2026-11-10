@@ -159,12 +159,12 @@ Mechanisms written once and applied everywhere:
 - `[Backend]` Recommended: an authorization fallback policy that requires authentication on every endpoint, with explicit `AllowAnonymous` only for login and `/api/health` (secure by default, see ADR-0001).
 - `[Backend]` OpenAPI UI (e.g. Scalar or Swagger UI), enabled only in development or behind authentication.
 - `[Backend]` Validation approach: built-in .NET validation or a library such as FluentValidation.
-- `[Backend]` Error model: exceptions mapped globally or a `Result` type returned by slices.
+- `[Backend]` Error model of slices and HTTP mapping. The domain throws `DomainException` with a stable code ([ADR-0010](adr/0010-data-model-and-user-isolation.md)).
 - `[Backend]` Mapping: manual projections (`Select`) or a mapping library.
 - `[Backend]` Whether a mediator library is used (default: no, the endpoint calls the slice directly).
-- `[DB]` Global query filters and `SaveChanges` interceptor (see also [authentication.md](authentication.md)).
+- ✅ `[DB]` Query filter and `SaveChanges` interceptor — [database/user-isolation.md](../database/user-isolation.md).
 - Architecture-test library → see [testing-strategy.md](testing-strategy.md).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

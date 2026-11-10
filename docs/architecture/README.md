@@ -32,11 +32,14 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0007](adr/0007-tech-stack.md) | Technology stack (retroactive) | Accepted | 2026-11-09 |
 | [0008](adr/0008-local-development-environment.md) | Local development environment | Accepted | 2026-11-09 |
 | [0009](adr/0009-repository-workflow.md) | Repository workflow — branches, commits and dependency updates | Accepted | 2026-11-09 |
+| [0010](adr/0010-data-model-and-user-isolation.md) | Data model, keys and per-user isolation | Accepted | 2026-11-10 |
+| [0011](adr/0011-persistence-testing.md) | Persistence tests — one container, one database per test class | Accepted | 2026-11-10 |
 
 ## Current state
 
 - **Initial architecture complete**: stack (ADR-0007), authentication (ADR-0001), backend structure (ADR-0002), endpoint style (ADR-0003), UI library (ADR-0004, documented in [frontend/ui-components.md](../frontend/ui-components.md)), license (ADR-0005), testing strategy (ADR-0006), repository layout.
 - **Repository skeleton created** by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx` with the three projects and three test projects, Angular workspace with pnpm and Vitest, Compose with PostgreSQL. No feature is implemented yet; the GitHub repository is not published yet.
+- **Data model decided** by `[DB]` (ADR-0010, ADR-0011): see [database/README.md](../database/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -53,6 +56,8 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-09 | Monorepo layout with `.github/`, `backend/`, `frontend/`, `docs/` and project-wide files at the root | [repository-structure.md](repository-structure.md) |
 | 2026-11-09 | Database in Docker and applications on the host; versioned development defaults; PostgreSQL 18 pinned once in Compose and read by Testcontainers; pnpm 11 | [ADR-0008](adr/0008-local-development-environment.md) |
 | 2026-11-09 | Repository `personal-finance` (projects `PersonalFinance.*`), strict GitHub Flow with squash merge, commits `type(area[/module])`, Dependabot | [ADR-0009](adr/0009-repository-workflow.md) |
+| 2026-11-10 | `Guid` keys everywhere, snake_case tables, named query filter + composite foreign keys `(user_id, id)`, signed amounts, transfers as two legs, computed balances, budgets with `effective_from` (decided in `[DB]`) | [ADR-0010](adr/0010-data-model-and-user-isolation.md) |
+| 2026-11-10 | Persistence tests: one container per run, migrated template, one database per test class; `Infrastructure.Tests` and `Testing` projects (decided in `[DB]`) | [ADR-0011](adr/0011-persistence-testing.md) |
 
 ## Tests
 
@@ -69,15 +74,18 @@ Architectural choices are made assuming the app may become multi-user and accept
 Questions raised here that belong to another conversation. Each one is detailed in the linked document. Resolved items are marked ✅ with the place where they were decided.
 
 ### `[DB]`
-- `UserId` on every owned entity, global query filters, `SaveChanges` interceptor for `UserId` / `CreatedAt` / `UpdatedAt` — [authentication.md](authentication.md), [backend-structure.md](backend-structure.md)
-- Identity key type (`string` vs `Guid`) and table naming — [authentication.md](authentication.md)
+- ✅ `UserId` on every owned entity, global query filters, `SaveChanges` interceptor for `UserId` / `CreatedAt` / `UpdatedAt` — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md), [database/user-isolation.md](../database/user-isolation.md)
+- ✅ Identity key type (`Guid`) and table naming (snake_case) — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md), [database/conventions.md](../database/conventions.md)
 - ✅ PostgreSQL version pinned once, shared by Compose and Testcontainers — decided in `[DevOps]`, [ADR-0008](adr/0008-local-development-environment.md)
 
 ### `[Backend]`
 - Auth endpoints (`MapIdentityApi` or custom, registration disabled), CSRF, password / lockout / cookie values, login rate limiting, Data Protection keys — [authentication.md](authentication.md)
 - Authorization fallback policy, `IEndpoint` discovery mechanics, OpenAPI UI — [backend-structure.md](backend-structure.md)
-- Validation approach, error model (exceptions or `Result`), mapping, mediator or not — [backend-structure.md](backend-structure.md)
-- Architecture-test library, database reset between tests, test authentication, expected status for cross-user access, Testcontainers fixture on `PostgresImage.Name` — [testing-strategy.md](testing-strategy.md)
+- Validation approach, mapping, mediator or not — [backend-structure.md](backend-structure.md)
+- ✅ Error model, domain side: domain errors are exceptions (`DomainException` with a stable code) — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md); the HTTP mapping stays in `[Backend]`
+- Architecture-test library, test authentication, expected status for cross-user access — [testing-strategy.md](testing-strategy.md)
+- ✅ Testcontainers fixture on `PostgresImage.Name` and database reset between tests — decided in `[DB]`: one container per run, migrated template, one database per test class, [ADR-0011](adr/0011-persistence-testing.md), [database/testing.md](../database/testing.md)
+- From `[DB]`: exposure of signed amounts in the API, HTTP status for concurrency conflicts, creation of default categories at startup — [database/README.md](../database/README.md#to-do--open-questions)
 
 ### `[Frontend]`
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
@@ -98,4 +106,4 @@ Questions raised here that belong to another conversation. Each one is detailed 
 None for the initial phase. This macro reopens when a new cross-cutting decision is needed (e.g. multi-user rollout, Worker host, native clients): each one gets its own ADR.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

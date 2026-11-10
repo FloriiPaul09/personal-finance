@@ -10,8 +10,8 @@ Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its c
 
 ### Identity store
 
-- ASP.NET Core Identity with EF Core stores, on the same PostgreSQL database and `DbContext` as the domain (the application `DbContext` derives from `IdentityDbContext<ApplicationUser>`).
-- `ApplicationUser` extends `IdentityUser`. It lives outside the domain entities: domain entities only reference the owner by `UserId`.
+- ASP.NET Core Identity with EF Core stores, on the same PostgreSQL database and `DbContext` as the domain (the application `DbContext` derives from `IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>`).
+- `ApplicationUser` extends `IdentityUser<Guid>` (table `users`). It lives outside the domain entities: domain entities only reference the owner by `UserId` ([ADR-0010](adr/0010-data-model-and-user-isolation.md)).
 
 ### Session
 
@@ -36,7 +36,7 @@ Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its c
 ### Data ownership
 
 - Every user-owned entity (account, category, transaction, budget, recurrence, tag) has a `UserId` from the first migration.
-- Every query is filtered by the current user (e.g. EF Core global query filters), so a missing filter cannot leak another user's data.
+- Every query is filtered by the current user (named EF Core query filter `UserScope`), and composite foreign keys `(user_id, id)` let the database reject references between users ([database/user-isolation.md](../database/user-isolation.md)).
 
 ### Supporting pieces required
 
@@ -82,9 +82,9 @@ To write with the implementation (`[Backend]`), following [testing-strategy.md](
 - `[Backend]` CSRF: `SameSite=Strict` as baseline; decide whether to add antiforgery tokens (Angular has built-in XSRF support).
 - `[Backend]` Confirm password, lockout and cookie lifetime values; rate limiting on login.
 - `[Backend]` / `[DevOps]` Storage of Data Protection keys.
-- `[DB]` `UserId` on every owned entity, global query filters, Identity key type (`string` vs `Guid`) and table naming.
+- ✅ `[DB]` `UserId` on every owned entity, query filter, Identity key type (`Guid`) and table naming (snake_case, `users`) — [ADR-0010](adr/0010-data-model-and-user-isolation.md), [database/user-isolation.md](../database/user-isolation.md).
 - `[DevOps]` HTTPS / reverse proxy; how the app is reached from the phone (LAN/VPN vs public exposure) — still undecided.
 - `[Frontend]` Login page, route guard, HTTP interceptor that redirects to login on `401`.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

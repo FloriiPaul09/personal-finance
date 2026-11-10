@@ -23,7 +23,8 @@ Coverage follows these risks, not a percentage.
 | Level | Tools | What it covers | Location |
 |---|---|---|---|
 | Domain unit | xUnit v3 | Every business rule in `Domain` | `backend/tests/Domain.Tests` |
-| API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, migrations, query filters, authentication | `backend/tests/Api.Tests` |
+| Persistence integration | xUnit v3 + Testcontainers (real PostgreSQL) | Migrations, constraints, composite keys, query filter, interceptor, default data ([ADR-0011](adr/0011-persistence-testing.md)) | `backend/tests/Infrastructure.Tests` |
+| API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, query filters, authentication | `backend/tests/Api.Tests` |
 | Architecture | Plain reflection today; an architecture-test library (choice in `[Backend]`) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing) | `backend/tests/Architecture.Tests` |
 | Frontend unit | Vitest through the Angular `@angular/build:unit-test` builder, jsdom | Shared components and logic: amount input, date adapter, services with logic | `frontend/src/**/*.spec.ts` |
 | End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` |
@@ -44,9 +45,9 @@ Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.
 
 ### Integration tests
 
-- One PostgreSQL container per test run (not per test), with migrations applied at start: the same migrations used in production are exercised.
-- **Same PostgreSQL image as Docker Compose**: the version is written only in the `db` service of `compose.yaml`; tests read it through `PostgresImage.Name` (`Api.Tests/Infrastructure`) ([ADR-0008](adr/0008-local-development-environment.md)).
-- Data isolated between tests (reset strategy chosen in `[Backend]`).
+- One PostgreSQL container per test run (not per test), started by an xUnit v3 assembly fixture; migrations are applied once to a **template database**: the same migrations used in production are exercised ([ADR-0011](adr/0011-persistence-testing.md)).
+- **Same PostgreSQL image as Docker Compose**: the version is written only in the `db` service of `compose.yaml`; tests read it through `PostgresImage.Name` (today in `Api.Tests/Infrastructure`, moving to the shared `Testing` support project) ([ADR-0008](adr/0008-local-development-environment.md)).
+- **One database per test class**, cloned from the template; classes run in parallel and nothing is reset. Every test creates its own users and never asserts on global counts. Details: [database/testing.md](../database/testing.md).
 - Docker is required to run them, locally and in CI.
 
 ### Coverage
@@ -67,6 +68,7 @@ Measured for backend and frontend and shown in CI, **without a mandatory thresho
 | Testcontainers instead of an in-memory database | Query filters, migrations and PostgreSQL behavior are tested for real | [ADR-0006](adr/0006-testing-strategy.md) |
 | Coverage measured, no threshold | Thresholds push toward tests written for the number | [ADR-0006](adr/0006-testing-strategy.md) |
 | PostgreSQL image read from `compose.yaml` | One version for development, tests and CI | [ADR-0008](adr/0008-local-development-environment.md) |
+| One container per run, migrated template, one database per test class; `Infrastructure.Tests` and `Testing` projects | Parallel and isolated tests without reset code; one fixture for every integration project | [ADR-0011](adr/0011-persistence-testing.md) |
 | xUnit v3 on Microsoft Testing Platform; Vitest through the Angular builder | Default runners of the chosen tool versions | [ADR-0008](adr/0008-local-development-environment.md) |
 
 ## Tests
@@ -77,15 +79,16 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 
 - **More contributors**: add a coverage rule (minimum threshold or "no decrease" on pull requests) with a new ADR; the minimum required list above becomes the review checklist.
 - **More modules**: test folders mirror `Features/<Module>` in the API and the modules in `Domain`.
-- **Worker** (roadmap): its own integration tests on the same PostgreSQL setup; `PostgresImage` moves to a shared test support project.
+- **Worker** (roadmap): its own integration tests, reusing the fixture of the `Testing` support project.
 - **Slower test suite**: run test projects in parallel, split CI jobs, move end-to-end tests to the main branch or a nightly run.
 - **Multi-user**: already covered by the isolation tests required on every endpoint.
 
 ## To do / open questions
 
-- `[Backend]` Architecture-test library; Testcontainers fixture on `PostgresImage.Name`; database reset strategy between tests; how tests authenticate (real login or a test authentication handler); expected status for cross-user access; test data builders.
+- `[Backend]` Architecture-test library; how tests authenticate (real login or a test authentication handler); expected status for cross-user access; endpoint-level test data builders (persistence builders live in `Testing`).
+- ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_
