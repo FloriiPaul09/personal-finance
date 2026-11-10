@@ -51,10 +51,11 @@ public sealed class DatabaseServerTests(DatabaseServer server) : DatabaseTest(se
         }
 
         await using var other = await second.OpenConnectionAsync(cancellationToken);
-        var table = await ScalarAsync<object>(other, "SELECT to_regclass('isolation_probe')");
+        // to_regclass returns a regclass, which Npgsql does not read as object: ask for a boolean instead.
+        var tableExists = await ScalarAsync<bool>(other, "SELECT to_regclass('isolation_probe') IS NOT NULL");
 
         Assert.NotEqual(first.Name, second.Name);
-        Assert.True(table is null or DBNull);
+        Assert.False(tableExists);
     }
 
     private static async Task<T> ScalarAsync<T>(NpgsqlConnection connection, string sql)
