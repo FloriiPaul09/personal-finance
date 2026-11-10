@@ -78,7 +78,7 @@ Names that must be unique without regard to case are stored twice: `name` as typ
 
 ### Timestamps
 
-- `created_at` and `updated_at` on every owned table, set by the `SaveChanges` interceptor from `TimeProvider` ([user-isolation.md](user-isolation.md#interceptor)). Never set by slices, never by database defaults.
+- `created_at` and `updated_at` on every owned table except the link table `transaction_tags`, set by the `SaveChanges` interceptor from `TimeProvider` ([user-isolation.md](user-isolation.md#interceptor)). Never set by slices, never by database defaults.
 - Tests use a fixed clock.
 
 ### Concurrency
