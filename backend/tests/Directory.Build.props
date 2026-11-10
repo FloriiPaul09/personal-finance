@@ -2,13 +2,16 @@
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <!-- Every test project is an xUnit v3 executable run by Microsoft Testing Platform (see global.json). -->
-  <PropertyGroup>
+  <!--
+    Every test project is an xUnit v3 executable run by Microsoft Testing Platform (see global.json).
+    PersonalFinance.Testing is a support library, not a test project (ADR-0011).
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'PersonalFinance.Testing'">
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'PersonalFinance.Testing'">
     <PackageReference Include="xunit.v3" />
     <Using Include="Xunit" />
   </ItemGroup>

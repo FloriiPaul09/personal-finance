@@ -8,7 +8,7 @@ How the GitHub repository is used: name, branches and pull requests, commit mess
 
 ### Name
 
-Repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance). .NET solution `PersonalFinance.slnx` with `PersonalFinance.Api`, `PersonalFinance.Domain`, `PersonalFinance.Infrastructure` and `PersonalFinance.{Domain,Api,Architecture}.Tests`; folders keep short names (`src/Api`, `tests/Api.Tests`). The Angular project is also named `personal-finance`.
+Repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance). .NET solution `PersonalFinance.slnx` with `PersonalFinance.Api`, `PersonalFinance.Domain`, `PersonalFinance.Infrastructure` and `PersonalFinance.{Domain,Infrastructure,Api,Architecture}.Tests` plus the test support library `PersonalFinance.Testing`; folders keep short names (`src/Api`, `tests/Api.Tests`). The Angular project is also named `personal-finance`.
 
 ### Branches and pull requests (GitHub Flow)
 
@@ -93,4 +93,4 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 - Move to pnpm 12 once Dependabot fully supports its lockfile.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

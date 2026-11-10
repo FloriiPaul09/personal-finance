@@ -36,8 +36,10 @@ backend/
 │       └── Identity/                 # ApplicationUser, Identity setup, initial user seeding (ADR-0001)
 └── tests/                            # see testing-strategy.md (ADR-0006)
     ├── Domain.Tests/                 # PersonalFinance.Domain.Tests — unit tests on business rules
+    ├── Infrastructure.Tests/         # PersonalFinance.Infrastructure.Tests — persistence tests, real PostgreSQL (ADR-0011)
     ├── Api.Tests/                    # PersonalFinance.Api.Tests — integration tests, real PostgreSQL via Testcontainers
-    └── Architecture.Tests/           # PersonalFinance.Architecture.Tests — dependency rules of this document
+    ├── Architecture.Tests/           # PersonalFinance.Architecture.Tests — dependency rules of this document
+    └── Testing/                      # PersonalFinance.Testing — shared test support (PostgreSQL fixture), not a test project
 ```
 
 Projects and root namespaces are `PersonalFinance.<Project>` ([ADR-0009](adr/0009-repository-workflow.md)); folders keep short names. Today the skeleton contains only `Program.cs` (with `GET /api/health`) and an assembly marker class in `Domain` and `Infrastructure` (`DomainAssembly`, `InfrastructureAssembly`) used by tests.

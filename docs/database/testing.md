@@ -6,7 +6,7 @@ How the domain model and the persistence layer are tested: domain unit tests, pe
 
 ## Current state
 
-Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)), **not implemented yet**: the fixture and the new projects arrive with the branch `feat/backend-test-infrastructure`, then the tests with the domain and persistence branches.
+Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)). **Test infrastructure set up** (`Testing` project, fixture, `Infrastructure.Tests` with the tests of the fixture itself); domain and persistence tests arrive with their branches. Until `AppDbContext` exists the template database is empty: the migrations are applied to it from `feat/backend-persistence` on.
 
 ### Projects
 
@@ -17,21 +17,33 @@ Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)), **not imp
 | `PersonalFinance.Api.Tests` | `backend/tests/Api.Tests` | Endpoint tests (`[Backend]`), same fixture |
 | `PersonalFinance.Testing` | `backend/tests/Testing` | Support library, **not** a test project: `PostgresImage`, fixtures, builders, fixed current user and clock |
 
-`PostgresImage` and `PostgresImageTests` move from `Api.Tests` to `Testing` and `Infrastructure.Tests`.
+`PostgresImage` lives in `Testing`, `PostgresImageTests` in `Infrastructure.Tests`. `Api.Tests` keeps a placeholder test until the first endpoint test (Microsoft Testing Platform fails a run with zero tests).
 
 ### Fixture
 
 ```
-test run ──► PostgresContainerFixture (assembly fixture, once)
+test run ──► DatabaseServer : PostgresServerFixture (assembly fixture, once)
                ├─ starts PostgresImage.Name with Testcontainers
-               └─ creates pf_template and applies all migrations
+               └─ creates pf_template and applies all migrations (InitializeTemplateAsync)
 
-each test class ──► TestDatabase (class fixture)
-               ├─ CREATE DATABASE pf_<random> TEMPLATE pf_template
-               └─ connection string for DbContexts or WebApplicationFactory
+each test class ──► DatabaseForClassAsync(test class), created on first use and cached
+               ├─ CREATE DATABASE pf_test_<random> TEMPLATE pf_template
+               └─ TestDatabase: name + connection string for DbContexts or WebApplicationFactory
 ```
 
-- **One container per run**: `[assembly: AssemblyFixture(typeof(PostgresContainerFixture))]` (xUnit v3) in each integration test project.
+- **One container per run**: each integration test project declares a `DatabaseServer` deriving from `PostgresServerFixture` (in `Testing`) and registers it with `[assembly: AssemblyFixture(typeof(DatabaseServer))]` (xUnit v3). The subclass decides how the template is prepared (migrations).
+- **Database per class without a class fixture**: xUnit fixtures cannot depend on each other, so the assembly fixture creates the class databases itself and caches them by test class. Test classes derive from `DatabaseTest`, which receives the server in its constructor and exposes the class `Database`:
+
+  ```csharp
+  public sealed class AccountPersistenceTests(DatabaseServer server) : DatabaseTest(server)
+  {
+      [Fact]
+      public async Task Account_RoundTrips() { /* uses Database.ConnectionString */ }
+  }
+  ```
+
+- **Extra databases**: `Server.CreateDatabaseAsync()` clones one more database for a test that needs it (e.g. to compare two databases).
+- Clones are serialized by the server (a lock around `CREATE DATABASE`): PostgreSQL copies the template safely and the cost stays in the tens of milliseconds per class.
 - **Template database**: migrated once; connections to it are closed before cloning (PostgreSQL refuses to copy a database in use).
 - **One database per test class**: cloned from the template in a few tens of milliseconds; classes run in parallel; no reset, no Respawn.
 - The container and every database disappear at the end of the run.
@@ -56,6 +68,7 @@ each test class ──► TestDatabase (class fixture)
 
 | Area | Examples |
 |---|---|
+| Test infrastructure | The class database runs the PostgreSQL version pinned in Compose; it is a clone, not the template; it is shared by the tests of the class; two clones do not share data (`DatabaseServerTests`); the image is pinned (`PostgresImageTests`) |
 | Migrations | No pending model changes; the template is built from all migrations |
 | Mapping | Every entity round-trips (save, read in a new context, compare); `DateOnly` stays the same day; `numeric(18,2)` keeps the value |
 | Constraints | Each `CHECK`, unique key and delete behavior of [conventions.md](conventions.md#tests) |

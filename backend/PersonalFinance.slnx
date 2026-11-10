@@ -8,5 +8,7 @@
     <Project Path="tests/Api.Tests/PersonalFinance.Api.Tests.csproj" />
     <Project Path="tests/Architecture.Tests/PersonalFinance.Architecture.Tests.csproj" />
     <Project Path="tests/Domain.Tests/PersonalFinance.Domain.Tests.csproj" />
+    <Project Path="tests/Infrastructure.Tests/PersonalFinance.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Testing/PersonalFinance.Testing.csproj" />
   </Folder>
 </Solution>

@@ -25,8 +25,10 @@ personal-finance/
 │   │   └── Infrastructure/     # PersonalFinance.Infrastructure
 │   └── tests/
 │       ├── Domain.Tests/       # PersonalFinance.Domain.Tests
+│       ├── Infrastructure.Tests/ # PersonalFinance.Infrastructure.Tests
 │       ├── Api.Tests/          # PersonalFinance.Api.Tests
-│       └── Architecture.Tests/ # PersonalFinance.Architecture.Tests
+│       ├── Architecture.Tests/ # PersonalFinance.Architecture.Tests
+│       └── Testing/            # PersonalFinance.Testing — shared test support, not a test project
 ├── frontend/                   # Angular 22 workspace, pnpm, Vitest → frontend/app-structure.md
 ├── docs/                       # documentation by macro/micro category
 ├── compose.yaml                # db today; api and frontend (nginx) later → devops/docker.md
@@ -79,4 +81,4 @@ personal-finance/
 - `[Frontend]` Location of Playwright end-to-end tests; generation of the API client from OpenAPI.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

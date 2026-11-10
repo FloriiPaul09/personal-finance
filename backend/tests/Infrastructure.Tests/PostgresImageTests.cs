@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
+using PersonalFinance.Testing;
 
-namespace PersonalFinance.Api.Tests.Infrastructure;
+namespace PersonalFinance.Infrastructure.Tests;
 
 // Guards the decision in ADR-0008: one pinned PostgreSQL version, shared by Compose and Testcontainers.
 public partial class PostgresImageTests

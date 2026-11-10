@@ -46,7 +46,7 @@ Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.
 ### Integration tests
 
 - One PostgreSQL container per test run (not per test), started by an xUnit v3 assembly fixture; migrations are applied once to a **template database**: the same migrations used in production are exercised ([ADR-0011](adr/0011-persistence-testing.md)).
-- **Same PostgreSQL image as Docker Compose**: the version is written only in the `db` service of `compose.yaml`; tests read it through `PostgresImage.Name` (today in `Api.Tests/Infrastructure`, moving to the shared `Testing` support project) ([ADR-0008](adr/0008-local-development-environment.md)).
+- **Same PostgreSQL image as Docker Compose**: the version is written only in the `db` service of `compose.yaml`; tests read it through `PostgresImage.Name` (in the shared `Testing` support project) ([ADR-0008](adr/0008-local-development-environment.md)).
 - **One database per test class**, cloned from the template; classes run in parallel and nothing is reset. Every test creates its own users and never asserts on global counts. Details: [database/testing.md](../database/testing.md).
 - Docker is required to run them, locally and in CI.
 
