@@ -30,10 +30,15 @@ public static class PersistenceServiceCollectionExtensions
     /// PostgreSQL with snake_case names. The one place where the provider is configured: the API, the design-time tools
     /// and the tests all use it, so they build the same model.
     /// </summary>
-    public static DbContextOptionsBuilder UsePersonalFinanceDatabase(this DbContextOptionsBuilder options, string connectionString) =>
+    public static TBuilder UsePersonalFinanceDatabase<TBuilder>(this TBuilder options, string connectionString)
+        where TBuilder : DbContextOptionsBuilder
+    {
         options
             .UseNpgsql(connectionString)
             .UseSnakeCaseNamingConvention();
+
+        return options;
+    }
 
     /// <summary>Applies pending migrations (at API startup, docs/database/migrations.md).</summary>
     public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
