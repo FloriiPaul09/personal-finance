@@ -6,25 +6,25 @@ Data created automatically for a new user: the default categories. What they are
 
 ## Current state
 
-Decided ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)), **not implemented yet** (branch `feat/backend-default-categories`).
+Implemented ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)): the list in `Domain/Categories/DefaultCategories.cs`, the service `DefaultCategoriesInitializer` in `Infrastructure/Persistence`, registered by `AddPersistence`. Calling it when a user is created is up to `[Backend]` (initial user and registration).
 
 ### When
 
-Right after a user is created, in the same transaction:
+Right after a user is created:
 
 - the initial user created at first startup from `Auth__InitialUser__*` ([authentication.md](../architecture/authentication.md));
 - every future user created by registration.
 
-The creation runs with a fixed current user set to the new user ([user-isolation.md](user-isolation.md#ownership-marker-and-current-user)), so the query filter, the interceptor and composite keys apply as for any other data.
+`DefaultCategoriesInitializer.EnsureForUserAsync(userId)` works in its own context acting for the new user (`FixedCurrentUser`, [user-isolation.md](user-isolation.md#ownership-marker-and-current-user)), so the query filter, the interceptor and composite keys apply as for any other data. It is not part of the transaction that creates the user: it is idempotent instead, so the startup code can simply call it again at every start for the initial user, and a failed run is repaired by the next one.
 
 ### How
 
 - The list lives in the domain (`Domain/Categories/DefaultCategories`), as plain data: name, kind, subcategories.
-- An `Infrastructure` service creates the categories for a given user; the startup code of the initial user (`[Backend]`) and the future registration call it.
+- `DefaultCategories.CreateFor(userId)` builds the domain entities, parents before subcategories; `DefaultCategoriesInitializer` saves them.
 - Names are in Italian, like the user interface. They are user data: once created, the user renames, archives or adds categories freely.
-- Running it twice for the same user does nothing (the user already has categories).
+- A user who already has categories gets nothing: running it twice does nothing, and a user who deleted or archived defaults never gets them back. It returns whether it created the categories.
 
-### Proposed list
+### List
 
 | Kind | Category | Subcategories |
 |---|---|---|
@@ -52,11 +52,13 @@ The creation runs with a fixed current user set to the new user ([user-isolation
 | Per-user categories created with the user | Each user owns and edits them; isolation has no exceptions | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
 | No `HasData`, no global categories | The owner does not exist when migrations run; global rows would bypass isolation | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
 | Italian names | They are user data shown in the Italian interface | This document |
+| List confirmed by Paul on 2026-11-11 | — | This document |
+| Idempotent, outside the user creation transaction | Simple for the startup of the initial user; a failure is repaired at the next start | This document |
 
 ## Tests
 
-- Unit test: the list is valid for the domain (one level, children with the parent's kind, unique names per parent).
-- Integration tests (`Infrastructure.Tests`): a new user gets exactly the list; a second run adds nothing; two users get separate copies, invisible to each other.
+- Unit tests (`Domain.Tests/Categories/DefaultCategoriesTests`): 14 categories and 6 subcategories; subcategories have the kind of a top-level parent; names unique per kind and parent, as the database requires; "Altro" for both kinds; separate copies per user.
+- Integration tests (`Infrastructure.Tests/Persistence/DefaultCategoriesTests`): a new user gets exactly the list; a second run adds nothing; a user with own categories gets no defaults; two users get separate copies, invisible to each other.
 
 ## Scalability
 
@@ -66,8 +68,7 @@ The creation runs with a fixed current user set to the new user ([user-isolation
 
 ## To do / open questions
 
-- Confirm the proposed list (Paul).
-- `[Backend]` Call the service from the initial user startup and, later, from registration.
+- `[Backend]` Call `EnsureForUserAsync` after creating the initial user at startup and, later, after registration.
 
 ---
 _Last updated: 2026-11-10_

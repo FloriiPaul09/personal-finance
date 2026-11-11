@@ -23,6 +23,8 @@ public static class PersistenceServiceCollectionExtensions
                 .UsePersonalFinanceDatabase(connectionString)
                 .AddInterceptors(provider.GetRequiredService<OwnershipInterceptor>()));
 
+        services.TryAddScoped<DefaultCategoriesInitializer>();
+
         return services;
     }
 
