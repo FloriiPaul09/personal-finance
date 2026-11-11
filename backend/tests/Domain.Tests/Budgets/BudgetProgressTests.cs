@@ -113,7 +113,7 @@ public class BudgetProgressTests
     }
 
     [Fact]
-    public void Progress_WithoutBudget_IsNull() => Assert.Null(Calculate([], [_transport], new YearMonth(2026, 2)));
+    public void Progress_BeforeTheFirstEntry_IsNull() => Assert.Null(Calculate([], [_transport], new YearMonth(2025, 12)));
 
     [Fact]
     public void Progress_RejectsEntriesOfAnotherCategory()
