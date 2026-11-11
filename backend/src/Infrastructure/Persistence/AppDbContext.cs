@@ -62,6 +62,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
         builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
+
+        // Identity names its indexes itself; keep the snake_case convention of the other tables.
+        builder.Entity<ApplicationUser>().HasIndex(user => user.NormalizedEmail).HasDatabaseName("ix_users_normalized_email");
+        builder.Entity<ApplicationUser>().HasIndex(user => user.NormalizedUserName).HasDatabaseName("ix_users_normalized_user_name");
+        builder.Entity<IdentityRole<Guid>>().HasIndex(role => role.NormalizedName).HasDatabaseName("ix_roles_normalized_name");
     }
 
     // entity => entity.UserId == this.CurrentUserId, for every entity implementing IOwnedByUser.

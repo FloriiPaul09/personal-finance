@@ -59,11 +59,13 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.HasIndex(transaction => new { transaction.UserId, transaction.CategoryId, transaction.Date });
 
         // At most one outgoing and one incoming leg per transfer.
-        builder.HasIndex(transaction => transaction.TransferId, "ix_transactions_transfer_id_outgoing")
+        builder.HasIndex(transaction => transaction.TransferId, "OutgoingLeg")
+            .HasDatabaseName("ix_transactions_transfer_id_outgoing")
             .IsUnique()
             .HasFilter("transfer_id IS NOT NULL AND amount < 0");
 
-        builder.HasIndex(transaction => transaction.TransferId, "ix_transactions_transfer_id_incoming")
+        builder.HasIndex(transaction => transaction.TransferId, "IncomingLeg")
+            .HasDatabaseName("ix_transactions_transfer_id_incoming")
             .IsUnique()
             .HasFilter("transfer_id IS NOT NULL AND amount > 0");
     }
