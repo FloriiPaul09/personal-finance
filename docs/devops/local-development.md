@@ -60,7 +60,7 @@ cd frontend && pnpm install && pnpm start    # frontend → http://localhost:420
 | `backend/` | `dotnet test` | xUnit v3 on Microsoft Testing Platform, enabled in `global.json` |
 | `frontend/` | `pnpm test` (watch) or `pnpm test --watch=false` (single run) | Vitest through the Angular `@angular/build:unit-test` builder, jsdom |
 
-- `dotnet test` runs the three test projects of `PersonalFinance.slnx`. Integration tests that start PostgreSQL with Testcontainers need Docker running.
+- `dotnet test` runs the four test projects of `PersonalFinance.slnx` (`Testing` is a support library, not a test project). `Infrastructure.Tests` and `Api.Tests` start PostgreSQL with Testcontainers and need Docker running; `dotnet test --project tests/Domain.Tests` runs without Docker.
 - Microsoft Testing Platform fails a run that executes zero tests: every test project keeps at least one test (`Domain.Tests` has a placeholder until the first business rule).
 
 ### Repository layout
@@ -72,7 +72,7 @@ backend/
 ├── Directory.Build.props       # shared settings (net10.0, nullable, warnings as errors in CI)
 ├── Directory.Packages.props    # NuGet versions (Central Package Management)
 ├── src/Api | Domain | Infrastructure
-└── tests/Domain.Tests | Api.Tests | Architecture.Tests
+└── tests/Domain.Tests | Infrastructure.Tests | Api.Tests | Architecture.Tests | Testing (support library)
 frontend/                       # Angular 22 workspace, pnpm, Vitest
 ```
 
@@ -98,7 +98,7 @@ This document is verified by following it on a fresh clone: both test commands m
 ## To do / open questions
 
 - `[Frontend]` Playwright location and phone viewport; coverage provider for Vitest.
-- ✅ Testcontainers fixture and database per test class — decided in `[DB]` ([database/testing.md](../database/testing.md)); `PostgresImage` moves to the `Testing` support project with its implementation.
+- ✅ Testcontainers fixture and database per test class — decided and set up in `[DB]` ([database/testing.md](../database/testing.md)); `PostgresImage` lives in the `Testing` support project.
 - Optional `pnpm` scripts at the repository root are not planned: each area owns its tooling.
 
 ---

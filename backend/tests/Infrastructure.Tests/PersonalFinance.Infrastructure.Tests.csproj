@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Persistence tests on a real PostgreSQL (ADR-0011, docs/database/testing.md). Docker must be running. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Domain\PersonalFinance.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\PersonalFinance.Infrastructure.csproj" />
+    <ProjectReference Include="..\Testing\PersonalFinance.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

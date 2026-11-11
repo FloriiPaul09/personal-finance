@@ -1,6 +1,6 @@
 using YamlDotNet.RepresentationModel;
 
-namespace PersonalFinance.Api.Tests.Infrastructure;
+namespace PersonalFinance.Testing;
 
 /// <summary>
 /// The PostgreSQL image used by integration tests (Testcontainers).

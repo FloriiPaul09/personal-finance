@@ -13,7 +13,7 @@ The domain model of the application and its persistence: entities and business r
 | [user-isolation.md](user-isolation.md) | Ownership marker, current user, query filter, composite foreign keys, interceptor | Decided — ADR-0001, ADR-0010 |
 | [migrations.md](migrations.md) | Where migrations live, how they are created, reviewed and applied | Decided — ADR-0010 |
 | [default-data.md](default-data.md) | Default categories created for every new user | Decided — ADR-0010 |
-| [testing.md](testing.md) | Domain unit tests, persistence tests, Testcontainers fixture, database per test class | Decided — ADR-0011 |
+| [testing.md](testing.md) | Domain unit tests, persistence tests, Testcontainers fixture, database per test class | Decided — ADR-0011; fixture set up |
 
 ## Current state
 
@@ -21,8 +21,8 @@ Design decided, **implementation in progress**, one pull request per block:
 
 | Block | Branch | Status |
 |---|---|---|
-| Design and documentation | `docs/database-design` | This pull request |
-| Test infrastructure (fixture, `Testing`, `Infrastructure.Tests`) | `feat/backend-test-infrastructure` | Next |
+| Design and documentation | `docs/database-design` | Merged (#4) |
+| Test infrastructure (fixture, `Testing`, `Infrastructure.Tests`) | `feat/backend-test-infrastructure` | This pull request |
 | Domain entities and rules + unit tests | `feat/backend-domain-model` | To do |
 | `AppDbContext`, Identity, configurations, filter, interceptor, `InitialCreate` + persistence tests | `feat/backend-persistence` | To do |
 | Default categories + tests | `feat/backend-default-categories` | To do |

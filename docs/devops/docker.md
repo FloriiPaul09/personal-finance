@@ -29,7 +29,7 @@ compose.yaml (db.image) ──► docker compose up        (development, quick s
           └────────────────► PostgresImage.Name ──► Testcontainers (integration tests, CI)
 ```
 
-- `backend/tests/Api.Tests/Infrastructure/PostgresImage.cs` finds `compose.yaml` by walking up from the test output folder and reads `services.db.image`.
+- `backend/tests/Testing/PostgresImage.cs` (shared test support project, [ADR-0011](../architecture/adr/0011-persistence-testing.md)) finds `compose.yaml` by walking up from the test output folder and reads `services.db.image`.
 - The tag is pinned to `major.minor` (`18.6`): reproducible across machines, updated by Dependabot with a pull request.
 - The image is Debian-based, never Alpine: Alpine (musl) sorts and compares text differently from Debian (glibc), and tests must behave like production.
 - Major upgrades (e.g. 18 → 19) are excluded from Dependabot: they need a data migration (`pg_dump`/restore or `pg_upgrade`) and are planned by hand.
@@ -66,4 +66,4 @@ Not created yet. Target: an `api` image (multi-stage .NET build) and a `frontend
 - Upgrade path to PostgreSQL 19 when useful (not required before 2030).
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_

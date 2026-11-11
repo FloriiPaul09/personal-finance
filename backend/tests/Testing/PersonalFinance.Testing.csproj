@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Support library shared by the integration test projects (ADR-0011): PostgreSQL image, container and
+    database fixtures, test data helpers. It is not a test project: tests/Directory.Build.props skips it.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+</Project>

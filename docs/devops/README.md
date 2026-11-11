@@ -37,7 +37,7 @@ Everything needed to build, run, test and ship the project outside the applicati
 ## Tests
 
 - The test setup itself is verified by running `dotnet test` and `pnpm test --watch=false` on a fresh clone ([local-development.md](local-development.md#tests)).
-- `PostgresImageTests` (in `Api.Tests`) fails if the PostgreSQL image in `compose.yaml` is not pinned to `major.minor` or is Alpine-based.
+- `PostgresImageTests` (in `Infrastructure.Tests`) fails if the PostgreSQL image in `compose.yaml` is not pinned to `major.minor` or is Alpine-based.
 - `docker compose config` validates `compose.yaml`; it runs in CI from part 2.
 
 ## Scalability
@@ -56,4 +56,4 @@ Everything needed to build, run, test and ship the project outside the applicati
 - Create the GitHub repository and configure the ruleset on `main` ([repository-workflow.md](repository-workflow.md#protecting-main)).
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_
