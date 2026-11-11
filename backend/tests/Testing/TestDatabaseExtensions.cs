@@ -31,13 +31,16 @@ public static class TestDatabaseExtensions
         return user.Id;
     }
 
-    internal static AppDbContext CreateContext(string connectionString, Guid? userId, TimeProvider clock)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+    /// <summary>Options configured as in production, for services that create their own contexts.</summary>
+    public static DbContextOptions<AppDbContext> CreateOptions(this TestDatabase database, TimeProvider? clock = null) =>
+        CreateOptions(database.ConnectionString, clock ?? TestClock.Default);
+
+    internal static AppDbContext CreateContext(string connectionString, Guid? userId, TimeProvider clock) =>
+        new(CreateOptions(connectionString, clock), new FixedCurrentUser(userId));
+
+    private static DbContextOptions<AppDbContext> CreateOptions(string connectionString, TimeProvider clock) =>
+        new DbContextOptionsBuilder<AppDbContext>()
             .UsePersonalFinanceDatabase(connectionString)
             .AddInterceptors(new OwnershipInterceptor(clock))
             .Options;
-
-        return new AppDbContext(options, new FixedCurrentUser(userId));
-    }
 }

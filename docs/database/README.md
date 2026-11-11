@@ -12,7 +12,7 @@ The domain model of the application and its persistence: entities and business r
 | [conventions.md](conventions.md) | Naming, types, keys, constraints, indexes, timestamps, concurrency, EF configuration | Implemented — ADR-0010 |
 | [user-isolation.md](user-isolation.md) | Ownership marker, current user, query filter, composite foreign keys, interceptor | Implemented — ADR-0001, ADR-0010 |
 | [migrations.md](migrations.md) | Where migrations live, how they are created, reviewed and applied | Implemented — ADR-0010 |
-| [default-data.md](default-data.md) | Default categories created for every new user | Decided — ADR-0010 |
+| [default-data.md](default-data.md) | Default categories created for every new user | Implemented — ADR-0010 |
 | [testing.md](testing.md) | Domain unit tests, persistence tests, Testcontainers fixture, database per test class | Implemented — ADR-0011 |
 
 ## Current state
@@ -24,8 +24,8 @@ Design decided, **implementation in progress**, one pull request per block:
 | Design and documentation | `docs/database-design` | Merged (#4) |
 | Test infrastructure (fixture, `Testing`, `Infrastructure.Tests`) | `feat/backend-test-infrastructure` | Merged (#5) |
 | Domain entities and rules + unit tests | `feat/backend-domain-model` | Merged (#6) |
-| `AppDbContext`, Identity, configurations, filter, interceptor, `InitialCreate` + persistence tests | `feat/backend-persistence` | This pull request |
-| Default categories + tests | `feat/backend-default-categories` | To do |
+| `AppDbContext`, Identity, configurations, filter, interceptor, `InitialCreate` + persistence tests | `feat/backend-persistence` | Pull request #7 |
+| Default categories + tests | `feat/backend-default-categories` | This pull request |
 
 In short:
 
@@ -63,9 +63,8 @@ In short:
 
 ## To do / open questions
 
-- Confirm the default categories ([default-data.md](default-data.md)).
 - Refunds on expense categories ([domain-model.md](domain-model.md#scalability)).
-- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts, concurrency status, cross-user status; `[DevOps]`: CI with Docker, backups before migrations).
+- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts, concurrency status, cross-user status, calling `DefaultCategoriesInitializer` for new users; `[DevOps]`: CI with Docker, backups before migrations).
 
 ---
 _Last updated: 2026-11-10_

@@ -85,7 +85,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - ✅ Error model, domain side: domain errors are exceptions (`DomainException` with a stable code) — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md); the HTTP mapping stays in `[Backend]`
 - Architecture-test library, test authentication, expected status for cross-user access — [testing-strategy.md](testing-strategy.md)
 - ✅ Testcontainers fixture on `PostgresImage.Name` and database reset between tests — decided in `[DB]`: one container per run, migrated template, one database per test class, [ADR-0011](adr/0011-persistence-testing.md), [database/testing.md](../database/testing.md)
-- From `[DB]`: exposure of signed amounts in the API, HTTP status for concurrency conflicts, creation of default categories at startup — [database/README.md](../database/README.md#to-do--open-questions)
+- From `[DB]`: exposure of signed amounts in the API, HTTP status for concurrency conflicts (`DbUpdateConcurrencyException`), HTTP current user (`ICurrentUser`), call `DefaultCategoriesInitializer.EnsureForUserAsync` after creating the initial user and at registration — [database/README.md](../database/README.md#to-do--open-questions)
 
 ### `[Frontend]`
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
