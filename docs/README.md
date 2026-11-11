@@ -5,7 +5,7 @@ Index of the project documentation. Each macro category matches a conversation t
 | Macro category | Folder | Status |
 |---|---|---|
 | Architecture | [architecture/](architecture/README.md) | Initial decisions complete |
-| Database & domain | [database/](database/README.md) | Design decided — implementation in progress |
+| Database & domain | [database/](database/README.md) | Implemented (MVP data model) |
 | Backend API | `backend/` | Not started |
 | Frontend | [frontend/](frontend/README.md) | In progress |
 | DevOps | [devops/](devops/README.md) | In progress — repository skeleton and local environment done, CI next |

@@ -17,15 +17,15 @@ The domain model of the application and its persistence: entities and business r
 
 ## Current state
 
-Design decided, **implementation in progress**, one pull request per block:
+**Implemented**: the data model of the MVP is complete on `main`, one pull request per block:
 
 | Block | Branch | Status |
 |---|---|---|
 | Design and documentation | `docs/database-design` | Merged (#4) |
 | Test infrastructure (fixture, `Testing`, `Infrastructure.Tests`) | `feat/backend-test-infrastructure` | Merged (#5) |
 | Domain entities and rules + unit tests | `feat/backend-domain-model` | Merged (#6) |
-| `AppDbContext`, Identity, configurations, filter, interceptor, `InitialCreate` + persistence tests | `feat/backend-persistence` | Pull request #7 |
-| Default categories + tests | `feat/backend-default-categories` | This pull request |
+| `AppDbContext`, Identity, configurations, filter, interceptor, `InitialCreate` + persistence tests | `feat/backend-persistence` | Merged (#7) |
+| Default categories + tests | `feat/backend-default-categories` | Merged (#8) |
 
 In short:
 

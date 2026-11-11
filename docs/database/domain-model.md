@@ -237,7 +237,6 @@ Integration tests in `Infrastructure.Tests` check that constraints enforce the s
 
 - `[Backend]` Whether the API exposes signed amounts or absolute values plus kind.
 - `[Frontend]` Category icons and colors (new columns when needed).
-- Final list of default categories ([default-data.md](default-data.md)).
 - Refunds on expense categories (see Scalability), to decide when the first need appears.
 
 ---
