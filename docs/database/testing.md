@@ -6,7 +6,7 @@ How the domain model and the persistence layer are tested: domain unit tests, pe
 
 ## Current state
 
-Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)). **Test infrastructure set up** (`Testing` project, fixture, `Infrastructure.Tests` with the tests of the fixture itself); domain and persistence tests arrive with their branches. Until `AppDbContext` exists the template database is empty: the migrations are applied to it from `feat/backend-persistence` on.
+Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)). **Implemented**: `Testing` project and fixture, domain unit tests (`Domain.Tests`), persistence and isolation tests (`Infrastructure.Tests/Persistence`). The template database gets every migration once per run.
 
 ### Projects
 
@@ -31,7 +31,7 @@ each test class ──► DatabaseForClassAsync(test class), created on first us
                └─ TestDatabase: name + connection string for DbContexts or WebApplicationFactory
 ```
 
-- **One container per run**: each integration test project declares a `DatabaseServer` deriving from `PostgresServerFixture` (in `Testing`) and registers it with `[assembly: AssemblyFixture(typeof(DatabaseServer))]` (xUnit v3). The subclass decides how the template is prepared (migrations).
+- **One container per run**: each integration test project declares a `DatabaseServer` deriving from `PostgresServerFixture` (in `Testing`) and registers it with `[assembly: AssemblyFixture(typeof(DatabaseServer))]` (xUnit v3). The fixture applies every migration to the template with pooling off, so no connection stays open on it.
 - **Database per class without a class fixture**: xUnit fixtures cannot depend on each other, so the assembly fixture creates the class databases itself and caches them by test class. Test classes derive from `DatabaseTest`, which receives the server in its constructor and exposes the class `Database`:
 
   ```csharp
@@ -54,8 +54,8 @@ each test class ──► DatabaseForClassAsync(test class), created on first us
 - **Every test creates its own users** (`TestUsers.Create()`, unique email) and works only with them. Tests in the same class share a database, never data.
 - **Never assert on global counts** (`db.Accounts.Count()` without a user): another test of the class may have added rows. Assert through the current user, or by id.
 - **Builders** in `Testing` create valid entities with sensible defaults (`AnAccount().WithCurrency("EUR")`), so a test states only what matters to it.
-- **Fixed clock** (`FakeTimeProvider` or a project helper) and **fixed current user** (`TestCurrentUser`) for contexts created in tests.
-- A helper creates one `AppDbContext` per user (`db.For(userA)`), to write isolation tests naturally.
+- **Fixed clock** (`TestClock`, default 2026-11-10 12:00 UTC) and **fixed current user** for contexts created in tests: `Database.CreateContext(userId, clock)` builds an `AppDbContext` configured as in production and acting for that user (nobody when null).
+- `Database.CreateUserAsync()` creates a user with a unique email; `SampleData.CreateAsync` (in `Infrastructure.Tests`) saves one of each entity for a user through the domain.
 - PostgreSQL errors are asserted by `SqlState` (`23503` foreign key, `23505` unique, `23514` check), not by message.
 
 ### Domain unit tests
@@ -69,7 +69,7 @@ each test class ──► DatabaseForClassAsync(test class), created on first us
 | Area | Examples |
 |---|---|
 | Test infrastructure | The class database runs the PostgreSQL version pinned in Compose; it is a clone, not the template; it is shared by the tests of the class; two clones do not share data (`DatabaseServerTests`); the image is pinned (`PostgresImageTests`) |
-| Migrations | No pending model changes; the template is built from all migrations |
+| Model | No pending model changes; every migration applied to the template; every owned entity has the `UserScope` filter and the `(user_id, id)` key; snake_case tables (`ModelTests`) |
 | Mapping | Every entity round-trips (save, read in a new context, compare); `DateOnly` stays the same day; `numeric(18,2)` keeps the value |
 | Constraints | Each `CHECK`, unique key and delete behavior of [conventions.md](conventions.md#tests) |
 | Concurrency | A stale `xmin` raises `DbUpdateConcurrencyException` |

@@ -34,6 +34,11 @@ public sealed class Transaction : OwnedEntity
         Description = Texts.EnsureDescription(description, DescriptionMaxLength);
     }
 
+    /// <summary>Used by EF Core when materializing entities.</summary>
+    private Transaction()
+    {
+    }
+
     public Guid AccountId { get; private set; }
 
     /// <summary>Never changes: an income cannot become an expense or a transfer leg.</summary>

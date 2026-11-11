@@ -6,7 +6,7 @@ How the data of one user is kept invisible and unchangeable for every other user
 
 ## Current state
 
-Decided ([ADR-0001](../architecture/adr/0001-authentication.md), [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)), **not implemented yet** (branch `feat/backend-persistence`).
+Implemented ([ADR-0001](../architecture/adr/0001-authentication.md), [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)) in `backend/src/Infrastructure/Persistence`: `AppDbContext` (filter), `OwnershipInterceptor`, `ICurrentUser` / `FixedCurrentUser`, `UserIsolationException`, composite keys in `Configurations/`. The HTTP current user arrives with `[Backend]`; until then the API acts as nobody (`FixedCurrentUser.None`).
 
 ### Three independent layers
 
@@ -33,7 +33,7 @@ A leak needs all three layers to fail at the same time.
 | Implementation | Where | User |
 |---|---|---|
 | HTTP current user | `Api` | The authenticated user of the request; none for anonymous requests |
-| Fixed current user | `Infrastructure` | Set explicitly: creation of default data for a new user, tests, the future `Worker` (one scope per user) |
+| Fixed current user (`FixedCurrentUser`) | `Infrastructure` | Set explicitly: creation of default data for a new user, tests, the future `Worker` (one scope per user) |
 
 `AppDbContext` receives `ICurrentUser` through dependency injection; the filter reads it at query time, not when the model is built.
 
@@ -42,8 +42,8 @@ A leak needs all three layers to fail at the same time.
 - One **named filter, `UserScope`**, added in a loop to every entity type that implements `IOwnedByUser`:
 
   ```csharp
-  // Infrastructure/Persistence/AppDbContext.cs (shape)
-  entity.HasQueryFilter(QueryFilters.UserScope, e => e.UserId == CurrentUserId);
+  // Infrastructure/Persistence/AppDbContext.cs — built with expression trees for each owned type
+  builder.Entity(clrType).HasQueryFilter(QueryFilters.UserScope, entity => entity.UserId == this.CurrentUserId);
   ```
 
 - With no current user, `CurrentUserId` is a value that matches nothing: anonymous code reads nothing.

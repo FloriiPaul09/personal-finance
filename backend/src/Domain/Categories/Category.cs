@@ -24,6 +24,13 @@ public sealed class Category : OwnedEntity
         }
     }
 
+    /// <summary>Used by EF Core when materializing entities.</summary>
+    private Category()
+    {
+        Name = null!;
+        NormalizedName = null!;
+    }
+
     public string Name { get; private set; }
 
     public string NormalizedName { get; private set; }

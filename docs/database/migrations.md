@@ -6,24 +6,25 @@ How the schema evolves: where EF Core migrations live, how they are created and 
 
 ## Current state
 
-Decided ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)), **not implemented yet**: the first migration, `InitialCreate`, arrives with the branch `feat/backend-persistence`.
+Implemented ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)): first migration `InitialCreate`, applied at API startup (`MigrateDatabaseAsync` in `Program.cs`).
 
 ### Where they live
 
 - Code-first migrations in `backend/src/Infrastructure/Persistence/Migrations`.
 - `dotnet-ef` is pinned as a **local tool** (`backend/.config/dotnet-tools.json`): `dotnet tool restore` installs the same version for everyone.
-- A design-time factory (`IDesignTimeDbContextFactory`) in `Infrastructure` builds the `DbContext` for the tools with the development connection string, overridable with `ConnectionStrings__Default`.
+- A design-time factory (`DesignTimeDbContextFactory`) in `Infrastructure` builds the `DbContext` for the tools with the development connection string, overridable with `ConnectionStrings__Default`; the API's `Program.cs` is never run by the tools.
+- `Api` is the startup project for the tools (it references `Microsoft.EntityFrameworkCore.Design`, not shipped).
 
 ### Commands (from `backend/`)
 
 ```powershell
 dotnet tool restore
 # create a migration after changing the model
-dotnet ef migrations add <Name> --project src/Infrastructure --startup-project src/Infrastructure
-# SQL script, to review what a migration does
-dotnet ef migrations script <From> <To> --project src/Infrastructure --startup-project src/Infrastructure
+dotnet ef migrations add <Name> --project src/Infrastructure --startup-project src/Api --output-dir Persistence/Migrations
+# SQL script, to review what a migration does (0 = empty database)
+dotnet ef migrations script <From> <To> --project src/Infrastructure --startup-project src/Api
 # apply to the development database (the API also does it at startup)
-dotnet ef database update --project src/Infrastructure --startup-project src/Infrastructure
+dotnet ef database update --project src/Infrastructure --startup-project src/Api
 ```
 
 Names are PascalCase and describe the change: `InitialCreate`, `AddTransactionNotes`.

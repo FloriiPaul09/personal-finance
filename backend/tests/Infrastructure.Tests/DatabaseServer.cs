@@ -6,8 +6,8 @@ using PersonalFinance.Testing;
 namespace PersonalFinance.Infrastructure.Tests;
 
 /// <summary>
-/// The PostgreSQL server of this test run (ADR-0011). From the persistence branch on, it applies the
-/// migrations to the template database by overriding <see cref="PostgresServerFixture.InitializeTemplateAsync"/>.
+/// The PostgreSQL server of this test run (ADR-0011): one container, a template database with every migration applied,
+/// one database per test class.
 /// </summary>
 public sealed class DatabaseServer : PostgresServerFixture
 {

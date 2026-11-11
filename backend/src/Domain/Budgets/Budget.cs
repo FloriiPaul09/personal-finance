@@ -23,6 +23,11 @@ public sealed class Budget : OwnedEntity
         ChangeAmount(amount);
     }
 
+    /// <summary>Used by EF Core when materializing entities.</summary>
+    private Budget()
+    {
+    }
+
     public Guid CategoryId { get; private set; }
 
     /// <summary>Always the first day of a month.</summary>

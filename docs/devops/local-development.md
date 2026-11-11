@@ -50,6 +50,7 @@ cd frontend && pnpm install && pnpm start    # frontend → http://localhost:420
 
 - The frontend calls the API on the same origin (`/api/...`): `frontend/proxy.conf.json` forwards those calls to `http://localhost:5080`. In containers, nginx plays the same role ([ADR-0001](../architecture/adr/0001-authentication.md)).
 - The API listens on port 5080 (`backend/src/Api/Properties/launchSettings.json`); `GET /api/health` answers `Healthy` when it is up.
+- At startup the API applies pending migrations to the database, so the database must be running first ([database/migrations.md](../database/migrations.md)). The tools for migrations are restored with `dotnet tool restore` in `backend/`.
 - No `.env` is needed: development defaults are shared by `compose.yaml` and `appsettings.Development.json` ([configuration.md](configuration.md)).
 - Stop the database with `docker compose stop db`; `docker compose down -v` also deletes its data.
 

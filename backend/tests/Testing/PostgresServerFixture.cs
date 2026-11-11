@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -69,10 +70,15 @@ public abstract class PostgresServerFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Prepares the template database once per run. Overridden by test projects to apply the migrations;
-    /// every connection opened here must be closed before returning.
+    /// Prepares the template database once per run: applies every migration, as the API does at startup.
+    /// Pooling is off, so no connection stays open on the template (PostgreSQL refuses to copy a database in use).
     /// </summary>
-    protected virtual Task InitializeTemplateAsync(string connectionString) => Task.CompletedTask;
+    protected virtual async Task InitializeTemplateAsync(string connectionString)
+    {
+        var withoutPooling = new NpgsqlConnectionStringBuilder(connectionString) { Pooling = false }.ConnectionString;
+        await using var db = TestDatabaseExtensions.CreateContext(withoutPooling, userId: null, TestClock.Default);
+        await db.Database.MigrateAsync();
+    }
 
     private string AdminConnectionString => _container.GetConnectionString();
 
