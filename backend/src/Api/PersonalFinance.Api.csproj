@@ -5,4 +5,12 @@
     <ProjectReference Include="..\Infrastructure\PersonalFinance.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Needed by the dotnet-ef tool when Api is the startup project (docs/database/migrations.md); not shipped. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

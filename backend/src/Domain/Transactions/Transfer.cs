@@ -22,6 +22,11 @@ public sealed class Transfer : OwnedEntity
         _legs.Add(Transaction.TransferLeg(to, Id, date, positive, description));
     }
 
+    /// <summary>Used by EF Core when materializing entities.</summary>
+    private Transfer()
+    {
+    }
+
     public IReadOnlyList<Transaction> Legs => _legs;
 
     public Transaction Outgoing => _legs.Single(leg => leg.Amount < 0);

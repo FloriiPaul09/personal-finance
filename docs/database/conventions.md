@@ -6,7 +6,16 @@ How the schema is named and typed, how keys, constraints and indexes are defined
 
 ## Current state
 
-Decided ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)), **not implemented yet** (branch `feat/backend-persistence`).
+Implemented ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)): `AppDbContext` and one configuration per entity in `backend/src/Infrastructure/Persistence`, first migration `InitialCreate`.
+
+| What | Where |
+|---|---|
+| Provider and naming (`UseNpgsql` + `UseSnakeCaseNamingConvention`), used by API, tools and tests | `PersistenceServiceCollectionExtensions.UsePersonalFinanceDatabase` |
+| Key, `(user_id, id)` key, foreign key to `users`, `xmin` token shared by every owned entity | `Configurations/OwnedEntityMapping.cs` |
+| Enums as snake_case text and their `CHECK` | `Configurations/SnakeCaseEnumConverter.cs` |
+| One file per entity | `Configurations/*Configuration.cs` |
+
+Entities with a constructor whose parameters all match properties (`Account`, `Tag`) are materialized through it; the others have a private parameterless constructor for EF Core only.
 
 ### Naming
 
@@ -83,7 +92,7 @@ Names that must be unique without regard to case are stored twice: `name` as typ
 
 ### Concurrency
 
-- Editable entities (`accounts`, `categories`, `transactions`, `transfers`, `budgets`, `tags`) map PostgreSQL's system column `xmin` as concurrency token (`uint Version` with `IsRowVersion()` in Npgsql): no extra column.
+- Editable entities (`accounts`, `categories`, `transactions`, `transfers`, `budgets`, `tags`) map PostgreSQL's system column `xmin` as concurrency token: a shadow property `Version` (`uint`, column `xmin`, type `xid`), so the domain does not see it and no column is added.
 - A conflicting update raises `DbUpdateConcurrencyException`; the HTTP mapping (e.g. `409`) is decided in `[Backend]`.
 
 ### Indexes
