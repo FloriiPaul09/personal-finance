@@ -168,7 +168,9 @@ balance(account, up to date D) = initial_balance + Σ amount of the account's tr
 - A subcategory has the same kind as its parent.
 - The **kind** (income or expense) can change only for a top-level category without subcategories that no transaction or budget uses; afterwards a new category is needed. A subcategory always has the kind of its parent.
 - Names are unique per user, kind and parent, without regard to case (`Spesa` and `spesa` collide; an income and an expense category may share a name).
-- Archiving a parent archives its subcategories.
+- Archiving a parent archives its subcategories. **Restoring** (`Unarchive`) restores only that category; a subcategory cannot be restored while its parent is archived.
+- An edit form changes name, kind and parent together through `Category.Change`, which applies the rules above in the right order; an archived parent is refused only when newly chosen.
+- A category can be **deleted** only while no transaction or budget uses it and it has no subcategories (`Category.EnsureCanDelete`: `category.in_use`, `category.has_subcategories`); afterwards it is archived.
 
 #### Budget and progress
 
@@ -220,7 +222,7 @@ Unit tests in `Domain.Tests` ([testing.md](testing.md#domain-unit-tests)):
 - transfer: two legs with opposite amounts and same date, same account rejected, different currencies rejected, archived account rejected, update moves both legs;
 - income and expense: wrong category kind, archived account or category;
 - account: currency change allowed without movements, rejected with movements; delete allowed without movements, rejected with movements;
-- categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets;
+- categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets; `Change` (rename, move, kind, archived parent kept or refused), restore of one category, delete rejected when in use or with subcategories;
 - budget: budget on a parent with budgeted subcategories rejected and the opposite, moving a budgeted subcategory under a budgeted parent rejected, limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
 
 Integration tests in `Infrastructure.Tests` check that constraints enforce the same rules at database level and that the balance query matches the domain. The balance the API computes is compared with the domain too (`AccountsTests.Get_Balance_AddsEveryMovement_AndEqualsTheDomainBalance`).
