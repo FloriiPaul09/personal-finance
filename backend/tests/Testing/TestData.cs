@@ -1,4 +1,5 @@
 using PersonalFinance.Domain.Accounts;
+using PersonalFinance.Domain.Budgets;
 using PersonalFinance.Domain.Categories;
 using PersonalFinance.Domain.Transactions;
 
@@ -36,10 +37,23 @@ public static class TestData
         Guid userId,
         string? name = null,
         CategoryKind kind = CategoryKind.Expense,
+        Category? parent = null,
         CancellationToken cancellationToken = default)
     {
-        var category = new Category(userId, name ?? UniqueName("Categoria"), kind);
+        var category = new Category(userId, name ?? UniqueName("Categoria"), parent?.Kind ?? kind, parent);
         return await database.SaveAsync(userId, category, cancellationToken);
+    }
+
+    /// <summary>A budget entry on an expense category, from <paramref name="from"/> (January 2026 by default).</summary>
+    public static async Task<Budget> CreateBudgetAsync(
+        this TestDatabase database,
+        Category category,
+        decimal amount = 300m,
+        YearMonth? from = null,
+        CancellationToken cancellationToken = default)
+    {
+        var budget = new Budget(category, from ?? YearMonth.Of(DefaultDate), amount);
+        return await database.SaveAsync(category.UserId, budget, cancellationToken);
     }
 
     /// <summary>An income on <paramref name="account"/>, in a new income category unless one is given.</summary>
