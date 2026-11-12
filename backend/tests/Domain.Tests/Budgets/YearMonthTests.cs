@@ -46,4 +46,28 @@ public class YearMonthTests
         Assert.Equal(new YearMonth(2026, 3), YearMonth.Of(new DateOnly(2026, 3, 17)));
         Assert.Equal("2026-03", new YearMonth(2026, 3).ToString());
     }
+
+    [Theory]
+    [InlineData("2026-06", 2026, 6)]
+    [InlineData("0001-01", 1, 1)]
+    [InlineData("9999-12", 9999, 12)]
+    public void TryParse_ReadsYearDashMonth(string text, int year, int month)
+    {
+        Assert.True(YearMonth.TryParse(text, out var parsed));
+        Assert.Equal(new YearMonth(year, month), parsed);
+        Assert.Equal(text, parsed.ToString());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("2026-6")]
+    [InlineData("2026-13")]
+    [InlineData("2026-00")]
+    [InlineData("0000-01")]
+    [InlineData("2026/06")]
+    [InlineData("2026-06-01")]
+    [InlineData("+026-06")]
+    [InlineData("2026-+6")]
+    public void TryParse_RejectsAnythingElse(string? text) => Assert.False(YearMonth.TryParse(text, out _));
 }
