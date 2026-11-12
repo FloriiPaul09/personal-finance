@@ -40,6 +40,7 @@ internal static class DomainErrorStatuses
         DomainErrors.CategoryArchived,
         DomainErrors.CategoryHasSubcategories,
         DomainErrors.CategoryKindLocked,
+        DomainErrors.CategoryInUse,
         DomainErrors.TransactionIsTransferLeg,
         DomainErrors.BudgetBranchConflict,
     ];

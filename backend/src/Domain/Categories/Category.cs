@@ -70,6 +70,61 @@ public sealed class Category : OwnedEntity
     }
 
     /// <summary>
+    /// Name, kind and parent together, as an edit form sends them. The kind changes only while nothing uses the
+    /// category and it has no subcategories; a subcategory has the kind of its parent; an archived parent is refused
+    /// only when newly chosen, so an archived subcategory can still be renamed.
+    /// </summary>
+    /// <param name="parent">The new parent, or null for a top-level category.</param>
+    /// <param name="hasSubcategories">Whether other categories, archived included, have this one as parent (checked by the caller).</param>
+    /// <param name="isInUse">Whether transactions or budgets reference the category (checked by the caller).</param>
+    /// <remarks>Budgets add their own rule on moves: call <c>BudgetPolicy.EnsureCanMove</c> first.</remarks>
+    public void Change(string name, CategoryKind kind, Category? parent, bool hasSubcategories, bool isInUse)
+    {
+        var newName = Texts.EnsureName(name, NameMaxLength);
+        EnsureDefined(kind);
+
+        if (parent is not null)
+        {
+            EnsureSameUser(parent);
+
+            if (parent.Id == Id)
+            {
+                throw new DomainException(DomainErrors.CategoryParentItself, "A category cannot be its own parent.");
+            }
+
+            if (parent.IsSubcategory)
+            {
+                throw new DomainException(DomainErrors.CategoryTooDeep, "Subcategories have one level only.");
+            }
+
+            if (hasSubcategories)
+            {
+                throw new DomainException(DomainErrors.CategoryHasSubcategories, "A category with subcategories cannot become a subcategory.");
+            }
+
+            if (parent.Kind != kind)
+            {
+                throw new DomainException(DomainErrors.CategoryKindMismatch, "A subcategory has the kind of its parent.");
+            }
+
+            if (parent.Id != ParentId && parent.IsArchived)
+            {
+                throw new DomainException(DomainErrors.CategoryArchived, "An archived category cannot receive subcategories.");
+            }
+        }
+
+        if (kind != Kind && (hasSubcategories || isInUse))
+        {
+            throw new DomainException(DomainErrors.CategoryKindLocked, "The kind of a category in use cannot change.");
+        }
+
+        Name = newName;
+        NormalizedName = Texts.NormalizeName(newName);
+        Kind = kind;
+        ParentId = parent?.Id;
+    }
+
+    /// <summary>
     /// The kind of a top-level category without subcategories can change while nothing uses it: afterwards existing
     /// transactions and budgets would no longer match it.
     /// </summary>
@@ -111,7 +166,39 @@ public sealed class Category : OwnedEntity
         IsArchived = true;
     }
 
-    public void Unarchive() => IsArchived = false;
+    /// <summary>
+    /// Restores this category only: subcategories archived with it stay archived until restored one by one. A
+    /// subcategory cannot be restored under an archived parent.
+    /// </summary>
+    /// <param name="parentIsArchived">Whether the parent of a subcategory is archived (checked by the caller).</param>
+    public void Unarchive(bool parentIsArchived)
+    {
+        if (IsSubcategory && parentIsArchived)
+        {
+            throw new DomainException(DomainErrors.CategoryArchived, "Restore the parent category first.");
+        }
+
+        IsArchived = false;
+    }
+
+    /// <summary>
+    /// A category can be deleted only while nothing uses it and it has no subcategories; otherwise it is archived, so
+    /// history and budgets never lose their category.
+    /// </summary>
+    /// <param name="hasSubcategories">Whether other categories, archived included, have this one as parent.</param>
+    /// <param name="isInUse">Whether transactions or budgets reference the category.</param>
+    public void EnsureCanDelete(bool hasSubcategories, bool isInUse)
+    {
+        if (hasSubcategories)
+        {
+            throw new DomainException(DomainErrors.CategoryHasSubcategories, "A category with subcategories cannot be deleted: archive it instead.");
+        }
+
+        if (isInUse)
+        {
+            throw new DomainException(DomainErrors.CategoryInUse, "A category used by transactions or budgets cannot be deleted: archive it instead.");
+        }
+    }
 
     private void AttachTo(Category parent)
     {

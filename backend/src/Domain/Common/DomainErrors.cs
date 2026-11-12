@@ -32,6 +32,7 @@ public static class DomainErrors
     public const string CategoryKindFollowsParent = "category.kind_follows_parent";
     public const string CategoryKindLocked = "category.kind_locked";
     public const string CategoryNotASubcategory = "category.not_a_subcategory";
+    public const string CategoryInUse = "category.in_use";
 
     public const string TransactionIsTransferLeg = "transaction.is_transfer_leg";
 
