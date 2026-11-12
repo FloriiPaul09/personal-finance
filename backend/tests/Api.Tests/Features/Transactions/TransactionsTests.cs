@@ -307,7 +307,7 @@ public sealed class TransactionsTests(ApiServer server) : ApiTest(server)
         Assert.Equal(HttpStatusCode.OK, again.StatusCode);
         var created = await first.ReadAsync<TransactionResponse>();
         Assert.Equal(id, created.Id);
-        Assert.Equal(created, await again.ReadAsync<TransactionResponse>());
+        AssertSame(created, await again.ReadAsync<TransactionResponse>());
         Assert.Single((await client.GetJsonAsync<PageResponse<TransactionResponse>>(Transactions)).Items);
     }
 
@@ -478,7 +478,7 @@ public sealed class TransactionsTests(ApiServer server) : ApiTest(server)
         Assert.Equal(new[] { "nuovo" }, updated.Tags);
         Assert.NotEqual(expense.Version, updated.Version);
         Assert.Equal(EntityTag.Format(updated.Version), response.Headers.ETag?.ToString());
-        Assert.Equal(updated, await ReadAsync(client, expense.Id));
+        AssertSame(updated, await ReadAsync(client, expense.Id));
     }
 
     [Fact]
@@ -703,6 +703,18 @@ public sealed class TransactionsTests(ApiServer server) : ApiTest(server)
         ["description"] = transaction.Description,
         ["tags"] = transaction.Tags,
     };
+
+    /// <summary>
+    /// Field by field: record equality compares the <c>Tags</c> lists by reference, so two reads of the same
+    /// transaction would never be equal.
+    /// </summary>
+    private static void AssertSame(TransactionResponse expected, TransactionResponse actual)
+    {
+        Assert.Equal(expected with { Tags = NoTags }, actual with { Tags = NoTags });
+        Assert.Equal(expected.Tags, actual.Tags);
+    }
+
+    private static readonly IReadOnlyList<string> NoTags = Array.Empty<string>();
 
     private static Task<TransactionResponse> ReadAsync(HttpClient client, Guid id) =>
         client.GetJsonAsync<TransactionResponse>($"{Transactions}/{id}");
