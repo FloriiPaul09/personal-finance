@@ -12,4 +12,15 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
+  <!--
+    Security pins (docs/devops/repository-workflow.md#security-fixes-in-transitive-packages): Data Protection brings
+    these packages at 10.0.11, vulnerable (CVE-2026-84008, CVE-2026-70162, CVE-2026-96958/96959/96960). A direct
+    reference raises them for this project and every project that references it. Remove once the ASP.NET Core
+    packages above depend on 10.0.13 or later.
+  -->
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
+  </ItemGroup>
+
 </Project>
