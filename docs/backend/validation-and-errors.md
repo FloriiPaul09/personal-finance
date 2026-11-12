@@ -13,7 +13,7 @@ Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](
 | Level | Checks | Where | Failure |
 |---|---|---|---|
 | Request shape | Required fields, lengths, ranges, formats, paging limits | Request records of the slice, built-in validation | `400`, `validation.failed`, errors by field |
-| Readable request | Valid JSON, enum values the API knows, route and query values of the right type | JSON deserialization and parameter binding, before validation | `400`, `request.invalid`, no field |
+| Readable request | Valid JSON, enum values the API knows, route and query values of the right type | JSON deserialization and parameter binding, before validation; enums in the query with `QueryValues.ParseEnum` | `400`, `request.invalid`, no field (the parameter name for a query enum) |
 | Business rules | Everything that protects money and data: amounts (zero, more than 2 decimals), archived accounts, category kinds, transfers, budgets | `Domain` entities and services ([database/domain-model.md](../database/domain-model.md)) | `DomainException` with a stable code → [Domain errors](#domain-errors) |
 
 A rule is never written twice: if `Domain` already enforces it, the request record does not repeat it, except for checks that give a better message per field (e.g. a required name). The `Worker` and the CSV import go through the same `Domain` rules, so they get the same codes.
@@ -53,7 +53,7 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 | Code | Status | When |
 |---|---|---|
 | `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field |
-| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`) |
+| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`, `?kind=transfer` with `errors.kind`) |
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
 | *domain code* | 400 / 409 | [Domain errors](#domain-errors) |
@@ -82,7 +82,7 @@ API codes are constants of `ApiErrors`; domain codes of `DomainErrors`.
 | Family | Status | Codes |
 |---|---|---|
 | Invalid values — the values sent cannot be accepted, whatever the data | `400` | `amount.not_positive`, `amount.too_many_decimals`, `amount.out_of_range`, `name.required`, `name.too_long`, `description.too_long`, `currency.invalid`, `month.invalid`, `account.type_invalid`, `category.kind_invalid`, `category.too_deep`, `category.parent_itself`, `category.kind_mismatch`, `category.kind_follows_parent`, `category.not_a_subcategory`, `transfer.same_account`, `transfer.currency_mismatch`, `budget.category_not_expense` |
-| State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `account.has_movements`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
+| State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `account.has_movements`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `category.in_use`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
 | Programming errors — invariants slices must guarantee before calling the domain | `500` (logged, no details) | `user.required`, `user.different`, `account.transaction_of_another_account`, `budget.entries_of_another_category` |
 
 The `detail` is the domain message (English). A new code in `DomainErrors` makes `ErrorMappingTests` fail until it is placed in a family.
@@ -151,6 +151,7 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 - `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
 - `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
 - From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
+- `CategoriesTests`: missing fields, unknown kind in the body and in the query (on `kind`), `category.not_found` on `parentId`, domain codes (`category.too_deep`, `category.kind_mismatch`, `category.parent_itself`, `category.archived`, `category.kind_locked`, `category.has_subcategories`, `category.in_use`, `budget.branch_conflict`), duplicate names.
 - `AccountsTests`: missing and invalid fields on the field, unknown enum values and malformed JSON (`request.invalid`, in Development and Production), domain codes (`currency.invalid`, `amount.too_many_decimals`, `account.currency_locked`, `account.has_movements`), duplicate names.
 
 ## Scalability
