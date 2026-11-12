@@ -11,6 +11,7 @@ internal static class DomainErrorStatuses
     /// <summary>The values sent cannot be accepted, whatever the state of the data.</summary>
     private static readonly string[] InvalidValues =
     [
+        DomainErrors.IdInvalid,
         DomainErrors.AmountNotPositive,
         DomainErrors.AmountTooManyDecimals,
         DomainErrors.AmountOutOfRange,

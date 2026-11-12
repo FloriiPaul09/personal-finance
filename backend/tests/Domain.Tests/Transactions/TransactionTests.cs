@@ -179,6 +179,69 @@ public class TransactionTests
     }
 
     [Fact]
+    public void ReplaceTags_KeepsExactlyTheGivenTags()
+    {
+        var expense = Transaction.Expense(AnAccount(), ExpenseCategory(), Today, 10m);
+        var holiday = new Tag(UserA, "vacanza-2026");
+        var work = new Tag(UserA, "lavoro");
+        var gift = new Tag(UserA, "regalo");
+        expense.AddTag(holiday);
+        expense.AddTag(work);
+
+        expense.ReplaceTags([work, gift]);
+
+        Assert.Equal(new[] { work.Id, gift.Id }.Order(), expense.Tags.Select(link => link.TagId).Order());
+    }
+
+    [Fact]
+    public void ReplaceTags_WithNone_RemovesEveryTag()
+    {
+        var expense = Transaction.Expense(AnAccount(), ExpenseCategory(), Today, 10m);
+        expense.AddTag(new Tag(UserA, "vacanza-2026"));
+
+        expense.ReplaceTags([]);
+
+        Assert.Empty(expense.Tags);
+    }
+
+    [Fact]
+    public void ReplaceTags_RejectsATagOfAnotherUser_AndChangesNothing()
+    {
+        var expense = Transaction.Expense(AnAccount(), ExpenseCategory(), Today, 10m);
+        var holiday = new Tag(UserA, "vacanza-2026");
+        expense.AddTag(holiday);
+
+        Rule.Violated(DomainErrors.DifferentUser, () => expense.ReplaceTags([new Tag(UserB, "lavoro")]));
+        Assert.Equal(holiday.Id, Assert.Single(expense.Tags).TagId);
+    }
+
+    [Fact]
+    public void Expense_WithAnIdChosenByTheCaller_KeepsIt()
+    {
+        var id = Guid.CreateVersion7();
+
+        var expense = Transaction.Expense(AnAccount(), ExpenseCategory(), Today, 10m, id: id);
+
+        Assert.Equal(id, expense.Id);
+    }
+
+    [Fact]
+    public void Income_RejectsAnEmptyId() =>
+        Rule.Violated(DomainErrors.IdInvalid, () => Transaction.Income(AnAccount(), IncomeCategory(), Today, 10m, id: Guid.Empty));
+
+    [Fact]
+    public void EnsureCanDelete_AllowsIncomeAndExpenses() =>
+        Transaction.Expense(AnAccount(), ExpenseCategory(), Today, 10m).EnsureCanDelete();
+
+    [Fact]
+    public void EnsureCanDelete_RejectsATransferLeg()
+    {
+        var transfer = new Transfer(AnAccount(), AnAccount(name: "Risparmi"), Today, 100m);
+
+        Rule.Violated(DomainErrors.TransactionIsTransferLeg, transfer.Incoming.EnsureCanDelete);
+    }
+
+    [Fact]
     public void Tag_IsComparedWithoutRegardToCase() =>
         Assert.Equal(new Tag(UserA, "Vacanza-2026").NormalizedName, new Tag(UserA, "vacanza-2026").NormalizedName);
 }
