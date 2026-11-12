@@ -14,13 +14,24 @@ public static class PersistenceServiceCollectionExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
+        return services.AddPersistence(_ => connectionString);
+    }
+
+    /// <summary>
+    /// Same as <see cref="AddPersistence(IServiceCollection, string)"/>, with the connection string read when a context
+    /// is created. The API reads it from the final configuration, so test hosts can replace it (docs/backend/testing.md).
+    /// </summary>
+    public static IServiceCollection AddPersistence(this IServiceCollection services, Func<IServiceProvider, string> connectionString)
+    {
+        ArgumentNullException.ThrowIfNull(connectionString);
+
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<OwnershipInterceptor>();
         services.TryAddScoped<ICurrentUser>(_ => FixedCurrentUser.None);
 
         services.AddDbContext<AppDbContext>((provider, options) =>
             options
-                .UsePersonalFinanceDatabase(connectionString)
+                .UsePersonalFinanceDatabase(connectionString(provider))
                 .AddInterceptors(provider.GetRequiredService<OwnershipInterceptor>()));
 
         services.TryAddScoped<DefaultCategoriesInitializer>();
