@@ -1,8 +1,12 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PersonalFinance.Api.Common.Concurrency;
+using PersonalFinance.Api.Common.Errors;
 using PersonalFinance.Api.Common.Security;
 using PersonalFinance.Api.Tests.Support;
 using PersonalFinance.Infrastructure.Persistence;
@@ -27,11 +31,28 @@ public sealed class ApiHostTests(ApiServer server) : ApiTest(server)
     }
 
     [Fact]
-    public async Task UnknownApiRoute_Returns401WithoutSession()
+    public async Task UnknownApiRoute_Returns401ProblemWithoutSession()
     {
         var response = await AnonymousClient().GetAsync("/api/does-not-exist", Ct);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        Assert.Equal(ApiErrors.AuthenticationRequired, problem.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public void EveryUpdateAndDelete_RequiresIfMatch()
+    {
+        var unprotected = Host.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(endpoint => endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods
+                .Any(method => method is "PUT" or "PATCH" or "DELETE") == true)
+            .Where(endpoint => endpoint.Metadata.GetMetadata<IfMatchRequiredMetadata>() is null)
+            .Select(endpoint => endpoint.DisplayName);
+
+        // Lost updates between phone and computer are refused only if the client must send the version (ADR-0013).
+        Assert.Empty(unprotected);
     }
 
     [Fact]
