@@ -40,6 +40,6 @@ public static class CreateAccount
             ?? throw new InvalidOperationException("The account just created cannot be read.");
 
         response.SetVersion(created.Version);
-        return TypedResults.Created($"{EndpointRouteBuilderExtensions.ApiPrefix}/accounts/{account.Id}", created);
+        return TypedResults.Created($"{AccountsModule.Path}/{account.Id}", created);
     }
 }
