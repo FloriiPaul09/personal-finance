@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ namespace PersonalFinance.Infrastructure.Persistence;
 /// (named filter <see cref="QueryFilters.UserScope"/>, docs/database/user-isolation.md).
 /// </summary>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser currentUser)
-    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IDataProtectionKeyContext
 {
     private static readonly PropertyInfo CurrentUserIdProperty =
         typeof(AppDbContext).GetProperty(nameof(CurrentUserId), BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -35,6 +36,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
     public DbSet<TransactionTag> TransactionTags => Set<TransactionTag>();
 
     public DbSet<Budget> Budgets => Set<Budget>();
+
+    /// <summary>
+    /// Keys that protect session and antiforgery cookies (table <c>data_protection_keys</c>, ADR-0014): kept with the
+    /// data, so sessions survive restarts and are shared by every API instance. Not user data: no owner, no filter.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     internal ICurrentUser CurrentUser { get; } = currentUser;
 
