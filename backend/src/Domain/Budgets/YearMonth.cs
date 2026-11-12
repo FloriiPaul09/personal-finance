@@ -26,6 +26,22 @@ public readonly record struct YearMonth : IComparable<YearMonth>
 
     public static YearMonth Of(DateOnly date) => new(date.Year, date.Month);
 
+    /// <summary>Reads the form of <see cref="ToString"/>, <c>yyyy-MM</c> (e.g. <c>2026-06</c>); nothing else.</summary>
+    public static bool TryParse(string? text, out YearMonth month)
+    {
+        month = default;
+        if (text is not { Length: 7 } || text[4] != '-'
+            || !int.TryParse(text.AsSpan(0, 4), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var year)
+            || !int.TryParse(text.AsSpan(5, 2), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number)
+            || year < 1 || number is < 1 or > 12)
+        {
+            return false;
+        }
+
+        month = new YearMonth(year, number);
+        return true;
+    }
+
     public static bool operator <(YearMonth left, YearMonth right) => left.CompareTo(right) < 0;
 
     public static bool operator >(YearMonth left, YearMonth right) => left.CompareTo(right) > 0;

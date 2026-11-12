@@ -6,7 +6,7 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md); budgets in [ADR-0019](../architecture/adr/0019-budgets-module.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
@@ -17,7 +17,7 @@ The foundation is implemented: health, development tools, authentication, the me
 | Authentication | Session cookie on every endpoint unless marked **public** ([security.md](security.md)); without a session `401` |
 | Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}`. Creates that must be safe to send again (offline queue) accept an `id` chosen by the client, a UUIDv7 ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
 | Amounts | **JSON numbers** with at most 2 decimals (`1234.56`), `decimal` on the server; a third decimal is refused (`amount.too_many_decimals`), never rounded. Totals and balances are computed by the server: clients never add amounts in floating point. Movements: kind + positive `amount` in requests; responses add `signedAmount` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
-| Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); timestamps ISO 8601 in UTC |
+| Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); months `YYYY-MM` (`YearMonth`, budgets); timestamps ISO 8601 in UTC |
 | Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace the whole resource (`200` + `ETag`), `DELETE` (`204`), `POST /{id}/{action}` for idempotent state changes such as `archive` (`200` + `ETag`). `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
 | Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
 | Not found | `404` `resource.not_found` for a route id that is not the user's — another user's id included ([security.md](security.md#another-users-data)) |
@@ -573,6 +573,51 @@ Request body of create and update:
 - **Delete**: removes the transfer and both legs for good; both balances go back as before.
 - Legs cannot be changed or deleted through `/api/transactions` (`409` `transaction.is_transfer_leg`).
 
+### Budgets
+
+Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A budget is a history of entries per expense category; each entry applies from its month until the next entry of the category. Months are written `"yyyy-MM"` everywhere (JSON and query).
+
+`BudgetResponse`:
+
+```json
+{ "id": "…", "categoryId": "…", "from": "2026-06", "amount": 350.00, "version": 7781 }
+```
+
+`amount: null` means "no budget from this month".
+
+| Route | Request | Responses | Versions | Tests |
+|---|---|---|---|---|
+| `GET /api/budgets` | Query `categoryId` (optional) | `200` `{ "items": [BudgetResponse, …] }` by category name, then month · `401` | `version` on each item | `BudgetsTests.List_*` |
+| `GET /api/budgets/{id}` | — | `200` `BudgetResponse` · `401` · `404` | `ETag` | `BudgetsTests.Get_*` |
+| `POST /api/budgets` | `{ "categoryId": "…", "from": "2026-06", "amount": 350.00 }`; `amount` optional (omitted or `null` ends the budget) | `201` `BudgetResponse`, `Location` · `400` `validation.failed` (missing `categoryId` or `from`), `request.invalid` (month not `yyyy-MM`), `category.not_found` on `categoryId`, `budget.category_not_expense`, `amount.not_positive`, `amount.too_many_decimals` · `401` · `409` `budget.month_taken`, `budget.branch_conflict`, `category.archived` (a new limit on an archived category) | `ETag` | `BudgetsTests.Create_*` |
+| `PUT /api/budgets/{id}` | `{ "amount": 320.00 }` + `If-Match`; `null` or omitted ends the budget from that month | `200` `BudgetResponse` · `400` `amount.*` · `401` · `404` · `412` · `428` | `If-Match` required; new `ETag` | `BudgetsTests.Update_*` |
+| `DELETE /api/budgets/{id}` | `If-Match` | `204` · `401` · `404` · `412` · `428` | `If-Match` required | `BudgetsTests.Delete_*` |
+
+- **Isolation**: another user's entry is `404`; another user's category in the body is `400` `category.not_found`.
+- **Changing the budget from a month**: if that month has an entry, `PUT` it; otherwise `POST` a new one (`409` `budget.month_taken` tells the client it already exists). Category and month of an entry never change: delete it and create another.
+- **Stop or delete**: an entry without amount stops the budget and keeps the past; `DELETE` removes a wrong entry. Deleting every entry of a category makes it unbudgeted, so the budget can move to its subcategories (or to its parent).
+- **One level per branch**: a budget on a subcategory of a budgeted parent, or on a parent with budgeted subcategories, is `409` `budget.branch_conflict`.
+
+#### Budget progress
+
+| | |
+|---|---|
+| **Route** | `GET /api/budgets/progress` |
+| **Auth** | Session |
+| **Request** | Query `month` (`yyyy-MM`, optional: the server's current month in UTC) |
+| **Responses** | `200` `{ "items": [BudgetProgressResponse, …] }` by category name · `400` `request.invalid` on `month` · `401` |
+| **Isolation** | Only the user's budgets and expenses |
+| **Tests** | `BudgetsTests.Progress_*` |
+
+```json
+{ "categoryId": "…", "budgetId": "…", "month": "2026-06", "limit": 350.00, "spent": 120.25, "remaining": 229.75, "ratio": 0.3435714285714285714285714286, "isOverBudget": false }
+```
+
+- One item per category with a limit that month: the entry with the latest month not after it, unless it has no amount. Months before the first entry and after the end of a budget have no item.
+- `spent`: expenses of the category **and its subcategories** dated in the month, positive. Income and transfers never count.
+- `ratio` is exact (`spent / limit`, above 1 when over budget): round only when displaying. `remaining` is negative when over budget.
+- The app should send `month` itself: near midnight on the last day of a month, the server's UTC month can differ from the user's.
+
 ### Resources
 
 | Resource | Module prefix | Block | Status |
@@ -582,7 +627,7 @@ Request body of create and update:
 | Categories | `categories` | 5 | Implemented — [Categories](#categories) |
 | Transactions (with tags, filters) | `transactions`, `tags` | 6 | Implemented — [Transactions](#transactions), [Tags](#tags) |
 | Transfers | `transfers` | 7 | Implemented — [Transfers](#transfers) |
-| Budgets | `budgets` | 8 | To do |
+| Budgets | `budgets` | 8 | Implemented — [Budgets](#budgets) |
 | Dashboard | `dashboard` | 9 | To do |
 
 ## Decisions
@@ -594,6 +639,7 @@ Request body of create and update:
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
 | Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 | Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Budgets: entries as a resource, months `yyyy-MM`, progress of a month from one query with the domain's arithmetic, stop with an entry without amount or delete a wrong one, no paging | Same rules as every resource; progress equal to the domain; history kept | [ADR-0019](../architecture/adr/0019-budgets-module.md) |
 | Transfers: one response with both leg ids, no list of their own (legs via `/api/transactions?kind=transfer`), the `transfers` row version covers the legs, optional client id, no tags | One mechanism for listing movements; same headers as every resource; offline-safe | [ADR-0018](../architecture/adr/0018-transfers-module.md) |
 | Transactions: kind + positive amount in, `amount` + `signedAmount` out; optional client UUIDv7 id makes create safe to repeat; cursor paging; single-value filters; tags by name created on the fly; transfer legs listed read-only | No sign bugs in clients; offline replay without duplicates; fast stable paging | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md) |
 | Categories as a flat list (parent then subcategories), filters `kind` and `includeArchived`, `PUT` of name + kind + parent, unarchive of one category at a time, delete only when unused and without subcategories, alphabetical order | One response type; one domain method for every edit; history and budgets keep their category | [ADR-0016](../architecture/adr/0016-categories-module.md) |
@@ -604,6 +650,7 @@ Request body of create and update:
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `BudgetsTests`: every budget endpoint — success, `401`, validation, isolation, versions — plus history order, ending a budget, archived categories, one level per branch, moving a budget to subcategories after deleting the parent's entries; progress with the latest entry, subcategories, month boundaries, ended budgets, over budget, the default month, compared with `BudgetProgress.Calculate`.
 - `TransfersTests`: every transfer endpoint — success, `401`, validation, isolation (route ids and both account fields), versions — plus balances of both accounts after create, update and delete, legs listed with `transferId`, repeated create with the same id, domain codes (same account, currencies, archived accounts).
 - `TransactionsTests`: every transaction endpoint — success, `401`, validation, isolation (route ids, ids in the body, filters), versions — plus amounts and signs, cursor paging without gaps, every filter, repeated create with the same id, tags reused and created, tag-only changes bumping the version, transfer legs read-only, balance after create and delete.
 - `TagsTests`: list with usage, rename (on every transaction), delete (links removed), with `401`, validation, isolation and versions.
@@ -633,7 +680,9 @@ Request body of create and update:
 - Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
 - ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - ✅ Paging (cursor), signs of amounts, idempotent create — [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
-- Contracts of the remaining resources (blocks 8–9).
+- Contract of the dashboard (block 9).
+- OpenAPI: describe months as `string` with pattern `^\d{4}-\d{2}$` (schema transformer for `YearMonth`).
+- Progress over a range of months for charts, reusing `ProgressOf`, when charts arrive.
 - Transfers: a list of their own, tags, transfers between currencies (`toAmount`) — when needed ([ADR-0018](../architecture/adr/0018-transfers-module.md)).
 - `[Frontend]`: generate UUIDv7 ids for queued expenses; follow `nextCursor` for infinite scroll; never sum `amount`, use `signedAmount`; send the whole tag list on update.
 - Tag merge (two tags into one) and multi-value filters, when needed.

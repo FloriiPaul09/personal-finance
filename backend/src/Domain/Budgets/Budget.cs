@@ -18,6 +18,12 @@ public sealed class Budget : OwnedEntity
             throw new DomainException(DomainErrors.BudgetCategoryNotExpense, "Budgets apply to expense categories only.");
         }
 
+        // An archived category gets no new limit; ending its budget (no amount) is still allowed.
+        if (amount is not null && category.IsArchived)
+        {
+            throw new DomainException(DomainErrors.CategoryArchived, "An archived category cannot receive a new budget.");
+        }
+
         CategoryId = category.Id;
         EffectiveFrom = effectiveFrom.FirstDay;
         ChangeAmount(amount);

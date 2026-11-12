@@ -188,7 +188,8 @@ A budget is a history of entries per expense category:
 - **Limit of month M** = the entry with the latest `effective_from` ≤ first day of M; no entry, or an entry with `null`, means no budget for M.
 - **Spent in month M** = −Σ amount of expense transactions of the category **and its subcategories** with date in M (from the first to the last day, inclusive).
 - **Progress** = spent / limit, computed in `decimal`; it can exceed 1 (over budget). **Remaining** = limit − spent, negative when over budget. Rounding happens only when displaying.
-- Budgets are allowed only on expense categories.
+- Budgets are allowed only on expense categories. A new limit on an archived category is refused (`category.archived`); ending its budget (an entry without amount) is allowed.
+- Months are read and written as `yyyy-MM` (`YearMonth.TryParse`, `ToString`).
 - **One level per branch**: a budget can be set on a parent category **or** on its subcategories, never on both, so the same expense is never counted in two budgets and the total of budgets is always a plain sum. Setting a budget on a parent that has budgeted subcategories (or the opposite) is rejected; moving a budgeted category under a budgeted parent is rejected too. A category counts as budgeted when it has at least one budget entry, ended or not: switching level means deleting the entries of the other level first.
 - Months are plain calendar dates (`DateOnly`): no time zone is involved.
 
@@ -226,7 +227,7 @@ Unit tests in `Domain.Tests` ([testing.md](testing.md#domain-unit-tests)):
 - income and expense: wrong category kind, archived account or category; id chosen by the caller kept, empty id refused; tags replaced as a set; transfer legs cannot be deleted alone;
 - account: currency change allowed without movements, rejected with movements; delete allowed without movements, rejected with movements;
 - categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets; `Change` (rename, move, kind, archived parent kept or refused), restore of one category, delete rejected when in use or with subcategories;
-- budget: budget on a parent with budgeted subcategories rejected and the opposite, moving a budgeted subcategory under a budgeted parent rejected, limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
+- budget: new limit on an archived category rejected, ending it allowed; months parsed only as `yyyy-MM`; budget on a parent with budgeted subcategories rejected and the opposite, moving a budgeted subcategory under a budgeted parent rejected, limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
 
 Integration tests in `Infrastructure.Tests` check that constraints enforce the same rules at database level and that the balance query matches the domain. The balance the API computes is compared with the domain too (`AccountsTests.Get_Balance_AddsEveryMovement_AndEqualsTheDomainBalance`).
 

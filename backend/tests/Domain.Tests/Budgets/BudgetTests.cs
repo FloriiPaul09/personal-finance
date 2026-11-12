@@ -34,6 +34,24 @@ public class BudgetTests
         Rule.Violated(code, () => new Budget(ExpenseCategory(), new YearMonth(2026, 11), decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture)));
 
     [Fact]
+    public void Budget_RejectsANewLimitOnAnArchivedCategory()
+    {
+        var category = ExpenseCategory();
+        category.Archive([]);
+
+        Rule.Violated(DomainErrors.CategoryArchived, () => new Budget(category, new YearMonth(2026, 11), 100m));
+    }
+
+    [Fact]
+    public void Budget_CanEndTheBudgetOfAnArchivedCategory()
+    {
+        var category = ExpenseCategory();
+        category.Archive([]);
+
+        Assert.Null(new Budget(category, new YearMonth(2026, 11), null).Amount);
+    }
+
+    [Fact]
     public void ChangeAmount_ReplacesTheLimit()
     {
         var budget = new Budget(ExpenseCategory(), new YearMonth(2026, 11), 300m);

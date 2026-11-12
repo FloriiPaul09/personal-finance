@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PersonalFinance.Api.Common.Errors;
+using PersonalFinance.Domain.Budgets;
 
 namespace PersonalFinance.Api.Common.Requests;
 
@@ -32,6 +33,19 @@ public static class QueryValues
 
         var allowed = string.Join(", ", Enum.GetValues<TEnum>().Select(member => NameOf(member)));
         throw ApiProblemException.UnreadableQuery(field, $"Allowed values: {allowed}.");
+    }
+
+    /// <summary>A month written as in JSON (<c>?month=2026-11</c>); <see langword="null"/> when absent, <c>400</c> <c>request.invalid</c> when unreadable.</summary>
+    public static YearMonth? ParseMonth(string? value, string field)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        return YearMonth.TryParse(value, out var month)
+            ? month
+            : throw ApiProblemException.UnreadableQuery(field, "A month is written as yyyy-MM, e.g. 2026-11.");
     }
 
     private static string NameOf<TEnum>(TEnum member)
