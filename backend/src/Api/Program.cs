@@ -13,20 +13,21 @@ builder.Services.AddPersistence(services =>
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required (docs/devops/configuration.md)."));
 
 builder.Services.AddApiErrors();
-builder.Services.AddApiSecurity();
+builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddValidation();
 builder.Services.AddApiDocumentation();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Pending migrations are applied before serving requests (docs/database/migrations.md).
+// Pending migrations are applied before serving requests (docs/database/migrations.md), then the first user is
+// created if the database has none (docs/backend/security.md#initial-user).
 await app.Services.MigrateDatabaseAsync();
+await app.Services.EnsureInitialUserAsync();
 
 // Before authentication, so every error — a 401 included — is a ProblemDetails with a code (docs/backend/validation-and-errors.md).
 app.UseApiErrors();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseApiSecurity();
 
 // Liveness endpoint, used later by container health checks (docs/devops/docker.md).
 app.MapHealthChecks("/api/health").AllowAnonymous();

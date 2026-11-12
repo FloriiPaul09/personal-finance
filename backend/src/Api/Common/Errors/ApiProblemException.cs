@@ -29,6 +29,20 @@ public sealed class ApiProblemException(int statusCode, string code, string deta
         ApiErrors.VersionMismatch,
         "The resource was changed or deleted since it was read. Read it again and retry.");
 
+    public static ApiProblemException AntiforgeryInvalid() => new(
+        StatusCodes.Status400BadRequest,
+        ApiErrors.AntiforgeryInvalid,
+        "Send the value of the XSRF-TOKEN cookie in the X-XSRF-TOKEN header (GET /api/auth/antiforgery issues it).");
+
+    /// <summary>
+    /// Wrong email, wrong password and locked account give the same answer: the response never tells whether an
+    /// account exists (docs/backend/security.md#login).
+    /// </summary>
+    public static ApiProblemException InvalidCredentials() => new(
+        StatusCodes.Status401Unauthorized,
+        ApiErrors.InvalidCredentials,
+        "Invalid email or password, or the account is temporarily locked after too many failed attempts.");
+
     /// <param name="resource">Lowercase name of the resource, e.g. <c>account</c>.</param>
     /// <param name="field">Request field holding the id, e.g. <c>accountId</c>.</param>
     public static ApiProblemException ReferenceNotFound(string resource, string field) => new(
