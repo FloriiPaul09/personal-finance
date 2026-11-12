@@ -146,6 +146,7 @@ balance(account, up to date D) = initial_balance + Σ amount of the account's tr
 - The domain method and the SQL query must give the same result: an integration test compares them.
 - An archived account keeps its balance and appears in reports; it cannot receive new movements.
 - The **currency** can change only while the account has no movements; afterwards a new account is needed (changing it would reinterpret every amount).
+- An account can be **deleted** only while it has no movements (`Account.EnsureCanDelete`, `account.has_movements`); afterwards it can only be archived, so no history is lost.
 
 #### Income and expense
 
@@ -218,11 +219,11 @@ Unit tests in `Domain.Tests` ([testing.md](testing.md#domain-unit-tests)):
 - balance: no movements, only income, only expense, mixed, negative result, movements after the given date excluded;
 - transfer: two legs with opposite amounts and same date, same account rejected, different currencies rejected, archived account rejected, update moves both legs;
 - income and expense: wrong category kind, archived account or category;
-- account: currency change allowed without movements, rejected with movements;
+- account: currency change allowed without movements, rejected with movements; delete allowed without movements, rejected with movements;
 - categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets;
 - budget: budget on a parent with budgeted subcategories rejected and the opposite, moving a budgeted subcategory under a budgeted parent rejected, limit picked from the latest entry, ended budget, first and last day of the month, February in a leap year (2028), subcategories included, over budget, remaining negative.
 
-Integration tests in `Infrastructure.Tests` check that constraints enforce the same rules at database level and that the balance query matches the domain.
+Integration tests in `Infrastructure.Tests` check that constraints enforce the same rules at database level and that the balance query matches the domain. The balance the API computes is compared with the domain too (`AccountsTests.Get_Balance_AddsEveryMovement_AndEqualsTheDomainBalance`).
 
 ## Scalability
 
@@ -240,4 +241,4 @@ Integration tests in `Infrastructure.Tests` check that constraints enforce the s
 - Refunds on expense categories (see Scalability), to decide when the first need appears.
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

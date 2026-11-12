@@ -37,13 +37,14 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0012](adr/0012-api-foundation.md) | API foundation — endpoint discovery, secure-by-default authorization, validation and tooling | Accepted | 2026-11-12 |
 | [0013](adr/0013-error-responses-and-concurrency.md) | Error responses, optimistic concurrency over HTTP and access to other users' data | Accepted | 2026-11-12 |
 | [0014](adr/0014-authentication-endpoints-and-sessions.md) | Authentication endpoints, CSRF, sessions and authentication in tests | Accepted | 2026-11-12 |
+| [0015](adr/0015-resource-conventions-and-accounts.md) | Resource endpoint conventions and the accounts module | Accepted | 2026-11-12 |
 
 ## Current state
 
 - **Initial architecture complete**: stack (ADR-0007), authentication (ADR-0001), backend structure (ADR-0002), endpoint style (ADR-0003), UI library (ADR-0004, documented in [frontend/ui-components.md](../frontend/ui-components.md)), license (ADR-0005), testing strategy (ADR-0006), repository layout.
 - **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
 - **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
-- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014); the resources follow one block at a time; see [backend/README.md](../backend/README.md).
+- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014), accounts done together with the conventions of every resource (enums as strings, amounts as numbers, list envelope, ADR-0015); categories, transactions, transfers, budgets and dashboard follow one block at a time; see [backend/README.md](../backend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -65,6 +66,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-12 | API foundation: `IEndpoint<TModule>` discovered at startup, fallback policy requiring authentication, `HttpCurrentUser`, built-in validation, manual mapping, no mediator, OpenAPI + Scalar in Development, ArchUnitNET and banned `IgnoreQueryFilters` (decided in `[Backend]`) | [ADR-0012](adr/0012-api-foundation.md) |
 | 2026-11-12 | Errors as ProblemDetails with stable `code` and `traceId`; domain codes `400` / `409` / `500` by family; duplicates from unique indexes `409`; `ETag` + mandatory `If-Match` (`428` / `412`); other users' data `404` (decided in `[Backend]`) | [ADR-0013](adr/0013-error-responses-and-concurrency.md) |
 | 2026-11-12 | Custom auth endpoints, registration only when enabled, `SameSite=Strict` + antiforgery tokens, password ≥ 12, lockout 5 / 15 min, sliding 14-day cookie, login rate limiter, Data Protection keys in the database, test authentication handler (decided in `[Backend]`) | [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md) |
+| 2026-11-12 | Resource conventions: enums as `camelCase` strings, amounts as JSON numbers, every list in `{ items }`, one response type per resource; accounts with balance computed in SQL, archive actions, delete only without movements (decided in `[Backend]`) | [ADR-0015](adr/0015-resource-conventions-and-accounts.md) |
 
 ## Tests
 
@@ -100,6 +102,8 @@ Questions raised here that belong to another conversation. Each one is detailed 
 
 ### `[Frontend]`
 - From `[Backend]`: call `GET /api/auth/antiforgery` at startup and keep Angular's default XSRF names (`XSRF-TOKEN` / `X-XSRF-TOKEN`); `GET /api/auth/me` to know whether to show the login; send `If-Match` with the `ETag` on updates and deletes; switch on the error `code` — [backend/security.md](../backend/security.md#csrf), [backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)
+- From `[Backend]`: lists come as `{ "items": [...] }`, enums as `camelCase` strings, amounts as JSON numbers never added on the client; accounts expose `balance` and `hasMovements` (lock the currency, offer archive instead of delete) — [backend/api-endpoints.md](../backend/api-endpoints.md#accounts), [ADR-0015](adr/0015-resource-conventions-and-accounts.md)
+- From `[Backend]`: the end-to-end login test (Playwright) is written with the login page — [ADR-0006](adr/0006-testing-strategy.md)
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
 - `app-structure.md`, `routing.md` (login, guard, `401` interceptor), `state-management.md` — [frontend/README.md](../frontend/README.md)
 - ✅ Vitest setup — done in `[DevOps]` with the Angular unit-test builder ([devops/local-development.md](../devops/local-development.md#tests))

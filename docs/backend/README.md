@@ -8,10 +8,10 @@ The HTTP API of the application (`backend/src/Api`): how endpoints are written a
 
 | Document | Covers | Status |
 |---|---|---|
-| [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`) and the contract of every endpoint, one section per resource | Conventions and versions implemented; resources to come |
-| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013 |
+| [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`) and the contract of every endpoint, one section per resource | Conventions, authentication and accounts implemented; other resources to come |
+| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013, ADR-0015 |
 | [security.md](security.md) | Session cookie, password and lockout, login, CSRF, rate limiting, fallback policy, public endpoints, current user, other users' data, initial user, Data Protection keys, banned APIs | Implemented — ADR-0001, ADR-0012, ADR-0013, ADR-0014 |
-| [testing.md](testing.md) | Test projects, API hosts on Testcontainers, authentication in tests, test data, mechanism, startup, host and architecture tests, minimum per endpoint | Implemented — ADR-0006, ADR-0011, ADR-0012, ADR-0013, ADR-0014 |
+| [testing.md](testing.md) | Test projects, API hosts on Testcontainers, authentication in tests, test data, mechanism, startup, host and architecture tests, minimum per endpoint | Implemented — ADR-0006, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015 |
 
 ## Current state
 
@@ -21,8 +21,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 |---|---|---|---|
 | 1 | Foundation: endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, API test hosts | `feat/backend-api-foundation` | Merged (#10) |
 | 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | Merged (#11) |
-| 3 | Authentication: antiforgery, login, logout, me, change password, registration, rate limiting, initial user, Data Protection keys, test authentication | `feat/backend-auth` | In review |
-| 4 | Accounts | `feat/backend-accounts` | To do |
+| 3 | Authentication: antiforgery, login, logout, me, change password, registration, rate limiting, initial user, Data Protection keys, test authentication | `feat/backend-auth` | Merged (#12) |
+| 4 | Accounts, plus the conventions of every resource: enums as strings, amounts as numbers, list envelope, schema names | `feat/backend-accounts` | In review |
 | 5 | Categories | `feat/backend-categories` | To do |
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | To do |
 | 7 | Transfers | `feat/backend-transfers` | To do |
@@ -36,10 +36,11 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 ```
 AddPersistence (connection string read from the final configuration)
 AddApiErrors          → ProblemDetails with code + traceId, ApiExceptionHandler
+AddApiJson            → enumerations as camelCase strings (JsonConventions)
 AddApiSecurity        → Auth options, Identity + session cookie (401/403, no redirects), Data Protection keys in the DB,
                         antiforgery, login rate limiter, fallback policy, HttpCurrentUser
 AddValidation         → built-in Minimal API validation
-AddApiDocumentation   → built-in OpenAPI document
+AddApiDocumentation   → built-in OpenAPI document, schema names prefixed by slice
 migrations → initial user → UseApiErrors (exception handler, status code pages)
            → UseApiSecurity (authentication, authorization, rate limiter, antiforgery)
 /api/health (public) · /openapi + /scalar (Development only) · MapApiEndpoints()
@@ -64,8 +65,11 @@ A slice declares its endpoint with `IEndpoint<TModule>`; startup finds it and ma
 // Api/Features/Accounts/CreateAccount.cs
 public static class CreateAccount
 {
-    public sealed record Request([Required, MaxLength(100)] string Name, [Required] string Currency, decimal InitialBalance);
-    public sealed record Response(Guid Id);
+    public sealed record Request(
+        [Required, MaxLength(Account.NameMaxLength)] string Name,
+        [Required] AccountType? Type,
+        [Required, Length(3, 3)] string Currency,
+        [Required] decimal? InitialBalance);
 
     internal sealed class Endpoint : IEndpoint<AccountsModule>
     {
@@ -73,12 +77,21 @@ public static class CreateAccount
             module.MapPost("", Handle).WithName(nameof(CreateAccount));
     }
 
-    internal static async Task<Created<Response>> Handle(Request request, AppDbContext db, CancellationToken ct)
+    internal static async Task<Created<AccountResponse>> Handle(
+        Request request, AppDbContext db, ICurrentUser currentUser, HttpResponse response, CancellationToken ct)
     {
-        // domain constructor, SaveChanges, TypedResults.Created(...)
+        var account = new Account(currentUser.RequiredUserId(), request.Name, request.Type!.Value, request.Currency, request.InitialBalance!.Value);
+        db.Accounts.Add(account);
+        await db.SaveChangesAsync(ct);
+
+        var created = await db.FindAccountResponseAsync(account.Id, ct);   // the same projection as reads
+        response.SetVersion(created!.Version);
+        return TypedResults.Created($"/api/accounts/{account.Id}", created);
     }
 }
 ```
+
+The real slices are in `Api/Features/Accounts`: the reference for the next resources.
 
 Rules:
 
@@ -86,7 +99,9 @@ Rules:
 - **No authorization code in slices**: the fallback policy protects everything. Only a public endpoint calls `AllowAnonymous()`, and it must be added to the list of public routes ([security.md](security.md#public-endpoints)).
 - **Request and response records are `public`** (the validation generator skips other types); the endpoint class is `internal sealed` and lives in `PersonalFinance.Api.Features.*` (architecture test).
 - **Handlers return `TypedResults`** (`Results<…>` for several outcomes) for exact OpenAPI metadata.
-- **Mapping is manual**: `Select` projections for reads (only the needed columns reach the API), a small static method for writes. No mapping library.
+- **Mapping is manual**: one response type per resource and one `Select` projection for it (`AccountQueries.SelectResponses`), used by reads and, after saving, by writes. No mapping library.
+- **Lists return `ListResponse<T>`** (`{ "items": [...] }`); enumerations travel as `camelCase` strings ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)).
+- **State changes that cannot lose an edit** (archive, unarchive) are idempotent `POST /{id}/{action}` without `If-Match`; everything that replaces or deletes data takes the version.
 - **No mediator**: the endpoint calls `Handle` directly. Cross-cutting behavior goes in endpoint filters on the module (`ApiModule.Configure`).
 - **Thin slices**: every business rule lives in `Domain`, so the future `Worker` and the CSV import apply the same rules without calling the API.
 - **Never `IgnoreQueryFilters`** in `Api`: it does not compile (banned API) and an architecture test checks it again.
@@ -114,6 +129,8 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Custom auth endpoints (`antiforgery`, `login`, `logout`, `me`, `change-password`), registration mapped only when enabled | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [api-endpoints.md](api-endpoints.md#authentication) |
 | 2026-11-12 | `SameSite=Strict` + antiforgery tokens on every unsafe request; password ≥ 12, lockout 5 / 15 min, sliding 14-day cookie; rate limiter on login and registration; Data Protection keys in the database | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [security.md](security.md) |
 | 2026-11-12 | Tests: test authentication handler for resources, real login for authentication; `TestData` factories | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [testing.md](testing.md#authentication-in-tests) |
+| 2026-11-12 | Resource conventions: enums as `camelCase` strings, amounts as JSON numbers, list envelope `{ items }`, one response type per resource, schema names prefixed by slice, `request.invalid` for unreadable requests | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md), [api-endpoints.md](api-endpoints.md#conventions) |
+| 2026-11-12 | Accounts: balance in SQL at every read, `PUT` of the whole account, archive / unarchive actions, delete only without movements (`account.has_movements`), archived hidden unless `includeArchived=true` | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md), [api-endpoints.md](api-endpoints.md#accounts) |
 
 ## Tests
 
@@ -122,7 +139,7 @@ Summary of [testing.md](testing.md):
 - discovery rules (unit), module groups and the fallback policy on a minimal host, the real host on PostgreSQL (public routes, development tools by environment, current user, `If-Match` on every update and delete);
 - error responses, duplicates, versions and other users' data on a host with sample endpoints over a real database; mapping tables checked against `DomainErrors` and the unique indexes of PostgreSQL;
 - architecture rules with ArchUnitNET, with a check that the `IgnoreQueryFilters` rule really detects a call;
-- from block 4 on, every endpoint: success, `401` without session, validation error, isolation between users.
+- from block 4 on, every endpoint: success, `401` without session, validation error, isolation between users, versions on writes — `AccountsTests` is the first and the reference.
 
 ## Scalability
 
@@ -136,6 +153,7 @@ Summary of [testing.md](testing.md):
 
 - ✅ Block 2 — error mapping, concurrency and cross-user access: [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
 - ✅ Block 3 — authentication: [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md).
+- ✅ Block 4 — accounts and resource conventions: [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - Block 6 — signed amounts or kind + positive amount in the API; client-generated ids or an idempotency key so an expense sent again by the PWA after going offline is not saved twice.
 - ✅ Validation of request records is tested (login).
 - Nice to have: a `dotnet new` template that scaffolds a slice.

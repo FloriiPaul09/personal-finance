@@ -6,13 +6,14 @@ How the API checks requests and how every failure becomes an HTTP response: vali
 
 ## Current state
 
-Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)) in `Api/Common/Errors` and `Api/Common/Concurrency`. Request validation is tested from the authentication endpoints on (`AuthTests.Login_WithAnInvalidEmail_Returns400OnTheField`).
+Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)) in `Api/Common/Errors` and `Api/Common/Concurrency`. Request validation is tested from the authentication endpoints on (`AuthTests.Login_WithAnInvalidEmail_Returns400OnTheField`) and on every account endpoint (`AccountsTests`).
 
 ### Two levels of checks
 
 | Level | Checks | Where | Failure |
 |---|---|---|---|
-| Request shape | Required fields, lengths, ranges, formats, enum values, paging limits | Request records of the slice, built-in validation | `400`, `validation.failed`, errors by field |
+| Request shape | Required fields, lengths, ranges, formats, paging limits | Request records of the slice, built-in validation | `400`, `validation.failed`, errors by field |
+| Readable request | Valid JSON, enum values the API knows, route and query values of the right type | JSON deserialization and parameter binding, before validation | `400`, `request.invalid`, no field |
 | Business rules | Everything that protects money and data: amounts (zero, more than 2 decimals), archived accounts, category kinds, transfers, budgets | `Domain` entities and services ([database/domain-model.md](../database/domain-model.md)) | `DomainException` with a stable code → [Domain errors](#domain-errors) |
 
 A rule is never written twice: if `Domain` already enforces it, the request record does not repeat it, except for checks that give a better message per field (e.g. a required name). The `Worker` and the CSV import go through the same `Domain` rules, so they get the same codes.
@@ -42,7 +43,7 @@ Every error is a ProblemDetails (RFC 9457, `application/problem+json`) with two 
 
 How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 
-- `ApiExceptionHandler` (an `IExceptionHandler`) maps the known exceptions below.
+- `ApiExceptionHandler` (an `IExceptionHandler`) maps the known exceptions below, including `BadHttpRequestException`: in Development the framework throws it for an unreadable request, and it becomes `request.invalid` with a fixed message (the framework message names internal parameters). In other environments the framework answers the bare `400`, which status code pages turn into the same response.
 - Anything else is logged by the exception handler middleware and answered `500` with code `server.error`, without details.
 - `UseStatusCodePages` gives a ProblemDetails body to responses that have none: `TypedResults.NotFound()`, the `401` of the cookie, `405`, `415`.
 - `CustomizeProblemDetails` adds `traceId`, and a `code` from the status when there is none.
@@ -52,7 +53,7 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 | Code | Status | When |
 |---|---|---|
 | `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field |
-| `request.invalid` | 400 | Malformed request (e.g. invalid JSON, wrong route value type) |
+| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`) |
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
 | *domain code* | 400 / 409 | [Domain errors](#domain-errors) |
@@ -81,7 +82,7 @@ API codes are constants of `ApiErrors`; domain codes of `DomainErrors`.
 | Family | Status | Codes |
 |---|---|---|
 | Invalid values — the values sent cannot be accepted, whatever the data | `400` | `amount.not_positive`, `amount.too_many_decimals`, `amount.out_of_range`, `name.required`, `name.too_long`, `description.too_long`, `currency.invalid`, `month.invalid`, `account.type_invalid`, `category.kind_invalid`, `category.too_deep`, `category.parent_itself`, `category.kind_mismatch`, `category.kind_follows_parent`, `category.not_a_subcategory`, `transfer.same_account`, `transfer.currency_mismatch`, `budget.category_not_expense` |
-| State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
+| State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `account.has_movements`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
 | Programming errors — invariants slices must guarantee before calling the domain | `500` (logged, no details) | `user.required`, `user.different`, `account.transaction_of_another_account`, `budget.entries_of_another_category` |
 
 The `detail` is the domain message (English). A new code in `DomainErrors` makes `ErrorMappingTests` fail until it is placed in a family.
@@ -116,10 +117,14 @@ Built-in .NET 10 Minimal API validation, registered once in `Program.cs` with `b
 
 ```csharp
 public sealed record Request(
-    [Required, MaxLength(100)] string Name,
-    [Required, RegularExpression("^[A-Z]{3}$")] string Currency,
-    decimal InitialBalance);
+    [Required, MaxLength(Account.NameMaxLength)] string Name,
+    [Required] AccountType? Type,
+    [Required, Length(3, 3)] string Currency,
+    [Required] decimal? InitialBalance);
 ```
+
+- **Required values are nullable** (`AccountType?`, `decimal?`) with `[Required]`: a missing `type` would otherwise silently become the first enum member, and a missing amount `0`. The handler reads `.Value` after validation.
+- The record checks only the shape; `Domain` keeps the rules (`currency.invalid` for `"E1R"`, `amount.too_many_decimals`), so they hold for the `Worker` and the CSV import too.
 
 - Request records are **`public`**: the generator skips non-public types without warning.
 - Attributes go on the positional parameters of the record (no `[property: …]` needed).
@@ -138,13 +143,15 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 | One global `IExceptionHandler`; ProblemDetails with `code` and `traceId` everywhere | One shape for the frontend; slices stay linear | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | Domain codes by family (`400` / `409` / `500`) in one table checked by a test | Meaningful statuses, no forgotten code | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | Duplicates detected by the database (`23505` → `*.name_taken`, `409`) | Correct under simultaneous requests, no repeated checks | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
+| Unreadable requests `400` `request.invalid` in every environment, with a fixed message | Same contract in Development and Production; framework messages stay in the logs | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 
 ## Tests
 
-- `ErrorMappingTests`: every `DomainErrors` code is mapped and nothing else; status of each family; code of each status; entity tag format and parsing.
+- `ErrorMappingTests`: every `DomainErrors` code is mapped and nothing else; status of each family; code of each status; unreadable requests keep their status without the framework message; entity tag format and parsing.
 - `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
 - `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
 - From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
+- `AccountsTests`: missing and invalid fields on the field, unknown enum values and malformed JSON (`request.invalid`, in Development and Production), domain codes (`currency.invalid`, `amount.too_many_decimals`, `account.currency_locked`, `account.has_movements`), duplicate names.
 
 ## Scalability
 
@@ -156,7 +163,8 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 
 ## To do / open questions
 
-- Block 4: review the shape of validation errors with `[Frontend]` (field names, messages).
+- `[Frontend]`: check the keys of `errors` against the form fields with the first form (accounts); tests compare them without regard to case.
+- A database error that slips past the domain because of a race (a movement saved while its account is deleted, foreign key `23503`) gives `500`; map foreign key violations if it ever shows up.
 - `[Frontend]`: map `code` to Italian messages; read `errors` for form fields; on `412` reload the resource and tell the user it changed elsewhere.
 
 ---

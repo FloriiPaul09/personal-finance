@@ -6,23 +6,24 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
 | Topic | Convention |
 |---|---|
 | Base path | `/api`; each module adds its prefix: `/api/accounts`, `/api/categories`, … The Angular dev server and nginx proxy `/api` ([devops/local-development.md](../devops/local-development.md)) |
-| Format | JSON, `camelCase` properties (ASP.NET Core default), enumerations as strings (decided with the first enum in an endpoint) |
+| Format | JSON, `camelCase` properties (ASP.NET Core default); **enumerations as `camelCase` strings** (`"creditCard"`) — numbers and unknown values give `400` `request.invalid` ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)). Options in `JsonConventions` |
 | Authentication | Session cookie on every endpoint unless marked **public** ([security.md](security.md)); without a session `401` |
 | Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}` |
-| Amounts | JSON numbers with at most 2 decimals, never floats on the server (`decimal`); exposure of signs decided in block 6 |
+| Amounts | **JSON numbers** with at most 2 decimals (`1234.56`), `decimal` on the server; a third decimal is refused (`amount.too_many_decimals`), never rounded. Totals and balances are computed by the server: clients never add amounts in floating point. Exposure of signs on movements decided in block 6 |
 | Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); timestamps ISO 8601 in UTC |
-| Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace (`200` + `ETag`), `DELETE` delete or archive (`204`) — final list per resource. `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
+| Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace the whole resource (`200` + `ETag`), `DELETE` (`204`), `POST /{id}/{action}` for idempotent state changes such as `archive` (`200` + `ETag`). `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
 | Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
 | Not found | `404` `resource.not_found` for a route id that is not the user's — another user's id included ([security.md](security.md#another-users-data)) |
-| Lists | Paging and sorting decided with the first list that needs them (transactions) |
-| OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults` |
+| Responses | One response type per resource (e.g. `AccountResponse`), the same for list items, reads and writes, with `version` in the body |
+| Lists | **Envelope** `{ "items": [...] }` (`ListResponse<T>`) for every list, paged or not; filters in the query string (`?includeArchived=true`). Paging and sorting parameters decided with the first list that needs them (transactions) |
+| OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults`; schema names are prefixed with their slice (`CreateAccountRequest`) |
 
 ### Endpoint template
 
@@ -174,12 +175,131 @@ Other sessions of the user end within 5 minutes (security stamp).
 | **Responses** | `201` `{ "id": "…", "email": "…" }` with the default categories, session started, new `XSRF-TOKEN` · `400` `auth.password_rejected` on `password` · `400` `validation.failed` · `409` `auth.email_taken` on `email` · `429` `request.too_many` |
 | **Tests** | `RegistrationTests`, `AuthTests.Register_DoesNotExist_WhileRegistrationIsOff` |
 
+### Accounts
+
+Module `accounts` ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)). Every account endpoint returns the same `AccountResponse`:
+
+```json
+{
+  "id": "0193a5c4-7e1f-7c3b-9a52-3f0e6d2b8a41",
+  "name": "Conto corrente",
+  "type": "checking",
+  "currency": "EUR",
+  "initialBalance": 100.00,
+  "balance": 1339.85,
+  "isArchived": false,
+  "hasMovements": true,
+  "version": 81723
+}
+```
+
+| Field | Content |
+|---|---|
+| `type` | `cash`, `checking`, `creditCard`, `savings`, `other` |
+| `currency` | ISO 4217, upper case |
+| `initialBalance` | Any sign: a card or an overdraft can start below zero |
+| `balance` | `initialBalance` + every movement of the account (income, expenses, transfer legs), computed by the database at each read, never stored |
+| `hasMovements` | `true` when a transaction uses the account: the currency is fixed and the account can only be archived, not deleted |
+| `version` | Value to send in `If-Match` |
+
+Request body of create and update (all fields required):
+
+```json
+{ "name": "Conto corrente", "type": "checking", "currency": "EUR", "initialBalance": 100.00 }
+```
+
+| Field | Rules |
+|---|---|
+| `name` | 1–100 characters, trimmed; unique per user without regard to case, archived accounts included → `409` `account.name_taken` |
+| `type` | One of the values above; anything else `400` `request.invalid` |
+| `currency` | 3 letters, any case (`eur` → `EUR`); not letters → `400` `currency.invalid`. Cannot change once the account has movements → `409` `account.currency_locked` |
+| `initialBalance` | At most 2 decimals → otherwise `400` `amount.too_many_decimals` |
+
+#### List accounts
+
+| | |
+|---|---|
+| **Route** | `GET /api/accounts` |
+| **Auth** | Session |
+| **Request** | Query `includeArchived` (`true` / `false`, default `false`) |
+| **Responses** | `200` `{ "items": [AccountResponse, …] }`: active accounts by name; with `includeArchived=true` the archived ones follow, by name · `400` `request.invalid` (e.g. `includeArchived=maybe`) · `401` `auth.required` |
+| **Versions** | `version` on each item |
+| **Isolation** | Only the user's accounts |
+| **Tests** | `AccountsTests.List_*` |
+
+Not paged: a person has a handful of accounts.
+
+#### Get an account
+
+| | |
+|---|---|
+| **Route** | `GET /api/accounts/{id}` |
+| **Auth** | Session |
+| **Responses** | `200` `AccountResponse`, archived or not · `401` `auth.required` · `404` `resource.not_found` |
+| **Versions** | `ETag` |
+| **Isolation** | Another user's account: `404`, like a nonexistent id |
+| **Tests** | `AccountsTests.Get_*` |
+
+#### Create an account
+
+| | |
+|---|---|
+| **Route** | `POST /api/accounts` |
+| **Auth** | Session |
+| **Request** | Body above |
+| **Responses** | `201` `AccountResponse`, `Location: /api/accounts/{id}` · `400` `validation.failed` (missing field, name too long, currency not 3 characters), `request.invalid` (unreadable JSON, unknown type), `currency.invalid`, `amount.too_many_decimals`, `amount.out_of_range` · `401` `auth.required` · `409` `account.name_taken` |
+| **Versions** | `ETag` |
+| **Isolation** | Created for the user of the session; another user's account with the same name is no conflict |
+| **Tests** | `AccountsTests.Create_*` |
+
+#### Update an account
+
+| | |
+|---|---|
+| **Route** | `PUT /api/accounts/{id}` |
+| **Auth** | Session |
+| **Request** | Body above, header `If-Match` |
+| **Responses** | `200` `AccountResponse` · `400` as create · `401` `auth.required` · `404` `resource.not_found` · `409` `account.name_taken`, `account.currency_locked` · `412` `concurrency.version_mismatch` · `428` `concurrency.version_required` |
+| **Versions** | `If-Match` required; new `ETag` |
+| **Isolation** | Another user's account: `404` before any version check |
+| **Tests** | `AccountsTests.Update_*` |
+
+Archived accounts can be edited: archiving only stops new movements. Changing the initial balance changes the balance by the same amount.
+
+#### Archive and unarchive
+
+| | |
+|---|---|
+| **Route** | `POST /api/accounts/{id}/archive` · `POST /api/accounts/{id}/unarchive` |
+| **Auth** | Session |
+| **Request** | No body, no `If-Match` |
+| **Responses** | `200` `AccountResponse` · `401` `auth.required` · `404` `resource.not_found` |
+| **Versions** | New `ETag` (unchanged when the account was already in that state) |
+| **Isolation** | Another user's account: `404`, nothing changes |
+| **Tests** | `AccountsTests.Archive_*`, `Unarchive_*`, `ArchiveActions_*` |
+
+Idempotent: archiving an archived account returns it unchanged. No version is required because the action changes one flag and cannot overwrite an edit made elsewhere; a form opened before archiving gets `412` on save and reloads. An archived account keeps its history and balance and is hidden from the default list; new movements on it are refused with `409` `account.archived` (blocks 6–7).
+
+#### Delete an account
+
+| | |
+|---|---|
+| **Route** | `DELETE /api/accounts/{id}` |
+| **Auth** | Session |
+| **Request** | Header `If-Match` |
+| **Responses** | `204` · `401` `auth.required` · `404` `resource.not_found` · `409` `account.has_movements` · `412` `concurrency.version_mismatch` · `428` `concurrency.version_required` |
+| **Versions** | `If-Match` required |
+| **Isolation** | Another user's account: `404`, nothing deleted |
+| **Tests** | `AccountsTests.Delete_*` |
+
+Only for an account without movements, e.g. one created by mistake. With movements the app offers to archive it (`hasMovements` tells it in advance).
+
 ### Resources
 
 | Resource | Module prefix | Block | Status |
 |---|---|---|---|
 | Authentication (antiforgery, login, logout, me, change password, register) | `auth` | 3 | Implemented — [Authentication](#authentication) |
-| Accounts | `accounts` | 4 | To do |
+| Accounts | `accounts` | 4 | Implemented — [Accounts](#accounts) |
 | Categories | `categories` | 5 | To do |
 | Transactions (with tags, filters) | `transactions` | 6 | To do |
 | Transfers | `transfers` | 7 | To do |
@@ -193,12 +313,16 @@ Other sessions of the user end within 5 minutes (security stamp).
 | `/api/{module}` routes from `ApiModule.Prefix`, not from folder names | Renaming code never changes a public URL | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Development-only OpenAPI document and Scalar UI | Try endpoints locally without exposing the API surface on real instances | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
+| Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 
 ## Tests
 
 - `ApiHostTests`: health is public; the OpenAPI document and Scalar exist in Development and not in Production; only the listed routes are public; every `PUT` / `PATCH` / `DELETE` requires `If-Match`.
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
+- `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `AccountsTests`: every account endpoint — success, `401`, validation, isolation, versions — plus the balance compared with `Account.BalanceAt`, enumerations as strings, malformed JSON in Development and Production.
 - Each resource section names its test class; the minimum per endpoint is in [testing.md](testing.md#minimum-per-endpoint).
 
 ## Scalability
@@ -208,13 +332,18 @@ Other sessions of the user end within 5 minutes (security stamp).
 - **Generated clients**: the OpenAPI document can be exported at build time (`Microsoft.Extensions.ApiDescription.Server`) if `[Frontend]` generates its client.
 - **PWA and caching**: the offline queue stores the version with each pending change and sends it as `If-Match`; a `412` means the item changed elsewhere. Reads can answer `304 Not Modified` to `If-None-Match` when needed.
 - **OpenAPI**: `If-Match` and `ETag` are not described in the document yet; an operation transformer can add them for endpoints with `IfMatchRequiredMetadata`.
+- **Balances with years of movements**: the account query sums every movement. When that shows in response times, the `Worker` writes monthly balance snapshots and the query adds only the movements after the last snapshot; the response does not change. A covering index with `amount` is a cheaper first step.
+- **Many accounts** (shared households, multi-user): the list already uses the envelope, so paging can be added without breaking clients.
+- **Currencies**: when transfers between currencies arrive, the balance stays per account in its own currency; totals across currencies belong to the dashboard with exchange rates.
 
 ## To do / open questions
 
 - ✅ Status codes of errors, concurrency and cross-user access — [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
 - Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
-- Enum serialization, paging and sorting conventions (with the first endpoints that need them).
-- Contracts of every resource (blocks 4–9).
+- ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
+- Paging and sorting parameters (block 6, transactions).
+- Contracts of the remaining resources (blocks 5–9).
+- `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.
 
 ---
 _Last updated: 2026-11-12_
