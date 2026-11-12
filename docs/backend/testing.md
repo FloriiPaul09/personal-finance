@@ -6,7 +6,7 @@ How the API is tested: the test projects involved, how tests start the API on a 
 
 ## Current state
 
-Implemented for the foundation and the error handling ([ADR-0011](../architecture/adr/0011-persistence-testing.md), [ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
+Implemented for the foundation, the error handling and authentication ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [ADR-0011](../architecture/adr/0011-persistence-testing.md), [ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 
 ### Projects
 
@@ -29,7 +29,8 @@ each test class ──► Database (cloned from the template, DatabaseTest)
                       created on first use, cached by test class, disposed at the end of the run
 ```
 
-- `ApiFactory` runs the real `Program.cs` (same services and pipeline) and adds the class database's connection string as the **last configuration source**: it wins over `appsettings.Development.json` and environment variables, so tests never touch the development database.
+- `ApiFactory` runs the real `Program.cs` (same services and pipeline) and adds its settings as the **last configuration source**: they win over `appsettings.Development.json` and environment variables, so tests never touch the development database. Settings: the class database's connection string, an initial user (`owner@example.com`), a login rate limit high enough for many tests from one address. Extra settings override them; an empty value removes one (startup tests remove the initial user).
+- `ApiFactory` also registers `TestAuthenticationHandler` ([Authentication in tests](#authentication-in-tests)).
 - `Program.cs` reads the connection string when the first `DbContext` is created, not while building the host, so the value from the factory is the one used.
 - Endpoint test classes derive from `ApiTest`:
 
@@ -37,16 +38,53 @@ each test class ──► Database (cloned from the template, DatabaseTest)
   public sealed class AccountsTests(ApiServer server) : ApiTest(server)
   {
       [Fact]
+      public async Task List_ReturnsOnlyTheAccountsOfTheUser()
+      {
+          var user = await NewUserAsync();
+          var other = await NewUserAsync();
+          await Database.CreateAccountAsync(user, name: "Carta", cancellationToken: Ct);
+          await Database.CreateAccountAsync(other, cancellationToken: Ct);
+
+          var accounts = await ClientFor(user).GetFromJsonAsync<List<AccountResponse>>("/api/accounts", Ct);
+
+          Assert.Equal("Carta", Assert.Single(accounts!).Name);
+      }
+
+      [Fact]
       public async Task List_Returns401WithoutSession()
       {
           var response = await AnonymousClient().GetAsync("/api/accounts", Ct);
-          Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+          await Problems.AssertAsync(response, HttpStatusCode.Unauthorized, ApiErrors.AuthenticationRequired);
       }
   }
   ```
 
 - A test that needs another environment creates its own host: `await using var production = new ApiFactory(Database, Environments.Production);`.
 - `PostgresServerFixture.DisposeDependentsAsync` lets `ApiServer` dispose the hosts before the container stops.
+
+### Authentication in tests
+
+Two ways in, both on the same host ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)):
+
+| Tests | How they sign in | Helper |
+|---|---|---|
+| Resource tests (blocks 4–9) | **Test authentication handler**: the header `X-Test-User: <user id>` signs the request in as that user, no password, no cookie | `ClientFor(userId)`, users from `NewUserAsync()` |
+| Authentication tests | **Real login** through `POST /api/auth/login` and the `pf_session` cookie | `AnonymousClient()`, users from `NewUserWithPasswordAsync()` |
+
+- The default scheme of the test host is a selector: the test handler when the header is present, the real Identity cookie otherwise. Requests without the header behave exactly as in production.
+- Every test client behaves like the browser app (`TestClients`): base address `https://localhost` (the cookies are `Secure`), a cookie container, and `AntiforgeryHandler`, which fetches `GET /api/auth/antiforgery` before the first unsafe request, sends `X-XSRF-TOKEN`, and keeps the newest `XSRF-TOKEN` the API sets (after login and logout). A test that must not send the token uses `Host.CreateClient(...)` directly.
+- The handler exists only in `Api.Tests`; the production host never registers it.
+
+### Test data
+
+`TestData` in `PersonalFinance.Testing` ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)): one extension method per entity on `TestDatabase`, saving through the domain and EF Core as the user, with every value optional — a test names only what it checks.
+
+```csharp
+var account = await Database.CreateAccountAsync(userId, name: "Carta", initialBalance: -50m, cancellationToken: Ct);
+```
+
+- Default names are unique (`TestData.UniqueName`), so several calls never collide on unique indexes.
+- Each block adds the methods of its entities (accounts today; categories, transactions, transfers, budgets with their blocks). Persistence tests keep `SampleData` for their "one of everything" scenario.
 
 ### Mechanism tests
 
@@ -55,6 +93,12 @@ each test class ──► Database (cloned from the template, DatabaseTest)
 `ErrorHandlingTests` start a similar host (Production environment, no details in errors) with the class database, `AddApiErrors()`, `AddApiSecurity()`, a fixed current user and sample endpoints that throw domain errors, create and rename accounts, and simulate a write from another device between the version check and the save. They cover every row of the error codes table that does not need a real resource, versions (`ETag`, `428`, `400`, `412`), duplicates and other users' data. From block 4 the real resources reuse exactly these mechanisms, so their tests only check the codes of their own cases.
 
 `EndpointDiscoveryTests` call the discovery directly with lists of sample types: grouping and order, modules without endpoints, abstract types, and every mistake that must stop startup. They also check that the API assembly is discovered without errors and that every module has at least one endpoint.
+
+### Authentication and startup tests
+
+- `AuthTests`, `RegistrationTests`: the real session cookie end to end — see [security.md](security.md#tests). One of them starts a second host on the same database and reuses the session cookie: Data Protection keys are shared through the database.
+- `StartupTests`: each test clones its own database (`Server.CreateDatabaseAsync`) and starts a Production host on it, to check what happens with no users, with existing users and with invalid settings. A failed startup is read from the exception chain of the host.
+- `AuthOptionsValidatorTests`: unit tests of the startup validation of the `Auth` section.
 
 ### Host tests
 
@@ -94,7 +138,7 @@ From block 4, following the Definition of Done ([ADR-0006](../architecture/adr/0
 4. **Isolation**: user B neither sees nor changes user A's data — `404` `resource.not_found` for a route id, `400` `{resource}.not_found` for an id in the body ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 5. **Versions**, for updates and deletes: `412` with a stale `If-Match` (`428` and malformed headers are covered once by `ErrorHandlingTests`).
 
-How tests sign in and the test data builders are decided in block 3.
+Resource tests sign in with `ClientFor(userId)` and create data with `TestData`; the antiforgery token is handled by the client.
 
 ## Decisions
 
@@ -105,6 +149,9 @@ How tests sign in and the test data builders are decided in block 3.
 | Mechanism tests on a minimal host with sample endpoints | The foundation is tested before any real endpoint exists | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Mapping tables checked against their source (`DomainErrors`, PostgreSQL unique indexes, endpoints with `PUT` / `PATCH` / `DELETE`) | A new code, index or endpoint cannot be forgotten | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | ArchUnitNET for architecture tests, each "forbidden call" rule checked against a known violation | Rules on types and method calls; a rule that sees nothing cannot pass silently | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
+| Test authentication handler for resource tests, real login for authentication tests | Fast resource tests; the real cookie, lockout, rate limit and CSRF still tested | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md) |
+| Test clients with HTTPS, cookies and antiforgery | Tests see the API as the browser app does | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md) |
+| Factory methods with optional parameters for test data (`TestData`) | Less ceremony than builders, faster than creating data through the API | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md) |
 
 ## Tests
 
@@ -119,9 +166,9 @@ This document describes tests; it is verified by `dotnet test` passing locally a
 
 ## To do / open questions
 
-- Block 3: how tests authenticate (real login through the API or a test authentication handler), authenticated `HttpClient` helper, test data builders for endpoints.
+- ✅ How tests authenticate, authenticated client helper, test data ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
 - ✅ Expected status for another user's data: `404` / `400` `{resource}.not_found` ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
-- Block 3: startup tests — no users and no `Auth__InitialUser__*` → startup fails; the initial user gets the default categories; variables ignored once a user exists.
+- ✅ Startup tests: `StartupTests`, each on a database of its own (`Server.CreateDatabaseAsync`).
 - `[DevOps]` CI job with Docker for `Api.Tests`.
 
 ---

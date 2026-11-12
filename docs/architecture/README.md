@@ -36,13 +36,14 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0011](adr/0011-persistence-testing.md) | Persistence tests — one container, one database per test class | Accepted | 2026-11-10 |
 | [0012](adr/0012-api-foundation.md) | API foundation — endpoint discovery, secure-by-default authorization, validation and tooling | Accepted | 2026-11-12 |
 | [0013](adr/0013-error-responses-and-concurrency.md) | Error responses, optimistic concurrency over HTTP and access to other users' data | Accepted | 2026-11-12 |
+| [0014](adr/0014-authentication-endpoints-and-sessions.md) | Authentication endpoints, CSRF, sessions and authentication in tests | Accepted | 2026-11-12 |
 
 ## Current state
 
 - **Initial architecture complete**: stack (ADR-0007), authentication (ADR-0001), backend structure (ADR-0002), endpoint style (ADR-0003), UI library (ADR-0004, documented in [frontend/ui-components.md](../frontend/ui-components.md)), license (ADR-0005), testing strategy (ADR-0006), repository layout.
 - **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
 - **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
-- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) and error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013); authentication and the resources follow one block at a time; see [backend/README.md](../backend/README.md).
+- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014); the resources follow one block at a time; see [backend/README.md](../backend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -63,6 +64,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-10 | Persistence tests: one container per run, migrated template, one database per test class; `Infrastructure.Tests` and `Testing` projects (decided in `[DB]`) | [ADR-0011](adr/0011-persistence-testing.md) |
 | 2026-11-12 | API foundation: `IEndpoint<TModule>` discovered at startup, fallback policy requiring authentication, `HttpCurrentUser`, built-in validation, manual mapping, no mediator, OpenAPI + Scalar in Development, ArchUnitNET and banned `IgnoreQueryFilters` (decided in `[Backend]`) | [ADR-0012](adr/0012-api-foundation.md) |
 | 2026-11-12 | Errors as ProblemDetails with stable `code` and `traceId`; domain codes `400` / `409` / `500` by family; duplicates from unique indexes `409`; `ETag` + mandatory `If-Match` (`428` / `412`); other users' data `404` (decided in `[Backend]`) | [ADR-0013](adr/0013-error-responses-and-concurrency.md) |
+| 2026-11-12 | Custom auth endpoints, registration only when enabled, `SameSite=Strict` + antiforgery tokens, password ≥ 12, lockout 5 / 15 min, sliding 14-day cookie, login rate limiter, Data Protection keys in the database, test authentication handler (decided in `[Backend]`) | [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md) |
 
 ## Tests
 
@@ -84,24 +86,27 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - ✅ PostgreSQL version pinned once, shared by Compose and Testcontainers — decided in `[DevOps]`, [ADR-0008](adr/0008-local-development-environment.md)
 
 ### `[Backend]`
-- Auth endpoints (`MapIdentityApi` or custom, registration disabled), CSRF, password / lockout / cookie values, login rate limiting, Data Protection keys — [authentication.md](authentication.md); planned as block 3 in [backend/README.md](../backend/README.md)
+- ✅ Auth endpoints (custom, registration only when enabled), CSRF (antiforgery tokens), password / lockout / cookie values, login rate limiting, Data Protection keys (database) — decided in `[Backend]`, [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md)
 - ✅ Authorization fallback policy, `IEndpoint` discovery mechanics, OpenAPI UI (Scalar, Development only) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md)
 - ✅ Validation approach (built-in .NET 10), mapping (manual), mediator (none) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md)
 - ✅ Error model, domain side: domain errors are exceptions (`DomainException` with a stable code) — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md); the HTTP mapping stays in `[Backend]`
-- ✅ Architecture-test library (ArchUnitNET) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md); ✅ expected status for cross-user access (`404`) — [ADR-0013](adr/0013-error-responses-and-concurrency.md); test authentication still open (block 3) — [testing-strategy.md](testing-strategy.md)
+- ✅ Architecture-test library (ArchUnitNET) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md); ✅ expected status for cross-user access (`404`) — [ADR-0013](adr/0013-error-responses-and-concurrency.md); ✅ test authentication (test handler + real login) — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md) — [testing-strategy.md](testing-strategy.md)
 - ✅ Testcontainers fixture on `PostgresImage.Name` and database reset between tests — decided in `[DB]`: one container per run, migrated template, one database per test class, [ADR-0011](adr/0011-persistence-testing.md), [database/testing.md](../database/testing.md)
 - ✅ From `[DB]`: HTTP current user (`ICurrentUser`) — `HttpCurrentUser`, [backend/security.md](../backend/security.md#current-user)
 - ✅ From `[DB]`: HTTP status for concurrency conflicts — `412` with `ETag` / `If-Match`, [ADR-0013](adr/0013-error-responses-and-concurrency.md)
 - ✅ Error model, HTTP side: ProblemDetails with stable `code`, domain codes by family — [ADR-0013](adr/0013-error-responses-and-concurrency.md)
-- From `[DB]`: exposure of signed amounts in the API (block 6), call `DefaultCategoriesInitializer.EnsureForUserAsync` after creating the initial user and at registration (block 3) — [database/README.md](../database/README.md#to-do--open-questions)
+- ✅ From `[DB]`: `DefaultCategoriesInitializer.EnsureForUserAsync` called after creating the initial user and at registration — [backend/security.md](../backend/security.md#initial-user)
+- From `[DB]`: exposure of signed amounts in the API (block 6) — [database/README.md](../database/README.md#to-do--open-questions)
 
 ### `[Frontend]`
+- From `[Backend]`: call `GET /api/auth/antiforgery` at startup and keep Angular's default XSRF names (`XSRF-TOKEN` / `X-XSRF-TOKEN`); `GET /api/auth/me` to know whether to show the login; send `If-Match` with the `ETag` on updates and deletes; switch on the error `code` — [backend/security.md](../backend/security.md#csrf), [backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
 - `app-structure.md`, `routing.md` (login, guard, `401` interceptor), `state-management.md` — [frontend/README.md](../frontend/README.md)
 - ✅ Vitest setup — done in `[DevOps]` with the Angular unit-test builder ([devops/local-development.md](../devops/local-development.md#tests))
 - Playwright location, Vitest coverage provider, API client generated from OpenAPI — [testing-strategy.md](testing-strategy.md), [repository-structure.md](repository-structure.md)
 
 ### `[DevOps]`
+- From `[Backend]`: HTTPS is required for login outside `localhost` (`Secure` cookies); forwarded headers behind the reverse proxy for rate limiting — [backend/security.md](../backend/security.md#to-do--open-questions)
 - HTTPS and reverse proxy, how the app is reached from the phone (LAN/VPN vs public) — [authentication.md](authentication.md)
 - ✅ `Auth__*` variables in `.env.example` — [devops/configuration.md](../devops/configuration.md)
 - CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers, when E2E tests run — part 2, [testing-strategy.md](testing-strategy.md)

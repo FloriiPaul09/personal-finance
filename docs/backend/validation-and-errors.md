@@ -6,7 +6,7 @@ How the API checks requests and how every failure becomes an HTTP response: vali
 
 ## Current state
 
-Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)) in `Api/Common/Errors` and `Api/Common/Concurrency`. Request validation is registered; its first tests come with the first endpoint that accepts input (block 4).
+Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)) in `Api/Common/Errors` and `Api/Common/Concurrency`. Request validation is tested from the authentication endpoints on (`AuthTests.Login_WithAnInvalidEmail_Returns400OnTheField`).
 
 ### Two levels of checks
 
@@ -56,15 +56,20 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
 | *domain code* | 400 / 409 | [Domain errors](#domain-errors) |
+| `auth.antiforgery_invalid` | 400 | Unsafe request without a valid `X-XSRF-TOKEN` ([security.md](security.md#csrf)) |
+| `auth.password_incorrect` | 400 | Change password: wrong current password, on `currentPassword` |
+| `auth.password_rejected` | 400 | Password refused by the rules (e.g. shorter than 12), on the password field |
 | `auth.required` | 401 | No session |
+| `auth.invalid_credentials` | 401 | Login failed: wrong email, wrong password or locked account — one answer for all |
 | `auth.forbidden` | 403 | Session without the permission (no roles yet) |
+| `auth.email_taken` | 409 | Registration with an email already in use, on `email` |
 | `resource.not_found` | 404 | No such resource **for this user** — including another user's ([security.md](security.md#another-users-data)) |
 | `request.method_not_allowed` | 405 | Method not supported on the route |
 | `account.name_taken`, `category.name_taken`, `tag.name_taken`, `budget.month_taken` | 409 | [Duplicates](#duplicates) |
 | `concurrency.version_mismatch` | 412 | The resource changed since the client read it ([api-endpoints.md](api-endpoints.md#versions)) |
 | `request.unsupported_media_type` | 415 | Body is not JSON |
 | `concurrency.version_required` | 428 | `PUT` / `PATCH` / `DELETE` without `If-Match` |
-| `request.too_many` | 429 | Rate limit (login, block 3) |
+| `request.too_many` | 429 | Rate limit on login and registration |
 | `server.error` | 500 | Unexpected error, or a domain invariant broken by a bug |
 
 API codes are constants of `ApiErrors`; domain codes of `DomainErrors`.
@@ -151,7 +156,7 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 
 ## To do / open questions
 
-- Block 4: shape of validation errors as seen by the frontend (field names, messages), first validation tests.
+- Block 4: review the shape of validation errors with `[Frontend]` (field names, messages).
 - `[Frontend]`: map `code` to Italian messages; read `errors` for form fields; on `412` reload the resource and tell the user it changed elsewhere.
 
 ---

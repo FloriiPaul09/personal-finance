@@ -86,7 +86,7 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 ## To do / open questions
 
 - ✅ `[Backend]` Architecture-test library: ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md), [backend/testing.md](../backend/testing.md#architecture-tests)).
-- `[Backend]` How tests authenticate (real login or a test authentication handler) and endpoint-level test data builders — block 3; ✅ expected status for cross-user access: `404` ([ADR-0013](adr/0013-error-responses-and-concurrency.md)) ([backend/README.md](../backend/README.md)).
+- ✅ `[Backend]` How tests authenticate (test handler for resources, real login for authentication) and test data (`TestData` factories) — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md); ✅ expected status for cross-user access: `404` ([ADR-0013](adr/0013-error-responses-and-concurrency.md)) ([backend/README.md](../backend/README.md)).
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).

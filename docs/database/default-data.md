@@ -68,7 +68,7 @@ Right after a user is created:
 
 ## To do / open questions
 
-- `[Backend]` Call `EnsureForUserAsync` after creating the initial user at startup and, later, after registration.
+- ✅ `[Backend]` `EnsureForUserAsync` is called after creating the initial user at startup (`InitialUserInitializer`) and after registration ([backend/security.md](../backend/security.md#initial-user)).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

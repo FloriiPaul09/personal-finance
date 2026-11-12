@@ -52,8 +52,9 @@ Everything needed to build, run, test and ship the project outside the applicati
 - Part 2: `ci-cd.md` and the GitHub Actions workflow (jobs on pull requests vs `main`, coverage, Docker for Testcontainers, E2E timing, commitlint, `docker compose config`).
 - `api` and `frontend` Dockerfiles, nginx configuration, services in `compose.yaml` with required production variables.
 - HTTPS and reverse proxy; how the app is reached from the phone (LAN/VPN vs public exposure) — from [authentication.md](../architecture/authentication.md).
-- Storage of Data Protection keys (with `[Backend]`).
+- ✅ Storage of Data Protection keys: in the database, no volume needed ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
+- From `[Backend]`: HTTPS is required for login outside `localhost` (`Secure` cookies); forwarded headers behind the reverse proxy, so rate limiting sees client addresses.
 - Create the GitHub repository and configure the ruleset on `main` ([repository-workflow.md](repository-workflow.md#protecting-main)).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

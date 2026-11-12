@@ -6,7 +6,7 @@ How users authenticate, how sessions are kept between the Angular SPA and the AP
 
 ## Current state
 
-Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its configuration variables already exist in `.env.example` and in the development defaults ([devops/configuration.md](../devops/configuration.md)). Target design:
+Decided ([ADR-0001](adr/0001-authentication.md)) and **implemented** in `[Backend]` ([ADR-0014](adr/0014-authentication-endpoints-and-sessions.md)): endpoints, cookie values, CSRF, rate limiting and keys are detailed in [backend/security.md](../backend/security.md). Configuration variables: [devops/configuration.md](../devops/configuration.md).
 
 ### Identity store
 
@@ -18,17 +18,17 @@ Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its c
 - Identity application cookie: `HttpOnly`, `Secure`, `SameSite=Strict`.
 - Angular and the API are served from the same origin (nginx serves the SPA and proxies `/api`; in development the Angular dev server proxies `/api`): no CORS, no tokens in JavaScript-accessible storage.
 - The API answers `401` / `403` instead of redirecting to a login page (default cookie behavior is changed for API requests).
-- Sliding expiration. Initial values (to confirm in `[Backend]`): session cookie by default, 14 days with "remember me".
+- Sliding expiration: browser session cookie by default, 14 days with "remember me" (confirmed in [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md)).
 
 ### Registration and first user
 
 - Public registration is **disabled by default**: `Auth__AllowRegistration=false`.
 - At startup, if the database has **no users**, the app creates the initial user from `Auth__InitialUser__Email` and `Auth__InitialUser__Password`.
 - If there are no users and those variables are missing, the app **fails to start** with a clear error (secure by default: never an open instance).
-- Once the user exists, the variables are ignored: changing the password in `.env` does **not** change the user's password. Password change happens from the UI (to build).
+- Once the user exists, the variables are ignored: changing the password in `.env` does **not** change the user's password. Password change happens from the UI through `POST /api/auth/change-password`.
 - In development the initial user comes from `appsettings.Development.json` (`dev@example.com`, development-only password); real instances set it in `.env`.
 
-### Password and lockout policy (initial values)
+### Password and lockout policy
 
 - Minimum length 12, no mandatory character classes (length matters more than composition).
 - Lockout after 5 failed attempts for 15 minutes, enabled for every user.
@@ -42,9 +42,9 @@ Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its c
 
 | Piece | Why | Where it is decided |
 |---|---|---|
-| Persisted Data Protection keys (DB or volume) | Otherwise every container restart invalidates all sessions | `[Backend]` / `[DevOps]` |
+| Persisted Data Protection keys — ✅ in the database | Otherwise every container restart invalidates all sessions | [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md) |
 | HTTPS when exposed beyond localhost | `Secure` cookies and credentials in transit | `[DevOps]` |
-| Rate limiting on login | Slows down brute-force attempts, on top of lockout | `[Backend]` |
+| Rate limiting on login — ✅ built-in limiter | Slows down brute-force attempts, on top of lockout | [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md) |
 
 ## Decisions
 
@@ -58,7 +58,7 @@ Decided ([ADR-0001](adr/0001-authentication.md)), **not implemented yet**. Its c
 
 ## Tests
 
-To write with the implementation (`[Backend]`), following [testing-strategy.md](testing-strategy.md):
+Implemented in `Api.Tests` (`AuthTests`, `RegistrationTests`, `StartupTests`, [backend/security.md](../backend/security.md#tests)), following [testing-strategy.md](testing-strategy.md):
 
 - startup: the app refuses to start with no users and no `Auth__InitialUser__*`; it creates the user once; it ignores the variables afterwards;
 - every endpoint answers `401` without a session, except login and `/api/health`;
@@ -78,10 +78,10 @@ To write with the implementation (`[Backend]`), following [testing-strategy.md](
 
 ## To do / open questions
 
-- `[Backend]` Auth endpoints: `MapIdentityApi` or custom endpoints (login, logout, me, change-password). `MapIdentityApi` also maps `/register`, so disabling registration needs explicit handling.
-- `[Backend]` CSRF: `SameSite=Strict` as baseline; decide whether to add antiforgery tokens (Angular has built-in XSRF support).
-- `[Backend]` Confirm password, lockout and cookie lifetime values; rate limiting on login.
-- `[Backend]` / `[DevOps]` Storage of Data Protection keys.
+- ✅ `[Backend]` Auth endpoints: custom (antiforgery, login, logout, me, change-password; register only when enabled) — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md).
+- ✅ `[Backend]` CSRF: `SameSite=Strict` + antiforgery tokens with Angular's default names — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md).
+- ✅ `[Backend]` Password, lockout and cookie lifetime values; rate limiting on login — [backend/security.md](../backend/security.md).
+- ✅ `[Backend]` Storage of Data Protection keys: database — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md).
 - ✅ `[DB]` `UserId` on every owned entity, query filter, Identity key type (`Guid`) and table naming (snake_case, `users`) — [ADR-0010](adr/0010-data-model-and-user-isolation.md), [database/user-isolation.md](../database/user-isolation.md).
 - `[DevOps]` HTTPS / reverse proxy; how the app is reached from the phone (LAN/VPN vs public exposure) — still undecided.
 - `[Frontend]` Login page, route guard, HTTP interceptor that redirects to login on `401`.
