@@ -59,14 +59,16 @@ For an API the redirects of the cookie are replaced by status codes: no session 
 
 | Piece | Value |
 |---|---|
-| Readable cookie with the token | `XSRF-TOKEN` (not `HttpOnly`, `Secure`, `SameSite=Strict`) |
+| Readable cookie with the token | `XSRF-TOKEN` (not `HttpOnly`, `SameSite=Strict`, `Secure` on HTTPS) |
 | Header the client sends | `X-XSRF-TOKEN` |
-| Internal cookie of ASP.NET Core antiforgery | `pf_antiforgery` (`HttpOnly`) |
+| Internal cookie of ASP.NET Core antiforgery | `pf_antiforgery` (`HttpOnly`, `SameSite=Strict`, `Secure` on HTTPS) |
 | Where the token comes from | `GET /api/auth/antiforgery`, and every login, logout and registration response (the token is bound to the user) |
-| Validated on | every `POST`, `PUT`, `PATCH`, `DELETE` of the `/api` group, login included (`AntiforgeryValidationFilter`) |
+| Validated on | every `POST`, `PUT`, `PATCH`, `DELETE` of the `/api` group, login included (`AntiforgeryValidationFilter`); reads are never checked |
 | Failure | `400` `auth.antiforgery_invalid` |
 
 `UseAntiforgery()` is in the pipeline too: form and file endpoints (CSV import, attachments) are validated by it automatically.
+
+The two antiforgery cookies are `Secure` only on HTTPS requests (`SameAsRequest`), unlike the session cookie (always `Secure`). With `Always`, ASP.NET Core antiforgery throws on every plain-HTTP request — local development on `http://localhost:5080`, or a reverse proxy without forwarded headers — and the API would answer `500` everywhere. Nothing is weakened: over plain HTTP the session cookie is never sent outside `localhost`, so no authenticated request can be made there.
 
 Tools: in Scalar or `.http` files, call `GET /api/auth/antiforgery` first and copy the `XSRF-TOKEN` cookie value into an `X-XSRF-TOKEN` header.
 
@@ -172,7 +174,7 @@ The same rule is checked by an architecture test ([testing.md](testing.md#archit
 
 ## Tests
 
-- `AuthTests` (real cookie): login starts a session seen by `me`; cookie `HttpOnly`, `Secure`, `SameSite=Strict`, session-only without "remember me" and persistent with it; same `401` for wrong password and unknown email; lockout after 5 failures; invalid email `400` on the field; login public and rate limited, `429` after the limit; unsafe request without token `400`; antiforgery cookie readable and strict; logout ends the session; `me` without session `401` and with a session returns that user only; **a session works on another instance of the API** (keys from the database); password change (works, wrong current password `400` on `currentPassword`, too short `400` on `newPassword`, no session `401`); registration route absent while off.
+- `AuthTests` (real cookie): login starts a session seen by `me`; antiforgery and login work over plain HTTP (regression test for the `500` caused by an always-`Secure` antiforgery cookie); cookie `HttpOnly`, `Secure`, `SameSite=Strict`, session-only without "remember me" and persistent with it; same `401` for wrong password and unknown email; lockout after 5 failures; invalid email `400` on the field; login public and rate limited, `429` after the limit; unsafe request without token `400`; antiforgery cookie readable and strict; logout ends the session; `me` without session `401` and with a session returns that user only; **a session works on another instance of the API** (keys from the database); password change (works, wrong current password `400` on `currentPassword`, too short `400` on `newPassword`, no session `401`); registration route absent while off.
 - `RegistrationTests`: user created with the default categories and signed in; email in use `409`; short password `400`; public and rate limited.
 - `StartupTests`: no users and no initial user → startup fails; initial user created once with the default categories; ignored when users exist; short password → startup fails, no user; invalid options → startup fails.
 - `AuthOptionsValidatorTests`: defaults valid; incomplete or invalid initial user and out-of-range rate limits rejected.

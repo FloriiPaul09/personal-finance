@@ -16,7 +16,7 @@
 
 1. **Custom endpoints in the `auth` module**: `GET antiforgery`, `POST login`, `POST logout`, `GET me`, `POST change-password`, written with `SignInManager` / `UserManager`. No `MapIdentityApi`.
 2. **Registration implemented and mapped only when `Auth:AllowRegistration` is `true`**: with `false` the route does not exist. It creates the user, gives the default categories and starts the session.
-3. **CSRF: `SameSite=Strict` plus antiforgery tokens** in the form Angular supports natively: readable cookie `XSRF-TOKEN`, header `X-XSRF-TOKEN`, validated on every `POST` / `PUT` / `PATCH` / `DELETE` of the `/api` group (login included); a new token after login, logout and registration. `UseAntiforgery` is in the pipeline for future form and file endpoints.
+3. **CSRF: `SameSite=Strict` plus antiforgery tokens** in the form Angular supports natively: readable cookie `XSRF-TOKEN`, header `X-XSRF-TOKEN`, validated on every `POST` / `PUT` / `PATCH` / `DELETE` of the `/api` group (login included); a new token after login, logout and registration. The antiforgery cookies are `Secure` on HTTPS requests only (an always-`Secure` antiforgery cookie makes ASP.NET Core reject every plain-HTTP request, local development included); the session cookie is always `Secure`. `UseAntiforgery` is in the pipeline for future form and file endpoints.
 4. **Values**:
    - password of at least 12 characters, no composition rules;
    - lockout after 5 failures for 15 minutes;

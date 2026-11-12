@@ -152,6 +152,24 @@ public sealed class AuthTests(ApiServer server) : ApiTest(server)
         Assert.Contains("samesite=strict", cookie, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Antiforgery_WorksOverPlainHttp_ForLocalDevelopment()
+    {
+        // Regression: with the antiforgery cookie always Secure, ASP.NET Core threw on every plain-HTTP request (500).
+        var user = await NewUserWithPasswordAsync();
+        var client = Host.CreatePlainHttpClient();
+
+        var token = await client.GetAsync("/api/auth/antiforgery", Ct);
+        var login = await LoginAsync(client, user.Email, user.Password);
+
+        Assert.Equal(HttpStatusCode.NoContent, token.StatusCode);
+        Assert.DoesNotContain("secure", SetCookie(token, AntiforgeryCookie.CookieName), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+        // The session cookie stays Secure even here: browsers accept it only on localhost.
+        Assert.Contains("secure", SetCookie(login, SecurityServiceCollectionExtensions.SessionCookieName), StringComparison.OrdinalIgnoreCase);
+    }
+
     // ---- Logout and current user -------------------------------------------------------------------------------
 
     [Fact]

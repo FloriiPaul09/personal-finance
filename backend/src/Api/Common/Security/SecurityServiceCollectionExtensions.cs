@@ -98,7 +98,11 @@ public static class SecurityServiceCollectionExtensions
         {
             options.HeaderName = AntiforgeryCookie.HeaderName;
             options.Cookie.Name = "pf_antiforgery";
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+            // Not Always: ASP.NET Core antiforgery then refuses every plain-HTTP request with an exception, which breaks
+            // local development on http://localhost and any proxy without forwarded headers. The session cookie stays
+            // Secure always, so nothing can be done over plain HTTP anyway (docs/backend/security.md#csrf).
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             options.Cookie.SameSite = SameSiteMode.Strict;
         });
 

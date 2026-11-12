@@ -9,11 +9,12 @@ public static class TestClients
 
     /// <param name="server">Handler of the test server.</param>
     /// <param name="userId">Signed in through <see cref="TestAuthenticationHandler"/>; <see langword="null"/> for a client without session.</param>
-    public static HttpClient Create(HttpMessageHandler server, Guid? userId = null)
+    /// <param name="baseAddress"><see cref="BaseAddress"/> unless a test checks plain HTTP.</param>
+    public static HttpClient Create(HttpMessageHandler server, Guid? userId = null, Uri? baseAddress = null)
     {
         var client = new HttpClient(new AntiforgeryHandler { InnerHandler = new CookieContainerHandler { InnerHandler = server } })
         {
-            BaseAddress = BaseAddress,
+            BaseAddress = baseAddress ?? BaseAddress,
         };
 
         if (userId is not null)

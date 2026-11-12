@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PersonalFinance.Api.Common.Endpoints;
 using PersonalFinance.Api.Common.Security;
 
@@ -73,6 +74,9 @@ public sealed class EndpointMappingTests
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddApiSecurity(builder.Configuration);
+
+        // No database here: Data Protection cannot load its keys at startup and would log an error. No test uses them.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.DataProtection", LogLevel.None);
 
         var app = builder.Build();
         app.UseAuthentication();

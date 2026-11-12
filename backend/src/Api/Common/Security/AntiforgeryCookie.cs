@@ -25,7 +25,9 @@ public static class AntiforgeryCookie
         httpContext.Response.Cookies.Append(CookieName, tokens.RequestToken!, new CookieOptions
         {
             HttpOnly = false,
-            Secure = true,
+
+            // Same rule as the antiforgery cookie: Secure on HTTPS (docs/backend/security.md#csrf).
+            Secure = httpContext.Request.IsHttps,
             SameSite = SameSiteMode.Strict,
             Path = "/",
             IsEssential = true,
@@ -40,13 +42,19 @@ internal sealed class AntiforgeryValidationFilter : IEndpointFilter
     {
         var httpContext = context.HttpContext;
 
-        // IsRequestValidAsync accepts GET, HEAD, OPTIONS and TRACE without a token.
-        var antiforgery = httpContext.RequestServices.GetRequiredService<IAntiforgery>();
-        if (!await antiforgery.IsRequestValidAsync(httpContext))
+        // Reads never need a token; only requests that change data are checked.
+        if (IsUnsafe(httpContext.Request.Method))
         {
-            throw ApiProblemException.AntiforgeryInvalid();
+            var antiforgery = httpContext.RequestServices.GetRequiredService<IAntiforgery>();
+            if (!await antiforgery.IsRequestValidAsync(httpContext))
+            {
+                throw ApiProblemException.AntiforgeryInvalid();
+            }
         }
 
         return await next(context);
     }
+
+    private static bool IsUnsafe(string method) =>
+        HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);
 }

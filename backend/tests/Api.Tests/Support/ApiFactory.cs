@@ -32,6 +32,9 @@ public sealed class ApiFactory(
     /// <summary>A client that behaves like the browser app; signed in as <paramref name="userId"/> when given.</summary>
     public HttpClient CreateApiClient(Guid? userId = null) => TestClients.Create(Server.CreateHandler(), userId);
 
+    /// <summary>A client on plain HTTP, like local development on <c>http://localhost</c>.</summary>
+    public HttpClient CreatePlainHttpClient() => TestClients.Create(Server.CreateHandler(), baseAddress: new Uri("http://localhost"));
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
