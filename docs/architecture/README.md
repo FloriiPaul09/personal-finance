@@ -40,13 +40,14 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0015](adr/0015-resource-conventions-and-accounts.md) | Resource endpoint conventions and the accounts module | Accepted | 2026-11-12 |
 | [0016](adr/0016-categories-module.md) | The categories module | Accepted | 2026-11-12 |
 | [0017](adr/0017-transactions-and-tags.md) | Transactions, tags, paging and offline-safe creation | Accepted | 2026-11-12 |
+| [0018](adr/0018-transfers-module.md) | The transfers module | Accepted | 2026-11-12 |
 
 ## Current state
 
 - **Initial architecture complete**: stack (ADR-0007), authentication (ADR-0001), backend structure (ADR-0002), endpoint style (ADR-0003), UI library (ADR-0004, documented in [frontend/ui-components.md](../frontend/ui-components.md)), license (ADR-0005), testing strategy (ADR-0006), repository layout.
 - **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
 - **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
-- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014), accounts done together with the conventions of every resource (enums as strings, amounts as numbers, list envelope, ADR-0015), categories done (ADR-0016), transactions and tags done (ADR-0017); transfers, budgets and dashboard follow one block at a time; see [backend/README.md](../backend/README.md).
+- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014), accounts done together with the conventions of every resource (enums as strings, amounts as numbers, list envelope, ADR-0015), categories done (ADR-0016), transactions and tags done (ADR-0017), transfers done (ADR-0018); budgets and dashboard follow one block at a time; see [backend/README.md](../backend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -71,6 +72,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-12 | Resource conventions: enums as `camelCase` strings, amounts as JSON numbers, every list in `{ items }`, one response type per resource; accounts with balance computed in SQL, archive actions, delete only without movements (decided in `[Backend]`) | [ADR-0015](adr/0015-resource-conventions-and-accounts.md) |
 | 2026-11-12 | Categories: flat list with filters, `PUT` of name + kind + parent, restore one category at a time, delete only when unused (decided in `[Backend]`) | [ADR-0016](adr/0016-categories-module.md) |
 | 2026-11-12 | Transactions: kind + positive amount in, `signedAmount` out; client UUIDv7 ids for offline-safe creates; cursor paging; tags by name (decided in `[Backend]`) | [ADR-0017](adr/0017-transactions-and-tags.md) |
+| 2026-11-12 | Transfers: one response with both legs, listed through transactions, one version for the whole transfer, client ids (decided in `[Backend]`) | [ADR-0018](adr/0018-transfers-module.md) |
 
 ## Tests
 
@@ -108,7 +110,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - From `[Backend]`: call `GET /api/auth/antiforgery` at startup and keep Angular's default XSRF names (`XSRF-TOKEN` / `X-XSRF-TOKEN`); `GET /api/auth/me` to know whether to show the login; send `If-Match` with the `ETag` on updates and deletes; switch on the error `code` — [backend/security.md](../backend/security.md#csrf), [backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)
 - From `[Backend]`: lists come as `{ "items": [...] }`, enums as `camelCase` strings, amounts as JSON numbers never added on the client; accounts expose `balance` and `hasMovements` (lock the currency, offer archive instead of delete), categories come as a flat list to group by `parentId` with `isInUse` / `hasSubcategories` — [backend/api-endpoints.md](../backend/api-endpoints.md#accounts), [ADR-0015](adr/0015-resource-conventions-and-accounts.md)
 - From `[Backend]`: the end-to-end login test (Playwright) is written with the login page — [ADR-0006](adr/0006-testing-strategy.md)
-- From `[Backend]`: the offline queue of the PWA generates a UUIDv7 `id` for each expense and sends it again unchanged; lists of transactions follow `nextCursor`; running balances use `signedAmount` — [backend/api-endpoints.md](../backend/api-endpoints.md#transactions), [ADR-0017](adr/0017-transactions-and-tags.md)
+- From `[Backend]`: the offline queue of the PWA generates a UUIDv7 `id` for each expense and transfer and sends it again unchanged; a transfer leg in the list opens `/api/transfers/{transferId}`; lists of transactions follow `nextCursor`; running balances use `signedAmount` — [backend/api-endpoints.md](../backend/api-endpoints.md#transactions), [ADR-0017](adr/0017-transactions-and-tags.md)
 - From `[Backend]` to `[DB]`: a `pg_trgm` index on `transactions.description` when text search slows down — [ADR-0017](adr/0017-transactions-and-tags.md)
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
 - `app-structure.md`, `routing.md` (login, guard, `401` interceptor), `state-management.md` — [frontend/README.md](../frontend/README.md)

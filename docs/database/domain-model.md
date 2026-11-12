@@ -159,6 +159,7 @@ balance(account, up to date D) = initial_balance + Σ amount of the account's tr
 
 - Created from: source account, destination account, date, positive amount, optional description.
 - Produces **two legs** on the same date: `-amount` on the source, `+amount` on the destination, same description.
+- The transfer id can be chosen by the caller (offline client, recurring transfers); the legs always get generated ids.
 - Rejected when: source and destination are the same account; the accounts have different currencies (MVP); an account is archived; the amount is zero, negative or has more than two decimals.
 - Changing a transfer changes both legs; deleting it deletes both.
 - The database allows at most one negative and one positive leg per transfer; the domain always creates both.
@@ -221,7 +222,7 @@ Unit tests in `Domain.Tests` ([testing.md](testing.md#domain-unit-tests)):
 
 - amounts: zero, negative where not allowed, three decimals, the largest value of `numeric(18,2)`;
 - balance: no movements, only income, only expense, mixed, negative result, movements after the given date excluded;
-- transfer: two legs with opposite amounts and same date, same account rejected, different currencies rejected, archived account rejected, update moves both legs;
+- transfer: two legs with opposite amounts and same date, same account rejected, different currencies rejected, archived account rejected, update moves both legs, id chosen by the caller kept for the transfer only, empty id refused;
 - income and expense: wrong category kind, archived account or category; id chosen by the caller kept, empty id refused; tags replaced as a set; transfer legs cannot be deleted alone;
 - account: currency change allowed without movements, rejected with movements; delete allowed without movements, rejected with movements;
 - categories: second level rejected, kind different from the parent rejected, archiving a parent, kind change allowed only without transactions and budgets; `Change` (rename, move, kind, archived parent kept or refused), restore of one category, delete rejected when in use or with subcategories;

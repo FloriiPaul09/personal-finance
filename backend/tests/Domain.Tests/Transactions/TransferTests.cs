@@ -23,6 +23,22 @@ public class TransferTests
     }
 
     [Fact]
+    public void Transfer_WithAnIdChosenByTheCaller_KeepsIt_AndItsLegsReferToIt()
+    {
+        var id = Guid.CreateVersion7();
+
+        var transfer = new Transfer(AnAccount(), AnAccount(name: "Risparmi"), Today, 250m, id: id);
+
+        Assert.Equal(id, transfer.Id);
+        Assert.All(transfer.Legs, leg => Assert.Equal(id, leg.TransferId));
+        Assert.DoesNotContain(transfer.Legs, leg => leg.Id == id);
+    }
+
+    [Fact]
+    public void Transfer_RejectsAnEmptyId() =>
+        Rule.Violated(DomainErrors.IdInvalid, () => new Transfer(AnAccount(), AnAccount(name: "Risparmi"), Today, 250m, id: Guid.Empty));
+
+    [Fact]
     public void Transfer_LegsShareDateDescriptionAndTransfer()
     {
         var transfer = new Transfer(AnAccount(), AnAccount(name: "Risparmi"), Today, 250m, "Accantonamento");

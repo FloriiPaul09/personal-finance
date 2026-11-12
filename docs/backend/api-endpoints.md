@@ -6,7 +6,7 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
@@ -527,6 +527,52 @@ Part of the transactions module ([ADR-0017](../architecture/adr/0017-transaction
 
 Isolation: another user's tag is `404`. Tests: `TagsTests`.
 
+### Transfers
+
+Module `transfers` ([ADR-0018](../architecture/adr/0018-transfers-module.md)). Every transfer endpoint returns the same `TransferResponse`:
+
+```json
+{
+  "id": "0193a5c4-a7c2-7f10-b3d1-6e5f4a3b2c1d",
+  "fromAccountId": "0193a5c4-7e1f-7c3b-9a52-3f0e6d2b8a41",
+  "toAccountId": "0193a5c4-7e33-7a90-8c11-0a9b8c7d6e5f",
+  "date": "2026-11-12",
+  "amount": 300.00,
+  "description": "Risparmio",
+  "outgoingTransactionId": "0193a5c4-a7c3-7b44-9d02-1c2b3a4d5e6f",
+  "incomingTransactionId": "0193a5c4-a7c3-7b45-8e13-2d3c4b5a6f70",
+  "version": 91022
+}
+```
+
+`amount` is the amount moved, always positive. The two legs appear in `GET /api/transactions` with `kind: transfer`, `transferId` and `signedAmount` negative on the source, positive on the destination. There is no list of transfers: use `GET /api/transactions?kind=transfer` (with `accountId` for one account), then open a transfer by `transferId`.
+
+Request body of create and update:
+
+```json
+{ "id": "…", "fromAccountId": "…", "toAccountId": "…", "date": "2026-11-12", "amount": 300.00, "description": "Risparmio" }
+```
+
+| Field | Rules |
+|---|---|
+| `id` | Create only, optional UUID **version 7** chosen by the client: sending the same request again returns the existing transfer with `200` |
+| `fromAccountId`, `toAccountId` | Required, two different accounts of the user (`400` `transfer.same_account`) with the same currency (`400` `transfer.currency_mismatch`); another user's or nonexistent → `400` `account.not_found` on the field; a newly chosen archived account → `409` `account.archived` |
+| `date` | Required; future dates allowed |
+| `amount` | Greater than zero, at most 2 decimals |
+| `description` | Optional, ≤ 200 characters, trimmed; on both legs |
+
+| Route | Responses | Versions | Tests |
+|---|---|---|---|
+| `GET /api/transfers/{id}` | `200` `TransferResponse` · `401` · `404` | `ETag` | `TransfersTests.Get_*` |
+| `POST /api/transfers` | `201` `TransferResponse`, `Location` · `200` (same `id` sent again) · `400` `validation.failed`, `account.not_found`, `transfer.same_account`, `transfer.currency_mismatch`, `amount.*` · `401` · `409` `account.archived`, `resource.conflict` on `id` | `ETag` | `TransfersTests.Create_*` |
+| `PUT /api/transfers/{id}` | `200` `TransferResponse` · `400` as create · `401` · `404` · `409` `account.archived` (new account only) · `412` · `428` | `If-Match` required; new `ETag` | `TransfersTests.Update_*` |
+| `DELETE /api/transfers/{id}` | `204` · `401` · `404` · `412` · `428` | `If-Match` required | `TransfersTests.Delete_*` |
+
+- **Isolation**: another user's transfer is `404`; another user's account in the body is `400` on the field.
+- **Update**: both legs change together and keep their ids. The version is the `transfers` row's, rewritten on every change, so a stale form gets `412` even though only the legs changed. A transfer on an account archived later can still be corrected.
+- **Delete**: removes the transfer and both legs for good; both balances go back as before.
+- Legs cannot be changed or deleted through `/api/transactions` (`409` `transaction.is_transfer_leg`).
+
 ### Resources
 
 | Resource | Module prefix | Block | Status |
@@ -535,7 +581,7 @@ Isolation: another user's tag is `404`. Tests: `TagsTests`.
 | Accounts | `accounts` | 4 | Implemented — [Accounts](#accounts) |
 | Categories | `categories` | 5 | Implemented — [Categories](#categories) |
 | Transactions (with tags, filters) | `transactions`, `tags` | 6 | Implemented — [Transactions](#transactions), [Tags](#tags) |
-| Transfers | `transfers` | 7 | To do |
+| Transfers | `transfers` | 7 | Implemented — [Transfers](#transfers) |
 | Budgets | `budgets` | 8 | To do |
 | Dashboard | `dashboard` | 9 | To do |
 
@@ -548,6 +594,7 @@ Isolation: another user's tag is `404`. Tests: `TagsTests`.
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
 | Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 | Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Transfers: one response with both leg ids, no list of their own (legs via `/api/transactions?kind=transfer`), the `transfers` row version covers the legs, optional client id, no tags | One mechanism for listing movements; same headers as every resource; offline-safe | [ADR-0018](../architecture/adr/0018-transfers-module.md) |
 | Transactions: kind + positive amount in, `amount` + `signedAmount` out; optional client UUIDv7 id makes create safe to repeat; cursor paging; single-value filters; tags by name created on the fly; transfer legs listed read-only | No sign bugs in clients; offline replay without duplicates; fast stable paging | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md) |
 | Categories as a flat list (parent then subcategories), filters `kind` and `includeArchived`, `PUT` of name + kind + parent, unarchive of one category at a time, delete only when unused and without subcategories, alphabetical order | One response type; one domain method for every edit; history and budgets keep their category | [ADR-0016](../architecture/adr/0016-categories-module.md) |
 
@@ -557,6 +604,7 @@ Isolation: another user's tag is `404`. Tests: `TagsTests`.
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `TransfersTests`: every transfer endpoint — success, `401`, validation, isolation (route ids and both account fields), versions — plus balances of both accounts after create, update and delete, legs listed with `transferId`, repeated create with the same id, domain codes (same account, currencies, archived accounts).
 - `TransactionsTests`: every transaction endpoint — success, `401`, validation, isolation (route ids, ids in the body, filters), versions — plus amounts and signs, cursor paging without gaps, every filter, repeated create with the same id, tags reused and created, tag-only changes bumping the version, transfer legs read-only, balance after create and delete.
 - `TagsTests`: list with usage, rename (on every transaction), delete (links removed), with `401`, validation, isolation and versions.
 - `CategoriesTests`: every category endpoint — success, `401`, validation, isolation (route ids and `parentId`), versions — plus display order, filters, usage flags, moves checked against budgets, archive and restore of a branch.
@@ -585,7 +633,8 @@ Isolation: another user's tag is `404`. Tests: `TagsTests`.
 - Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
 - ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - ✅ Paging (cursor), signs of amounts, idempotent create — [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
-- Contracts of the remaining resources (blocks 7–9).
+- Contracts of the remaining resources (blocks 8–9).
+- Transfers: a list of their own, tags, transfers between currencies (`toAmount`) — when needed ([ADR-0018](../architecture/adr/0018-transfers-module.md)).
 - `[Frontend]`: generate UUIDv7 ids for queued expenses; follow `nextCursor` for infinite scroll; never sum `amount`, use `signedAmount`; send the whole tag list on update.
 - Tag merge (two tags into one) and multi-value filters, when needed.
 - `[Frontend]`: build the grouped category menu from consecutive items; read `isInUse` / `hasSubcategories` to lock the kind and to offer archive instead of delete.
