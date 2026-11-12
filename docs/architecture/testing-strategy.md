@@ -25,7 +25,7 @@ Coverage follows these risks, not a percentage.
 | Domain unit | xUnit v3 | Every business rule in `Domain` | `backend/tests/Domain.Tests` |
 | Persistence integration | xUnit v3 + Testcontainers (real PostgreSQL) | Migrations, constraints, composite keys, query filter, interceptor, default data ([ADR-0011](adr/0011-persistence-testing.md)) | `backend/tests/Infrastructure.Tests` |
 | API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, query filters, authentication | `backend/tests/Api.Tests` |
-| Architecture | Plain reflection today; an architecture-test library (choice in `[Backend]`) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing) | `backend/tests/Architecture.Tests` |
+| Architecture | ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md)) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing), slice rules, no `IgnoreQueryFilters` in `Api` | `backend/tests/Architecture.Tests` |
 | Frontend unit | Vitest through the Angular `@angular/build:unit-test` builder, jsdom | Shared components and logic: amount input, date adapter, services with logic | `frontend/src/**/*.spec.ts` |
 | End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` |
 
@@ -85,10 +85,11 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 
 ## To do / open questions
 
-- `[Backend]` Architecture-test library; how tests authenticate (real login or a test authentication handler); expected status for cross-user access; endpoint-level test data builders (persistence builders live in `Testing`).
+- ✅ `[Backend]` Architecture-test library: ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md), [backend/testing.md](../backend/testing.md#architecture-tests)).
+- `[Backend]` How tests authenticate (real login or a test authentication handler) and endpoint-level test data builders — block 3; expected status for cross-user access — block 2 ([backend/README.md](../backend/README.md)).
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_
