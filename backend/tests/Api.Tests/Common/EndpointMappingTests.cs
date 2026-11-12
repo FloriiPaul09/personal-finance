@@ -72,7 +72,7 @@ public sealed class EndpointMappingTests
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
-        builder.Services.AddApiSecurity();
+        builder.Services.AddApiSecurity(builder.Configuration);
 
         var app = builder.Build();
         app.UseAuthentication();
