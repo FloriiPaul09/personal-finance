@@ -11,8 +11,9 @@ public sealed class Transfer : OwnedEntity
 {
     private readonly List<Transaction> _legs = [];
 
-    public Transfer(Account from, Account to, DateOnly date, decimal amount, string? description = null)
-        : base(from.UserId)
+    /// <param name="id">Chosen by the caller (offline client, recurring transfers), or null to generate one. The legs always get generated ids.</param>
+    public Transfer(Account from, Account to, DateOnly date, decimal amount, string? description = null, Guid? id = null)
+        : base(from.UserId, id)
     {
         var positive = EnsureCanTransfer(from, to, amount);
         from.EnsureActive();
