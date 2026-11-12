@@ -1,8 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Architecture rules checked with ArchUnitNET (ADR-0012, docs/backend/testing.md#architecture-tests). -->
+
+  <!-- Api is a web project: its framework is needed to load its types. -->
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Api\PersonalFinance.Api.csproj" />
     <ProjectReference Include="..\..\src\Domain\PersonalFinance.Domain.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\PersonalFinance.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
   </ItemGroup>
 
 </Project>
