@@ -47,6 +47,19 @@ public sealed class ErrorMappingTests
         Assert.Equal(code, ApiErrors.ForStatus(status));
     }
 
+    [Theory]
+    [InlineData(StatusCodes.Status400BadRequest, ApiErrors.RequestInvalid)]
+    [InlineData(StatusCodes.Status413PayloadTooLarge, "http.413")]
+    public void UnreadableRequest_KeepsItsStatus_WithoutTheFrameworkMessage(int status, string code)
+    {
+        var problem = ApiExceptionHandler.ToProblem(new BadHttpRequestException("Failed to read parameter \"Request request\".", status));
+
+        Assert.NotNull(problem);
+        Assert.Equal(status, problem.Status);
+        Assert.Equal(code, problem.Extensions[ApiErrorHandling.CodeExtension]);
+        Assert.DoesNotContain("parameter", problem.Detail, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void EntityTag_IsAStrongQuotedVersion()
     {

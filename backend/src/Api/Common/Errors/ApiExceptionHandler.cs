@@ -36,6 +36,13 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problemDetailsS
         ApiProblemException api => Problem(api.StatusCode, api.Code, api.Message, api.Field),
         DomainException domain => FromDomain(domain),
 
+        // Unreadable JSON, a value of the wrong type (e.g. an unknown enumeration value), a malformed query or route
+        // value. Thrown in Development; elsewhere the framework answers the bare status, mapped by status code pages.
+        BadHttpRequestException badRequest => Problem(
+            badRequest.StatusCode,
+            ApiErrors.ForStatus(badRequest.StatusCode),
+            "The request could not be read: check the JSON body and the values in the route and the query string."),
+
         // The row changed (or disappeared) between the read and the write: same answer as a stale If-Match.
         DbUpdateConcurrencyException => Problem(
             StatusCodes.Status412PreconditionFailed,

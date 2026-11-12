@@ -84,7 +84,9 @@ var account = await Database.CreateAccountAsync(userId, name: "Carta", initialBa
 ```
 
 - Default names are unique (`TestData.UniqueName`), so several calls never collide on unique indexes.
-- Each block adds the methods of its entities (accounts today; categories, transactions, transfers, budgets with their blocks). Persistence tests keep `SampleData` for their "one of everything" scenario.
+- Available: `CreateAccountAsync`, `CreateCategoryAsync`, `CreateIncomeAsync` / `CreateExpenseAsync` (in a new category of the right kind unless one is given, dated `TestData.DefaultDate`), `CreateTransferAsync`. Each block adds what its entities need (budgets, tags). Persistence tests keep `SampleData` for their "one of everything" scenario.
+
+`ApiRequests` (in `Api.Tests/Support`) sends and reads like the app: `ReadAsync<T>()` and `GetJsonAsync<T>()` with the API JSON options (enumerations as strings), `PutWithVersionAsync` / `DeleteWithVersionAsync` with `If-Match`, `PostEmptyAsync` for actions. Request bodies are anonymous objects or dictionaries with the JSON names (`type = "checking"`), so tests check the contract the app sees, not the C# records.
 
 ### Mechanism tests
 
@@ -102,7 +104,7 @@ var account = await Database.CreateAccountAsync(userId, name: "Carta", initialBa
 
 ### Host tests
 
-`ApiHostTests` run on the real host: health public, unknown route `401` with a ProblemDetails body, OpenAPI document and Scalar in Development, absent in Production, `HttpCurrentUser` registered, the **list of public routes** — any endpoint with `AllowAnonymous()` outside the list fails the test — and **`If-Match` on every `PUT` / `PATCH` / `DELETE`**.
+`ApiHostTests` run on the real host: health public, unknown route `401` with a ProblemDetails body, OpenAPI document and Scalar in Development (schema names prefixed by slice, enum values as strings), absent in Production, `HttpCurrentUser` registered, the **list of public routes** — any endpoint with `AllowAnonymous()` outside the list fails the test — and **`If-Match` on every `PUT` / `PATCH` / `DELETE`**.
 
 ### Mapping tests
 
@@ -136,9 +138,9 @@ From block 4, following the Definition of Done ([ADR-0006](../architecture/adr/0
 2. **`401` without a session**.
 3. **Validation error** if the endpoint accepts input: `400` and the field in `errors`.
 4. **Isolation**: user B neither sees nor changes user A's data — `404` `resource.not_found` for a route id, `400` `{resource}.not_found` for an id in the body ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
-5. **Versions**, for updates and deletes: `412` with a stale `If-Match` (`428` and malformed headers are covered once by `ErrorHandlingTests`).
+5. **Versions**, for updates and deletes: `412` with a stale `If-Match`, nothing changed (`428` and malformed headers are covered once by `ErrorHandlingTests`; resources repeat `428` as a cheap check that the slice takes the version).
 
-Resource tests sign in with `ClientFor(userId)` and create data with `TestData`; the antiforgery token is handled by the client.
+Resource tests sign in with `ClientFor(userId)` and create data with `TestData`; the antiforgery token is handled by the client. `AccountsTests` is the reference for the next resources: one class per module, one region per endpoint, tests named `Endpoint_Situation_Outcome`.
 
 ## Decisions
 

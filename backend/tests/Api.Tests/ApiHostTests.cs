@@ -88,6 +88,25 @@ public sealed class ApiHostTests(ApiServer server) : ApiTest(server)
     }
 
     [Fact]
+    public async Task OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues()
+    {
+        var document = await AnonymousClient().GetJsonAsync<JsonElement>("/openapi/v1.json");
+        var schemas = document.GetProperty("components").GetProperty("schemas");
+
+        // Nested contracts with the same name (Request) get distinct schemas, so a generated client has readable types.
+        Assert.True(schemas.TryGetProperty("LoginRequest", out _));
+        Assert.True(schemas.TryGetProperty("ChangePasswordRequest", out _));
+        Assert.True(schemas.TryGetProperty("CreateAccountRequest", out _));
+        Assert.True(schemas.TryGetProperty("AccountResponse", out _));
+
+        // Enumerations are documented as the strings the API sends (ADR-0015).
+        var accountTypes = schemas.GetProperty("AccountType").GetProperty("enum").EnumerateArray()
+            .Where(value => value.ValueKind == JsonValueKind.String)
+            .Select(value => value.GetString());
+        Assert.Equal(new[] { "cash", "checking", "creditCard", "savings", "other" }, accountTypes);
+    }
+
+    [Fact]
     public async Task ScalarUi_IsServedInDevelopment()
     {
         var response = await AnonymousClient().GetAsync("/scalar/", Ct);

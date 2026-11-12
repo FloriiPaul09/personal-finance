@@ -76,6 +76,19 @@ public sealed class Account : OwnedEntity
 
     public void Unarchive() => IsArchived = false;
 
+    /// <summary>
+    /// An account can be deleted only while it has no movements; afterwards it is archived, so history and balances
+    /// never lose data (docs/database/domain-model.md#account-balance).
+    /// </summary>
+    /// <param name="hasMovements">Whether any transaction references the account (checked by the caller).</param>
+    public void EnsureCanDelete(bool hasMovements)
+    {
+        if (hasMovements)
+        {
+            throw new DomainException(DomainErrors.AccountHasMovements, "An account with movements cannot be deleted: archive it instead.");
+        }
+    }
+
     public void EnsureActive()
     {
         if (IsArchived)

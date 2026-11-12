@@ -1,4 +1,6 @@
 using PersonalFinance.Domain.Accounts;
+using PersonalFinance.Domain.Categories;
+using PersonalFinance.Domain.Transactions;
 
 namespace PersonalFinance.Testing;
 
@@ -13,6 +15,9 @@ namespace PersonalFinance.Testing;
 /// </example>
 public static class TestData
 {
+    /// <summary>Date of movements created without one.</summary>
+    public static readonly DateOnly DefaultDate = new(2026, 1, 15);
+
     public static async Task<Account> CreateAccountAsync(
         this TestDatabase database,
         Guid userId,
@@ -23,11 +28,68 @@ public static class TestData
         CancellationToken cancellationToken = default)
     {
         var account = new Account(userId, name ?? UniqueName("Conto"), type, currency, initialBalance);
+        return await database.SaveAsync(userId, account, cancellationToken);
+    }
 
+    public static async Task<Category> CreateCategoryAsync(
+        this TestDatabase database,
+        Guid userId,
+        string? name = null,
+        CategoryKind kind = CategoryKind.Expense,
+        CancellationToken cancellationToken = default)
+    {
+        var category = new Category(userId, name ?? UniqueName("Categoria"), kind);
+        return await database.SaveAsync(userId, category, cancellationToken);
+    }
+
+    /// <summary>An income on <paramref name="account"/>, in a new income category unless one is given.</summary>
+    public static async Task<Transaction> CreateIncomeAsync(
+        this TestDatabase database,
+        Account account,
+        decimal amount = 100m,
+        DateOnly? date = null,
+        Category? category = null,
+        CancellationToken cancellationToken = default)
+    {
+        category ??= await database.CreateCategoryAsync(account.UserId, kind: CategoryKind.Income, cancellationToken: cancellationToken);
+        var income = Transaction.Income(account, category, date ?? DefaultDate, amount);
+        return await database.SaveAsync(account.UserId, income, cancellationToken);
+    }
+
+    /// <summary>An expense on <paramref name="account"/>, in a new expense category unless one is given.</summary>
+    public static async Task<Transaction> CreateExpenseAsync(
+        this TestDatabase database,
+        Account account,
+        decimal amount = 100m,
+        DateOnly? date = null,
+        Category? category = null,
+        CancellationToken cancellationToken = default)
+    {
+        category ??= await database.CreateCategoryAsync(account.UserId, kind: CategoryKind.Expense, cancellationToken: cancellationToken);
+        var expense = Transaction.Expense(account, category, date ?? DefaultDate, amount);
+        return await database.SaveAsync(account.UserId, expense, cancellationToken);
+    }
+
+    public static async Task<Transfer> CreateTransferAsync(
+        this TestDatabase database,
+        Account from,
+        Account to,
+        decimal amount = 100m,
+        DateOnly? date = null,
+        CancellationToken cancellationToken = default)
+    {
+        var transfer = new Transfer(from, to, date ?? DefaultDate, amount);
+        return await database.SaveAsync(from.UserId, transfer, cancellationToken);
+    }
+
+    private static async Task<TEntity> SaveAsync<TEntity>(
+        this TestDatabase database, Guid userId, TEntity entity, CancellationToken cancellationToken)
+        where TEntity : class
+    {
         await using var db = database.CreateContext(userId);
-        db.Accounts.Add(account);
+        db.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
-        return account;
+        return entity;
     }
 
     /// <summary>A name no other test data of the user has, within the length limits of every entity.</summary>

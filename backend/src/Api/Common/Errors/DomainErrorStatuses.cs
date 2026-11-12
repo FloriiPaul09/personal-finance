@@ -36,6 +36,7 @@ internal static class DomainErrorStatuses
     [
         DomainErrors.AccountArchived,
         DomainErrors.AccountCurrencyLocked,
+        DomainErrors.AccountHasMovements,
         DomainErrors.CategoryArchived,
         DomainErrors.CategoryHasSubcategories,
         DomainErrors.CategoryKindLocked,

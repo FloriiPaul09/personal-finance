@@ -20,6 +20,7 @@ public static class DomainErrors
     public const string AccountTypeInvalid = "account.type_invalid";
     public const string AccountArchived = "account.archived";
     public const string AccountCurrencyLocked = "account.currency_locked";
+    public const string AccountHasMovements = "account.has_movements";
     public const string AccountTransactionMismatch = "account.transaction_of_another_account";
 
     public const string CategoryKindInvalid = "category.kind_invalid";

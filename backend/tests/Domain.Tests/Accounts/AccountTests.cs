@@ -73,6 +73,13 @@ public class AccountTests
     }
 
     [Fact]
+    public void EnsureCanDelete_IsAllowedWithoutMovements() => AnAccount().EnsureCanDelete(hasMovements: false);
+
+    [Fact]
+    public void EnsureCanDelete_IsRejectedWithMovements() =>
+        Rule.Violated(DomainErrors.AccountHasMovements, () => AnAccount().EnsureCanDelete(hasMovements: true));
+
+    [Fact]
     public void Balance_WithoutMovements_IsTheInitialBalance() => Assert.Equal(100m, AnAccount(initialBalance: 100m).BalanceAt([]));
 
     [Fact]
