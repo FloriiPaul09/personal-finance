@@ -63,6 +63,7 @@ public abstract class PostgresServerFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        await DisposeDependentsAsync();
         NpgsqlConnection.ClearAllPools();
         await _container.DisposeAsync();
         _cloneLock.Dispose();
@@ -79,6 +80,11 @@ public abstract class PostgresServerFixture : IAsyncLifetime
         await using var db = TestDatabaseExtensions.CreateContext(withoutPooling, userId: null, TestClock.Default);
         await db.Database.MigrateAsync();
     }
+
+    /// <summary>
+    /// Disposes what subclasses created on top of the test databases (e.g. API hosts), before the container stops.
+    /// </summary>
+    protected virtual ValueTask DisposeDependentsAsync() => ValueTask.CompletedTask;
 
     private string AdminConnectionString => _container.GetConnectionString();
 
