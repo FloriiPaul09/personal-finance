@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
 
 namespace PersonalFinance.Api.Common.OpenApi;
@@ -5,7 +7,20 @@ namespace PersonalFinance.Api.Common.OpenApi;
 public static class ApiDocumentationExtensions
 {
     /// <summary>The built-in OpenAPI document generator (ADR-0003); the document is served in development only.</summary>
-    public static IServiceCollection AddApiDocumentation(this IServiceCollection services) => services.AddOpenApi();
+    public static IServiceCollection AddApiDocumentation(this IServiceCollection services) =>
+        services.AddOpenApi(options => options.CreateSchemaReferenceId = SchemaId);
+
+    /// <summary>
+    /// Schema name of a type. Slices nest their contracts (<c>Login.Request</c>, <c>ChangePassword.Request</c>): the
+    /// declaring type is prepended (<c>LoginRequest</c>), so every schema has its own name and a generated client gets
+    /// readable types (ADR-0015).
+    /// </summary>
+    internal static string? SchemaId(JsonTypeInfo typeInfo)
+    {
+        var id = OpenApiOptions.CreateDefaultSchemaReferenceId(typeInfo);
+        var declaringType = typeInfo.Type.DeclaringType;
+        return id is null || declaringType is null ? id : declaringType.Name + id;
+    }
 
     /// <summary>
     /// In development only: the OpenAPI document at <c>/openapi/v1.json</c> and the Scalar UI at <c>/scalar</c>

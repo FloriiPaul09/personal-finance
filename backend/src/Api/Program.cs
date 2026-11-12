@@ -1,5 +1,6 @@
 using PersonalFinance.Api.Common.Endpoints;
 using PersonalFinance.Api.Common.Errors;
+using PersonalFinance.Api.Common.Json;
 using PersonalFinance.Api.Common.OpenApi;
 using PersonalFinance.Api.Common.Security;
 using PersonalFinance.Infrastructure.Persistence;
@@ -13,6 +14,7 @@ builder.Services.AddPersistence(services =>
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required (docs/devops/configuration.md)."));
 
 builder.Services.AddApiErrors();
+builder.Services.AddApiJson();
 builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddValidation();
 builder.Services.AddApiDocumentation();
