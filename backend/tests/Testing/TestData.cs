@@ -44,11 +44,11 @@ public static class TestData
         return await database.SaveAsync(userId, category, cancellationToken);
     }
 
-    /// <summary>A budget entry on an expense category, from <paramref name="from"/> (January 2026 by default).</summary>
+    /// <summary>A budget entry on an expense category, from <paramref name="from"/> (January 2026 by default); a null amount ends the budget.</summary>
     public static async Task<Budget> CreateBudgetAsync(
         this TestDatabase database,
         Category category,
-        decimal amount = 300m,
+        decimal? amount = 300m,
         YearMonth? from = null,
         CancellationToken cancellationToken = default)
     {
