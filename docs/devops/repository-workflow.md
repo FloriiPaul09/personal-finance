@@ -55,6 +55,21 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 - npm updates wait 3 days after a release (cooldown): pnpm 11 refuses packages younger than a day, and fresh releases are the riskiest.
 - **pnpm and Dependabot**: Dependabot supports pnpm 11 and 12, but with a pnpm-12 lockfile written as two YAML documents it loses alerts and security updates. The project stays on pnpm 11, whose lockfile is a single document, until that limitation is gone.
 
+### Security fixes in transitive packages
+
+Dependabot version updates only bump packages listed in `Directory.Packages.props`. A vulnerability in a package that comes **transitively** (restore warnings `NU1901`–`NU1904`, which become errors in CI) is fixed by hand until the direct dependency ships the fix:
+
+1. Add the fixed version to `Directory.Packages.props` under `Security pins`.
+2. Reference the package directly in the lowest project that pulls it in (today `Infrastructure`), with a comment naming the advisories: projects that reference it get the fixed version too.
+3. Remove the pin when the direct dependency depends on the fixed version (Dependabot keeps the pin itself up to date meanwhile).
+
+| Package | Fixed version | Advisories | Pulled in by | Since |
+|---|---|---|---|---|
+| `System.Security.Cryptography.Pkcs` | 10.0.13 | CVE-2026-84008, CVE-2026-70162 | ASP.NET Core Data Protection 10.0.11 (`Infrastructure`) | 2026-11-12 |
+| `System.Security.Cryptography.Xml` | 10.0.13 | CVE-2026-96958, CVE-2026-96959, CVE-2026-96960 | ASP.NET Core Data Protection 10.0.11 (`Infrastructure`) | 2026-11-12 |
+
+Dependabot alerts and security updates are not enabled on the repository yet (see To do): with them, GitHub opens these pull requests by itself.
+
 ### Formatting files
 
 | File | Content |
@@ -91,6 +106,8 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 - Create `FloriiPaul09/personal-finance` on GitHub, push the skeleton, configure the ruleset and merge settings above.
 - Part 2: required checks, commitlint, release workflow.
 - Move to pnpm 12 once Dependabot fully supports its lockfile.
+- Enable **Dependabot alerts** and **Dependabot security updates** in the repository settings (Settings → Security), so vulnerable transitive packages arrive as pull requests.
+- Docker images (part 2): base them on a .NET 10 runtime with the October 2026 security fixes (10.0.13 or later).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

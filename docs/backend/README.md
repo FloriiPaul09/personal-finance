@@ -22,7 +22,7 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | 1 | Foundation: endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, API test hosts | `feat/backend-api-foundation` | Merged (#10) |
 | 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | Merged (#11) |
 | 3 | Authentication: antiforgery, login, logout, me, change password, registration, rate limiting, initial user, Data Protection keys, test authentication | `feat/backend-auth` | Merged (#12) |
-| 4 | Accounts, plus the conventions of every resource: enums as strings, amounts as numbers, list envelope, schema names | `feat/backend-accounts` | In review |
+| 4 | Accounts, plus the conventions of every resource: enums as strings, amounts as numbers, list envelope, schema names | `feat/backend-accounts` | Merged (#13) |
 | 5 | Categories | `feat/backend-categories` | To do |
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | To do |
 | 7 | Transfers | `feat/backend-transfers` | To do |

@@ -111,6 +111,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 
 ### `[DevOps]`
 - From `[Backend]`: HTTPS is required for login outside `localhost` (`Secure` cookies); forwarded headers behind the reverse proxy for rate limiting — [backend/security.md](../backend/security.md#to-do--open-questions)
+- From `[Backend]`: enable Dependabot alerts and security updates; vulnerable transitive packages are pinned by hand until then — [devops/repository-workflow.md](../devops/repository-workflow.md#security-fixes-in-transitive-packages)
 - HTTPS and reverse proxy, how the app is reached from the phone (LAN/VPN vs public) — [authentication.md](authentication.md)
 - ✅ `Auth__*` variables in `.env.example` — [devops/configuration.md](../devops/configuration.md)
 - CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers, when E2E tests run — part 2, [testing-strategy.md](testing-strategy.md)
