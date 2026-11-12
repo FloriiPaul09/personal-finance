@@ -1,0 +1,6 @@
+// APIs that code in PersonalFinance.Api must never call (Microsoft.CodeAnalysis.BannedApiAnalyzers, rule RS0030).
+// Format: documentation comment ID;message shown in the diagnostic. See docs/backend/security.md.
+
+// Slices never bypass the per-user query filter UserScope (docs/database/user-isolation.md#query-filter).
+M:Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters``1(System.Linq.IQueryable{``0});Slices never bypass the UserScope query filter (docs/database/user-isolation.md)
+M:Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters``1(System.Linq.IQueryable{``0},System.Collections.Generic.IReadOnlyCollection{System.String});Slices never bypass the UserScope query filter (docs/database/user-isolation.md)

@@ -34,12 +34,14 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0009](adr/0009-repository-workflow.md) | Repository workflow — branches, commits and dependency updates | Accepted | 2026-11-09 |
 | [0010](adr/0010-data-model-and-user-isolation.md) | Data model, keys and per-user isolation | Accepted | 2026-11-10 |
 | [0011](adr/0011-persistence-testing.md) | Persistence tests — one container, one database per test class | Accepted | 2026-11-10 |
+| [0012](adr/0012-api-foundation.md) | API foundation — endpoint discovery, secure-by-default authorization, validation and tooling | Accepted | 2026-11-12 |
 
 ## Current state
 
 - **Initial architecture complete**: stack (ADR-0007), authentication (ADR-0001), backend structure (ADR-0002), endpoint style (ADR-0003), UI library (ADR-0004, documented in [frontend/ui-components.md](../frontend/ui-components.md)), license (ADR-0005), testing strategy (ADR-0006), repository layout.
-- **Repository skeleton created** by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx` with the three projects and three test projects, Angular workspace with pnpm and Vitest, Compose with PostgreSQL. No feature is implemented yet; the GitHub repository is not published yet.
-- **Data model decided** by `[DB]` (ADR-0010, ADR-0011): see [database/README.md](../database/README.md).
+- **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
+- **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
+- **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests); errors, authentication and the resources follow one block at a time; see [backend/README.md](../backend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -58,10 +60,11 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-09 | Repository `personal-finance` (projects `PersonalFinance.*`), strict GitHub Flow with squash merge, commits `type(area[/module])`, Dependabot | [ADR-0009](adr/0009-repository-workflow.md) |
 | 2026-11-10 | `Guid` keys everywhere, snake_case tables, named query filter + composite foreign keys `(user_id, id)`, signed amounts, transfers as two legs, computed balances, budgets with `effective_from` (decided in `[DB]`) | [ADR-0010](adr/0010-data-model-and-user-isolation.md) |
 | 2026-11-10 | Persistence tests: one container per run, migrated template, one database per test class; `Infrastructure.Tests` and `Testing` projects (decided in `[DB]`) | [ADR-0011](adr/0011-persistence-testing.md) |
+| 2026-11-12 | API foundation: `IEndpoint<TModule>` discovered at startup, fallback policy requiring authentication, `HttpCurrentUser`, built-in validation, manual mapping, no mediator, OpenAPI + Scalar in Development, ArchUnitNET and banned `IgnoreQueryFilters` (decided in `[Backend]`) | [ADR-0012](adr/0012-api-foundation.md) |
 
 ## Tests
 
-- `Architecture.Tests` checks the dependency rules of ADR-0002 (today with plain reflection, see [backend-structure.md](backend-structure.md#tests)).
+- `Architecture.Tests` checks the dependency rules of ADR-0002 and the rules of the API with ArchUnitNET ([backend/testing.md](../backend/testing.md#architecture-tests)).
 - `PostgresImageTests` checks that the PostgreSQL version is pinned once ([devops/docker.md](../devops/docker.md)).
 - The remaining decisions are verified by the tests described in each micro category.
 
@@ -79,13 +82,14 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - ✅ PostgreSQL version pinned once, shared by Compose and Testcontainers — decided in `[DevOps]`, [ADR-0008](adr/0008-local-development-environment.md)
 
 ### `[Backend]`
-- Auth endpoints (`MapIdentityApi` or custom, registration disabled), CSRF, password / lockout / cookie values, login rate limiting, Data Protection keys — [authentication.md](authentication.md)
-- Authorization fallback policy, `IEndpoint` discovery mechanics, OpenAPI UI — [backend-structure.md](backend-structure.md)
-- Validation approach, mapping, mediator or not — [backend-structure.md](backend-structure.md)
+- Auth endpoints (`MapIdentityApi` or custom, registration disabled), CSRF, password / lockout / cookie values, login rate limiting, Data Protection keys — [authentication.md](authentication.md); planned as block 3 in [backend/README.md](../backend/README.md)
+- ✅ Authorization fallback policy, `IEndpoint` discovery mechanics, OpenAPI UI (Scalar, Development only) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md)
+- ✅ Validation approach (built-in .NET 10), mapping (manual), mediator (none) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md)
 - ✅ Error model, domain side: domain errors are exceptions (`DomainException` with a stable code) — decided in `[DB]`, [ADR-0010](adr/0010-data-model-and-user-isolation.md); the HTTP mapping stays in `[Backend]`
-- Architecture-test library, test authentication, expected status for cross-user access — [testing-strategy.md](testing-strategy.md)
+- ✅ Architecture-test library (ArchUnitNET) — decided in `[Backend]`, [ADR-0012](adr/0012-api-foundation.md); test authentication and expected status for cross-user access still open (blocks 3 and 2) — [testing-strategy.md](testing-strategy.md)
 - ✅ Testcontainers fixture on `PostgresImage.Name` and database reset between tests — decided in `[DB]`: one container per run, migrated template, one database per test class, [ADR-0011](adr/0011-persistence-testing.md), [database/testing.md](../database/testing.md)
-- From `[DB]`: exposure of signed amounts in the API, HTTP status for concurrency conflicts (`DbUpdateConcurrencyException`), HTTP current user (`ICurrentUser`), call `DefaultCategoriesInitializer.EnsureForUserAsync` after creating the initial user and at registration — [database/README.md](../database/README.md#to-do--open-questions)
+- ✅ From `[DB]`: HTTP current user (`ICurrentUser`) — `HttpCurrentUser`, [backend/security.md](../backend/security.md#current-user)
+- From `[DB]`: exposure of signed amounts in the API (block 6), HTTP status for concurrency conflicts (`DbUpdateConcurrencyException`, block 2), call `DefaultCategoriesInitializer.EnsureForUserAsync` after creating the initial user and at registration (block 3) — [database/README.md](../database/README.md#to-do--open-questions)
 
 ### `[Frontend]`
 - Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
@@ -106,4 +110,4 @@ Questions raised here that belong to another conversation. Each one is detailed 
 None for the initial phase. This macro reopens when a new cross-cutting decision is needed (e.g. multi-user rollout, Worker host, native clients): each one gets its own ADR.
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

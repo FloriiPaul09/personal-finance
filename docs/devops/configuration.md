@@ -60,9 +60,10 @@ ASP.NET Core maps `__` in variable names to nested keys: `Auth__InitialUser__Ema
 
 ## To do / open questions
 
-- `[Backend]` Options classes and validation at startup for `Auth` and the connection string.
+- ✅ `[Backend]` Connection string: read from the final configuration when the first `DbContext` is created; startup still fails at once without it (migrations run before serving requests) — [backend/testing.md](../backend/testing.md#hosts).
+- `[Backend]` Options classes and validation at startup for `Auth` (block 3).
 - `[Backend]` / `[DevOps]` Data Protection keys location (volume or database), and its variable.
 - Production variables of the `api` service when it joins `compose.yaml`.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-12_

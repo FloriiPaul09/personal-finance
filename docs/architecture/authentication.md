@@ -2,7 +2,7 @@
 
 ## Scope
 
-How users authenticate, how sessions are kept between the Angular SPA and the API, and how data is tied to its owner. HTTP endpoints are documented in `backend/api-endpoints.md` once they are defined; configuration variables in [devops/configuration.md](../devops/configuration.md).
+How users authenticate, how sessions are kept between the Angular SPA and the API, and how data is tied to its owner. HTTP endpoints are documented in [backend/api-endpoints.md](../backend/api-endpoints.md); the API side of security in [backend/security.md](../backend/security.md); configuration variables in [devops/configuration.md](../devops/configuration.md).
 
 ## Current state
 
@@ -87,4 +87,4 @@ To write with the implementation (`[Backend]`), following [testing-strategy.md](
 - `[Frontend]` Login page, route guard, HTTP interceptor that redirects to login on `401`.
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

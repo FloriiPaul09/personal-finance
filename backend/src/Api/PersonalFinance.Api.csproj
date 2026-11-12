@@ -5,12 +5,32 @@
     <ProjectReference Include="..\Infrastructure\PersonalFinance.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- OpenAPI document and its development UI (ADR-0012, docs/backend/api-endpoints.md). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <!-- APIs that slices must never call, checked at compile time (BannedSymbols.txt, docs/backend/security.md). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+
   <!-- Needed by the dotnet-ef tool when Api is the startup project (docs/database/migrations.md); not shipped. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <!-- Endpoint discovery and the HTTP current user are tested directly (docs/backend/testing.md). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="PersonalFinance.Api.Tests" />
   </ItemGroup>
 
 </Project>

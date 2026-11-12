@@ -2,7 +2,7 @@
 
 ## Scope
 
-How the domain model and the persistence layer are tested: domain unit tests, persistence tests on a real PostgreSQL, the Testcontainers fixture shared by every integration test project, the database-per-class strategy and the conventions for test data. Endpoint tests are in `backend/testing.md` (`[Backend]`); the overall strategy in [testing-strategy.md](../architecture/testing-strategy.md).
+How the domain model and the persistence layer are tested: domain unit tests, persistence tests on a real PostgreSQL, the Testcontainers fixture shared by every integration test project, the database-per-class strategy and the conventions for test data. Endpoint tests are in [backend/testing.md](../backend/testing.md); the overall strategy in [testing-strategy.md](../architecture/testing-strategy.md).
 
 ## Current state
 
@@ -17,7 +17,7 @@ Decided ([ADR-0011](../architecture/adr/0011-persistence-testing.md)). **Impleme
 | `PersonalFinance.Api.Tests` | `backend/tests/Api.Tests` | Endpoint tests (`[Backend]`), same fixture |
 | `PersonalFinance.Testing` | `backend/tests/Testing` | Support library, **not** a test project: `PostgresImage`, fixtures, builders, fixed current user and clock |
 
-`PostgresImage` lives in `Testing`, `PostgresImageTests` in `Infrastructure.Tests`. `Api.Tests` keeps a placeholder test until the first endpoint test (Microsoft Testing Platform fails a run with zero tests).
+`PostgresImage` lives in `Testing`, `PostgresImageTests` in `Infrastructure.Tests`. `Api.Tests` registers `ApiServer` (a `PostgresServerFixture` that also caches one API host per test class, [backend/testing.md](../backend/testing.md#hosts)); its placeholder test was removed with the first API tests. Subclasses dispose what they build on the databases in `DisposeDependentsAsync`, before the container stops.
 
 ### Fixture
 
@@ -111,4 +111,4 @@ dotnet test --project tests/Infrastructure.Tests
 - `[DevOps]` CI job with Docker for `Infrastructure.Tests` and `Api.Tests` (part 2).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

@@ -1,31 +1,30 @@
-using System.Reflection;
+using ArchUnitNET.xUnitV3;
+using PersonalFinance.Api;
 using PersonalFinance.Domain;
 using PersonalFinance.Infrastructure;
+using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace PersonalFinance.Architecture.Tests;
 
-// Dependency rules of ADR-0002, checked with plain reflection.
-// To be rewritten with the architecture-test library chosen in [Backend].
-public class ProjectDependencyTests
+// Dependency rules between projects (ADR-0002, docs/architecture/backend-structure.md#dependencies).
+public sealed class ProjectDependencyTests
 {
     [Fact]
-    public void Domain_DoesNotReferenceOtherProjectsOrFrameworks()
+    public void Domain_DependsOnNoOtherProjectAndNoFramework()
     {
-        var forbidden = References(DomainAssembly.Reference)
-            .Where(name => name.StartsWith("PersonalFinance.", StringComparison.Ordinal)
-                        || name.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
-                        || name.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal)
-                        || name.StartsWith("Npgsql", StringComparison.Ordinal));
-
-        Assert.Empty(forbidden);
+        Types().That().ResideInAssembly(DomainAssembly.Reference)
+            .Should().NotDependOnAny(Types(includeReferenced: true).That().ResideInNamespaceMatching(
+                @"^(PersonalFinance\.(Api|Infrastructure)|Microsoft\.EntityFrameworkCore|Microsoft\.AspNetCore|Npgsql)(\.|$)"))
+            .Because("business rules stay free of persistence and HTTP (ADR-0002)")
+            .Check(Solution.Model);
     }
 
     [Fact]
-    public void Infrastructure_DoesNotReferenceApi()
+    public void Infrastructure_DoesNotDependOnApi()
     {
-        Assert.DoesNotContain("PersonalFinance.Api", References(InfrastructureAssembly.Reference));
+        Types().That().ResideInAssembly(InfrastructureAssembly.Reference)
+            .Should().NotDependOnAny(Types().That().ResideInAssembly(ApiAssembly.Reference))
+            .Because("persistence is reused by other hosts such as the future Worker (ADR-0002)")
+            .Check(Solution.Model);
     }
-
-    private static IEnumerable<string> References(Assembly assembly) =>
-        assembly.GetReferencedAssemblies().Select(reference => reference.Name ?? string.Empty);
 }
