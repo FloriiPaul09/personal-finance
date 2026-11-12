@@ -53,7 +53,7 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 | Code | Status | When |
 |---|---|---|
 | `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field; also query parameters out of range (`limit`, `to` before `from`, `q` too long) |
-| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`, `?from=yesterday`), an unknown query enum (`?kind=refund`, with `errors.kind`), a cursor the API did not issue (`errors.cursor`) |
+| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, a month not written `yyyy-MM` (body or `?month=`), wrong type of a route or query value (`?includeArchived=maybe`, `?from=yesterday`), an unknown query enum (`?kind=refund`, with `errors.kind`), a cursor the API did not issue (`errors.cursor`) |
 | `id.invalid` | 400 | An empty id chosen by the caller (the domain refuses `00000000-…`) |
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
@@ -154,6 +154,7 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 - `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
 - `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
 - From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
+- `BudgetsTests`: missing `categoryId` / `from`, malformed months (body and query), amounts, `budget.category_not_expense`, `budget.month_taken`, `budget.branch_conflict`, `category.archived`, `category.not_found` on `categoryId`.
 - `TransactionsTests`: missing fields, `kind: transfer` and a non-UUIDv7 `id` (`IValidatableObject`, `UuidV7Attribute`), too many tags and long descriptions, invalid query parameters (`validation.failed` / `request.invalid` on the parameter), domain codes for amounts, kinds and archived data, `{resource}.not_found` on `accountId` / `categoryId`, `resource.conflict` on `id`.
 - `TagsTests`: empty and long names, duplicate names.
 - `CategoriesTests`: missing fields, unknown kind in the body and in the query (on `kind`), `category.not_found` on `parentId`, domain codes (`category.too_deep`, `category.kind_mismatch`, `category.parent_itself`, `category.archived`, `category.kind_locked`, `category.has_subcategories`, `category.in_use`, `budget.branch_conflict`), duplicate names.

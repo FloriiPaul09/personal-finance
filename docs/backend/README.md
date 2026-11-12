@@ -25,8 +25,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | 4 | Accounts, plus the conventions of every resource: enums as strings, amounts as numbers, list envelope, schema names | `feat/backend-accounts` | Merged (#13) |
 | 5 | Categories | `feat/backend-categories` | Merged (#15) |
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | Merged (#16) |
-| 7 | Transfers | `feat/backend-transfers` | In review |
-| 8 | Budgets | `feat/backend-budgets` | To do |
+| 7 | Transfers | `feat/backend-transfers` | Merged (#17) |
+| 8 | Budgets | `feat/backend-budgets` | In review |
 | 9 | Dashboard | `feat/backend-dashboard` | To do |
 
 ### Pipeline
@@ -36,7 +36,7 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 ```
 AddPersistence (connection string read from the final configuration)
 AddApiErrors          → ProblemDetails with code + traceId, ApiExceptionHandler
-AddApiJson            → enumerations as camelCase strings (JsonConventions)
+AddApiJson            → enumerations as camelCase strings, months as "yyyy-MM" (JsonConventions)
 AddApiSecurity        → Auth options, Identity + session cookie (401/403, no redirects), Data Protection keys in the DB,
                         antiforgery, login rate limiter, fallback policy, HttpCurrentUser
 AddValidation         → built-in Minimal API validation
@@ -100,6 +100,7 @@ Rules:
 - **Request and response records are `public`** (the validation generator skips other types); the endpoint class is `internal sealed` and lives in `PersonalFinance.Api.Features.*` (architecture test).
 - **Handlers return `TypedResults`** (`Results<…>` for several outcomes) for exact OpenAPI metadata.
 - **Mapping is manual**: one response type per resource and one `Select` projection for it (`AccountQueries.SelectResponses`), used by reads and, after saving, by writes. No mapping library.
+- **Aggregates in SQL, arithmetic in `Domain`**: a query returns the raw sums (`ProgressOf`), and the domain record (`BudgetProgress`) derives remaining, ratio and over-budget, so the API and the `Worker` never disagree.
 - **Lists return `ListResponse<T>`** (`{ "items": [...] }`), paged lists `PageResponse<T>` with `nextCursor`; enumerations travel as `camelCase` strings, in the query too (`QueryValues.ParseEnum`, [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)).
 - **Rules that need data from the database take it as arguments** (`hasSubcategories`, `isInUse`, `hasMovements`): the slice queries, the domain decides. An edit that touches several fields goes through one domain method (`Category.Change`), so the order of the checks lives in `Domain`.
 - **A resource stored in several rows has one version**: the slice rewrites the main row on every change (`TouchVersion` for transfers, the transaction row when only its tags change), so `If-Match` covers the whole resource.
@@ -136,6 +137,7 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Categories: flat list (parent then subcategories), filters `kind` / `includeArchived`, `PUT` of name + kind + parent through `Category.Change`, unarchive one category at a time, delete only when unused and without subcategories (`category.in_use`), alphabetical order | [ADR-0016](../architecture/adr/0016-categories-module.md), [api-endpoints.md](api-endpoints.md#categories) |
 | 2026-11-12 | Transactions: kind + positive amount in requests, `amount` + `signedAmount` in responses; optional client UUIDv7 id (repeated create returns the first, `200`); cursor paging `{ items, nextCursor }`; filters period / account / category branch / kind / tag / text; tags by name created on the fly, `/api/tags` to list, rename, delete; transfer legs listed read-only | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md), [api-endpoints.md](api-endpoints.md#transactions) |
 | 2026-11-12 | Transfers: one response with both leg ids, no list of their own, version of the `transfers` row rewritten on every change, optional client UUIDv7 id, no tags | [ADR-0018](../architecture/adr/0018-transfers-module.md), [api-endpoints.md](api-endpoints.md#transfers) |
+| 2026-11-12 | Budgets: entries as a resource, months `yyyy-MM`, `GET /api/budgets/progress` from one query with the domain's arithmetic, stop with an entry without amount, delete for corrections, no paging | [ADR-0019](../architecture/adr/0019-budgets-module.md), [api-endpoints.md](api-endpoints.md#budgets) |
 
 ## Tests
 
@@ -162,6 +164,7 @@ Summary of [testing.md](testing.md):
 - ✅ Block 5 — categories: [ADR-0016](../architecture/adr/0016-categories-module.md).
 - ✅ Block 6 — transactions, tags, paging and idempotent create: [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
 - ✅ Block 7 — transfers: [ADR-0018](../architecture/adr/0018-transfers-module.md).
+- ✅ Block 8 — budgets: [ADR-0019](../architecture/adr/0019-budgets-module.md).
 - ✅ Validation of request records is tested (login).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 

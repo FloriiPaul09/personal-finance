@@ -6,7 +6,7 @@ Index of the project documentation. Each macro category matches a conversation t
 |---|---|---|
 | Architecture | [architecture/](architecture/README.md) | Initial decisions complete |
 | Database & domain | [database/](database/README.md) | Implemented (MVP data model) |
-| Backend API | [backend/](backend/README.md) | In progress — foundation, error handling, authentication, accounts, categories, transactions and transfers done; budgets next |
+| Backend API | [backend/](backend/README.md) | In progress — foundation, error handling, authentication, accounts, categories, transactions, transfers and budgets done; dashboard next |
 | Frontend | [frontend/](frontend/README.md) | In progress |
 | DevOps | [devops/](devops/README.md) | In progress — repository skeleton and local environment done, CI next |
 | Features | `features/` | Not started (after MVP) |
