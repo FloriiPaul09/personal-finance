@@ -45,6 +45,9 @@ public sealed class ApiFactory(
 
                 // Every test client shares one address: the real limit is tested on its own host.
                 ["Auth:LoginRateLimit:PermitLimit"] = "100000",
+
+                // SQL of every test drowns the output of a failing one.
+                ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "Warning",
             };
 
             foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
