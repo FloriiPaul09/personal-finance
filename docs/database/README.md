@@ -65,7 +65,7 @@ In short:
 ## To do / open questions
 
 - Refunds on expense categories ([domain-model.md](domain-model.md#scalability)).
-- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts — default categories for new users, concurrency and cross-user status decided in [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md); `[DevOps]`: CI with Docker, backups before migrations).
+- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts decided in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md), default categories for new users, concurrency and cross-user status decided in [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md); `[DevOps]`: CI with Docker, backups before migrations).
 
 ---
 _Last updated: 2026-11-12_

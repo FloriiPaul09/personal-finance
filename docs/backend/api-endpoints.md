@@ -6,7 +6,7 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
@@ -15,14 +15,14 @@ The foundation is implemented: health, development tools, authentication, the me
 | Base path | `/api`; each module adds its prefix: `/api/accounts`, `/api/categories`, … The Angular dev server and nginx proxy `/api` ([devops/local-development.md](../devops/local-development.md)) |
 | Format | JSON, `camelCase` properties (ASP.NET Core default); **enumerations as `camelCase` strings** (`"creditCard"`) — numbers and unknown values give `400` `request.invalid` ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)). Options in `JsonConventions` |
 | Authentication | Session cookie on every endpoint unless marked **public** ([security.md](security.md)); without a session `401` |
-| Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}` |
-| Amounts | **JSON numbers** with at most 2 decimals (`1234.56`), `decimal` on the server; a third decimal is refused (`amount.too_many_decimals`), never rounded. Totals and balances are computed by the server: clients never add amounts in floating point. Exposure of signs on movements decided in block 6 |
+| Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}`. Creates that must be safe to send again (offline queue) accept an `id` chosen by the client, a UUIDv7 ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
+| Amounts | **JSON numbers** with at most 2 decimals (`1234.56`), `decimal` on the server; a third decimal is refused (`amount.too_many_decimals`), never rounded. Totals and balances are computed by the server: clients never add amounts in floating point. Movements: kind + positive `amount` in requests; responses add `signedAmount` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
 | Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); timestamps ISO 8601 in UTC |
 | Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace the whole resource (`200` + `ETag`), `DELETE` (`204`), `POST /{id}/{action}` for idempotent state changes such as `archive` (`200` + `ETag`). `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
 | Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
 | Not found | `404` `resource.not_found` for a route id that is not the user's — another user's id included ([security.md](security.md#another-users-data)) |
 | Responses | One response type per resource (e.g. `AccountResponse`), the same for list items, reads and writes, with `version` in the body |
-| Lists | **Envelope** `{ "items": [...] }` (`ListResponse<T>`) for every list, paged or not; filters in the query string (`?includeArchived=true`, `?kind=expense`) — enumerations in the query follow the JSON names (`QueryValues.ParseEnum`). Paging and sorting parameters decided with the first list that needs them (transactions) |
+| Lists | **Envelope** `{ "items": [...] }` (`ListResponse<T>`) for every list, paged or not; filters in the query string (`?includeArchived=true`, `?kind=expense`) — enumerations in the query follow the JSON names (`QueryValues.ParseEnum`). Paged lists use a cursor: `{ "items": [...], "nextCursor": "…" }` (`PageResponse<T>`), `?limit=` and `?cursor=` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
 | OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults`; schema names are prefixed with their slice (`CreateAccountRequest`) |
 
 ### Endpoint template
@@ -410,6 +410,123 @@ Archiving a top-level category archives its subcategories too. `unarchive` resto
 
 Only for an unused category without subcategories, e.g. one created by mistake; otherwise the app offers to archive it (`isInUse`, `hasSubcategories` tell it in advance).
 
+### Transactions
+
+Module `transactions` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)). Every transaction endpoint returns the same `TransactionResponse`:
+
+```json
+{
+  "id": "0193a5c4-9b31-7e02-a6d4-1f2e3d4c5b6a",
+  "kind": "expense",
+  "accountId": "0193a5c4-7e1f-7c3b-9a52-3f0e6d2b8a41",
+  "categoryId": "0193a5c4-8a02-7d11-b1e0-5c7d0e9f2a10",
+  "transferId": null,
+  "date": "2026-11-12",
+  "amount": 12.50,
+  "signedAmount": -12.50,
+  "description": "Pranzo",
+  "tags": ["lavoro"],
+  "version": 90411
+}
+```
+
+| Field | Content |
+|---|---|
+| `kind` | `income`, `expense`, or `transfer` for a transfer leg (read-only here) |
+| `categoryId` | Set for income and expenses; `null` for transfer legs |
+| `transferId` | Set for transfer legs only: open the transfer to change or delete them |
+| `amount` | Always positive, as the client sends it |
+| `signedAmount` | Effect on the account balance: `+` income and incoming legs, `−` expenses and outgoing legs. Sum it for running balances |
+| `tags` | Tag names, by name |
+
+#### List transactions
+
+| | |
+|---|---|
+| **Route** | `GET /api/transactions` |
+| **Auth** | Session |
+| **Request** | Query, all optional: `from`, `to` (`YYYY-MM-DD`, included), `accountId`, `categoryId` (a top-level category includes its subcategories), `kind` (`income` / `expense` / `transfer`), `tag` (name, any case), `q` (text in the description, any case, ≤ 100 characters; `%` and `_` are literal), `limit` (1–200, default 50), `cursor` |
+| **Responses** | `200` `{ "items": [TransactionResponse, …], "nextCursor": "…" or null }` · `400` `validation.failed` on `limit`, `to` (before `from`), `q` (too long) · `400` `request.invalid` on `kind`, `cursor` (not issued by the API), or a malformed date or id · `401` `auth.required` |
+| **Versions** | `version` on each item |
+| **Isolation** | Only the user's transactions; a filter on another user's account or category finds nothing |
+| **Tests** | `TransactionsTests.List_*` |
+
+Newest first: by date, then by id (creation order for ids generated as UUIDv7). To read the next page, pass `nextCursor` back unchanged as `cursor` with the same filters; it is `null` on the last page. Items created after the first page never shift the next pages. No total count: period totals belong to the dashboard.
+
+#### Get a transaction
+
+| | |
+|---|---|
+| **Route** | `GET /api/transactions/{id}` |
+| **Auth** | Session |
+| **Responses** | `200` `TransactionResponse`, a transfer leg included · `401` `auth.required` · `404` `resource.not_found` |
+| **Versions** | `ETag` |
+| **Isolation** | Another user's transaction: `404` |
+| **Tests** | `TransactionsTests.Get_*` |
+
+#### Create a transaction
+
+| | |
+|---|---|
+| **Route** | `POST /api/transactions` |
+| **Auth** | Session |
+| **Request** | `{ "id": "…", "kind": "expense", "accountId": "…", "categoryId": "…", "date": "2026-11-12", "amount": 12.50, "description": "Pranzo", "tags": ["lavoro"] }` |
+| **Responses** | `201` `TransactionResponse`, `Location: /api/transactions/{id}` · `200` `TransactionResponse` when the `id` already exists for the user (request sent again) · `400` `validation.failed` (missing field, `kind: transfer`, `id` not UUIDv7, description > 200, more than 20 tags), `request.invalid`, `account.not_found` / `category.not_found` on the field, `amount.not_positive`, `amount.too_many_decimals`, `category.kind_mismatch`, `name.required` / `name.too_long` (a tag) · `401` `auth.required` · `409` `account.archived`, `category.archived`, `tag.name_taken` (rare race), `resource.conflict` on `id` (used by another user) |
+| **Versions** | `ETag` |
+| **Isolation** | Another user's account or category: `400` `{resource}.not_found`; another user's id: `409` without details |
+| **Tests** | `TransactionsTests.Create_*` |
+
+| Field | Rules |
+|---|---|
+| `id` | Optional UUID **version 7** chosen by the client. Makes the request safe to send again: the PWA sets it when it queues the expense |
+| `kind` | `income` or `expense`; transfers through `/api/transfers` (block 7) |
+| `accountId` | An active account of the user |
+| `categoryId` | An active category of the user, of the same kind (an income needs an income category) |
+| `date` | Required; future dates allowed (planned expenses) |
+| `amount` | Greater than zero, at most 2 decimals; the sign follows `kind` |
+| `description` | Optional, ≤ 200 characters, trimmed; empty becomes `null` |
+| `tags` | Optional, ≤ 20 names; compared without regard to case; missing tags are created (≤ 50 characters each) |
+
+#### Update a transaction
+
+| | |
+|---|---|
+| **Route** | `PUT /api/transactions/{id}` |
+| **Auth** | Session |
+| **Request** | `{ "accountId": "…", "categoryId": "…", "date": "…", "amount": 12.50, "description": "…", "tags": [...] }` and header `If-Match`. No `kind`: it never changes (sent anyway, it is ignored). `tags` is the complete list: omitted or empty removes every tag |
+| **Responses** | `200` `TransactionResponse` · `400` as create · `401` `auth.required` · `404` `resource.not_found` · `409` `transaction.is_transfer_leg`, `account.archived` / `category.archived` (only when newly chosen) · `412` · `428` |
+| **Versions** | `If-Match` required; new `ETag`, also when only tags change |
+| **Isolation** | Another user's transaction: `404`; another user's account or category in the body: `400` on the field |
+| **Tests** | `TransactionsTests.Update_*` |
+
+An expense on an account archived later can still be corrected; moving it to another archived account cannot.
+
+#### Delete a transaction
+
+| | |
+|---|---|
+| **Route** | `DELETE /api/transactions/{id}` |
+| **Auth** | Session |
+| **Request** | Header `If-Match` |
+| **Responses** | `204` · `401` `auth.required` · `404` `resource.not_found` · `409` `transaction.is_transfer_leg` · `412` · `428` |
+| **Versions** | `If-Match` required |
+| **Isolation** | Another user's transaction: `404`, nothing deleted |
+| **Tests** | `TransactionsTests.Delete_*` |
+
+Deleted for good, with its tag links; the tags themselves stay.
+
+### Tags
+
+Part of the transactions module ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)); prefix `tags`. Tags are created by naming them in a transaction. `TagResponse`: `{ "id": "…", "name": "vacanza-2026", "transactionCount": 3, "version": 512 }`.
+
+| Route | Request | Responses | Notes |
+|---|---|---|---|
+| `GET /api/tags` | — | `200` `{ "items": [TagResponse, …] }` by name · `401` | For autocompletion; `transactionCount` lets the app sort suggestions by use. Not paged |
+| `PUT /api/tags/{id}` | `{ "name": "…" }` (required, ≤ 50) + `If-Match` | `200` `TagResponse` · `400` `validation.failed` · `401` · `404` · `409` `tag.name_taken` · `412` · `428` | Renames the tag on every transaction (e.g. a typo) |
+| `DELETE /api/tags/{id}` | `If-Match` | `204` · `401` · `404` · `412` · `428` | Removes the tag from its transactions, which do not change |
+
+Isolation: another user's tag is `404`. Tests: `TagsTests`.
+
 ### Resources
 
 | Resource | Module prefix | Block | Status |
@@ -417,7 +534,7 @@ Only for an unused category without subcategories, e.g. one created by mistake; 
 | Authentication (antiforgery, login, logout, me, change password, register) | `auth` | 3 | Implemented — [Authentication](#authentication) |
 | Accounts | `accounts` | 4 | Implemented — [Accounts](#accounts) |
 | Categories | `categories` | 5 | Implemented — [Categories](#categories) |
-| Transactions (with tags, filters) | `transactions` | 6 | To do |
+| Transactions (with tags, filters) | `transactions`, `tags` | 6 | Implemented — [Transactions](#transactions), [Tags](#tags) |
 | Transfers | `transfers` | 7 | To do |
 | Budgets | `budgets` | 8 | To do |
 | Dashboard | `dashboard` | 9 | To do |
@@ -431,6 +548,7 @@ Only for an unused category without subcategories, e.g. one created by mistake; 
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
 | Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 | Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Transactions: kind + positive amount in, `amount` + `signedAmount` out; optional client UUIDv7 id makes create safe to repeat; cursor paging; single-value filters; tags by name created on the fly; transfer legs listed read-only | No sign bugs in clients; offline replay without duplicates; fast stable paging | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md) |
 | Categories as a flat list (parent then subcategories), filters `kind` and `includeArchived`, `PUT` of name + kind + parent, unarchive of one category at a time, delete only when unused and without subcategories, alphabetical order | One response type; one domain method for every edit; history and budgets keep their category | [ADR-0016](../architecture/adr/0016-categories-module.md) |
 
 ## Tests
@@ -439,6 +557,8 @@ Only for an unused category without subcategories, e.g. one created by mistake; 
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `TransactionsTests`: every transaction endpoint — success, `401`, validation, isolation (route ids, ids in the body, filters), versions — plus amounts and signs, cursor paging without gaps, every filter, repeated create with the same id, tags reused and created, tag-only changes bumping the version, transfer legs read-only, balance after create and delete.
+- `TagsTests`: list with usage, rename (on every transaction), delete (links removed), with `401`, validation, isolation and versions.
 - `CategoriesTests`: every category endpoint — success, `401`, validation, isolation (route ids and `parentId`), versions — plus display order, filters, usage flags, moves checked against budgets, archive and restore of a branch.
 - `AccountsTests`: every account endpoint — success, `401`, validation, isolation, versions — plus the balance compared with `Account.BalanceAt`, enumerations as strings, malformed JSON in Development and Production.
 - Each resource section names its test class; the minimum per endpoint is in [testing.md](testing.md#minimum-per-endpoint).
@@ -452,6 +572,9 @@ Only for an unused category without subcategories, e.g. one created by mistake; 
 - **OpenAPI**: `If-Match` and `ETag` are not described in the document yet; an operation transformer can add them for endpoints with `IfMatchRequiredMetadata`.
 - **Balances with years of movements**: the account query sums every movement. When that shows in response times, the `Worker` writes monthly balance snapshots and the query adds only the movements after the last snapshot; the response does not change. A covering index with `amount` is a cheaper first step.
 - **Many accounts** (shared households, multi-user): the list already uses the envelope, so paging can be added without breaking clients.
+- **Text search**: `ILIKE` scans the user's transactions; with many years of data, a `pg_trgm` index on `description` (`[DB]`) keeps `q` fast without changing the API.
+- **Exports**: the cursor walks the whole history page by page; a streaming export endpoint can reuse the same filters.
+- **Attachments, recurring transactions, CSV import**: they reuse client or caller ids (`OwnedEntity` takes one), so a retried upload or import row never duplicates a transaction.
 - **Category order**: a `position` field (user-defined order) or an order by usage for the PWA can be added to `CategoryResponse` without breaking clients; the in-memory ordering moves to SQL if a user ever has thousands of categories.
 - **CSV import**: rows are matched to categories by normalized name, kind and parent — the same key as the unique index.
 - **Currencies**: when transfers between currencies arrive, the balance stays per account in its own currency; totals across currencies belong to the dashboard with exchange rates.
@@ -461,8 +584,10 @@ Only for an unused category without subcategories, e.g. one created by mistake; 
 - ✅ Status codes of errors, concurrency and cross-user access — [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
 - Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
 - ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
-- Paging and sorting parameters (block 6, transactions).
-- Contracts of the remaining resources (blocks 6–9).
+- ✅ Paging (cursor), signs of amounts, idempotent create — [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
+- Contracts of the remaining resources (blocks 7–9).
+- `[Frontend]`: generate UUIDv7 ids for queued expenses; follow `nextCursor` for infinite scroll; never sum `amount`, use `signedAmount`; send the whole tag list on update.
+- Tag merge (two tags into one) and multi-value filters, when needed.
 - `[Frontend]`: build the grouped category menu from consecutive items; read `isInUse` / `hasSubcategories` to lock the kind and to offer archive instead of delete.
 - `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.
 

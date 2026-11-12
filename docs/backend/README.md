@@ -23,8 +23,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | Merged (#11) |
 | 3 | Authentication: antiforgery, login, logout, me, change password, registration, rate limiting, initial user, Data Protection keys, test authentication | `feat/backend-auth` | Merged (#12) |
 | 4 | Accounts, plus the conventions of every resource: enums as strings, amounts as numbers, list envelope, schema names | `feat/backend-accounts` | Merged (#13) |
-| 5 | Categories | `feat/backend-categories` | In review |
-| 6 | Transactions (with tags and filters) | `feat/backend-transactions` | To do |
+| 5 | Categories | `feat/backend-categories` | Merged (#15) |
+| 6 | Transactions (with tags and filters) | `feat/backend-transactions` | In review |
 | 7 | Transfers | `feat/backend-transfers` | To do |
 | 8 | Budgets | `feat/backend-budgets` | To do |
 | 9 | Dashboard | `feat/backend-dashboard` | To do |
@@ -100,7 +100,7 @@ Rules:
 - **Request and response records are `public`** (the validation generator skips other types); the endpoint class is `internal sealed` and lives in `PersonalFinance.Api.Features.*` (architecture test).
 - **Handlers return `TypedResults`** (`Results<…>` for several outcomes) for exact OpenAPI metadata.
 - **Mapping is manual**: one response type per resource and one `Select` projection for it (`AccountQueries.SelectResponses`), used by reads and, after saving, by writes. No mapping library.
-- **Lists return `ListResponse<T>`** (`{ "items": [...] }`); enumerations travel as `camelCase` strings, in the query too (`QueryValues.ParseEnum`, [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)).
+- **Lists return `ListResponse<T>`** (`{ "items": [...] }`), paged lists `PageResponse<T>` with `nextCursor`; enumerations travel as `camelCase` strings, in the query too (`QueryValues.ParseEnum`, [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)).
 - **Rules that need data from the database take it as arguments** (`hasSubcategories`, `isInUse`, `hasMovements`): the slice queries, the domain decides. An edit that touches several fields goes through one domain method (`Category.Change`), so the order of the checks lives in `Domain`.
 - **State changes that cannot lose an edit** (archive, unarchive) are idempotent `POST /{id}/{action}` without `If-Match`; everything that replaces or deletes data takes the version.
 - **No mediator**: the endpoint calls `Handle` directly. Cross-cutting behavior goes in endpoint filters on the module (`ApiModule.Configure`).
@@ -133,6 +133,7 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Resource conventions: enums as `camelCase` strings, amounts as JSON numbers, list envelope `{ items }`, one response type per resource, schema names prefixed by slice, `request.invalid` for unreadable requests | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md), [api-endpoints.md](api-endpoints.md#conventions) |
 | 2026-11-12 | Accounts: balance in SQL at every read, `PUT` of the whole account, archive / unarchive actions, delete only without movements (`account.has_movements`), archived hidden unless `includeArchived=true` | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md), [api-endpoints.md](api-endpoints.md#accounts) |
 | 2026-11-12 | Categories: flat list (parent then subcategories), filters `kind` / `includeArchived`, `PUT` of name + kind + parent through `Category.Change`, unarchive one category at a time, delete only when unused and without subcategories (`category.in_use`), alphabetical order | [ADR-0016](../architecture/adr/0016-categories-module.md), [api-endpoints.md](api-endpoints.md#categories) |
+| 2026-11-12 | Transactions: kind + positive amount in requests, `amount` + `signedAmount` in responses; optional client UUIDv7 id (repeated create returns the first, `200`); cursor paging `{ items, nextCursor }`; filters period / account / category branch / kind / tag / text; tags by name created on the fly, `/api/tags` to list, rename, delete; transfer legs listed read-only | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md), [api-endpoints.md](api-endpoints.md#transactions) |
 
 ## Tests
 
@@ -157,7 +158,7 @@ Summary of [testing.md](testing.md):
 - ✅ Block 3 — authentication: [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md).
 - ✅ Block 4 — accounts and resource conventions: [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - ✅ Block 5 — categories: [ADR-0016](../architecture/adr/0016-categories-module.md).
-- Block 6 — signed amounts or kind + positive amount in the API; client-generated ids or an idempotency key so an expense sent again by the PWA after going offline is not saved twice.
+- ✅ Block 6 — transactions, tags, paging and idempotent create: [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
 - ✅ Validation of request records is tested (login).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 

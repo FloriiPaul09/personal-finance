@@ -84,7 +84,7 @@ var account = await Database.CreateAccountAsync(userId, name: "Carta", initialBa
 ```
 
 - Default names are unique (`TestData.UniqueName`), so several calls never collide on unique indexes.
-- Available: `CreateAccountAsync`, `CreateCategoryAsync` (a subcategory with `parent:`, which also gives the kind), `CreateBudgetAsync`, `CreateIncomeAsync` / `CreateExpenseAsync` (in a new category of the right kind unless one is given, dated `TestData.DefaultDate`), `CreateTransferAsync`. Each block adds what its entities need (tags). Persistence tests keep `SampleData` for their "one of everything" scenario.
+- Available: `CreateAccountAsync`, `CreateCategoryAsync` (a subcategory with `parent:`, which also gives the kind), `CreateBudgetAsync`, `CreateIncomeAsync` / `CreateExpenseAsync` (in a new category of the right kind unless one is given, dated `TestData.DefaultDate`, with optional `description` and `tags`), `CreateTransferAsync`, `CreateTagAsync`. Persistence tests keep `SampleData` for their "one of everything" scenario.
 
 `ApiRequests` (in `Api.Tests/Support`) sends and reads like the app: `ReadAsync<T>()` and `GetJsonAsync<T>()` with the API JSON options (enumerations as strings), `PutWithVersionAsync` / `DeleteWithVersionAsync` with `If-Match`, `PostEmptyAsync` for actions. Request bodies are anonymous objects or dictionaries with the JSON names (`type = "checking"`), so tests check the contract the app sees, not the C# records.
 
