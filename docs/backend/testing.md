@@ -6,7 +6,7 @@ How the API is tested: the test projects involved, how tests start the API on a 
 
 ## Current state
 
-Implemented for the foundation ([ADR-0011](../architecture/adr/0011-persistence-testing.md), [ADR-0012](../architecture/adr/0012-api-foundation.md)).
+Implemented for the foundation and the error handling ([ADR-0011](../architecture/adr/0011-persistence-testing.md), [ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 
 ### Projects
 
@@ -52,11 +52,18 @@ each test class ──► Database (cloned from the template, DatabaseTest)
 
 `EndpointMappingTests` start a minimal host (`WebApplication` + `TestServer`, no database) with `AddApiSecurity()` and sample endpoints declared in the test, to check what the real API cannot show yet: module prefix and tag, module conventions, `401` on protected endpoints and on unknown routes.
 
+`ErrorHandlingTests` start a similar host (Production environment, no details in errors) with the class database, `AddApiErrors()`, `AddApiSecurity()`, a fixed current user and sample endpoints that throw domain errors, create and rename accounts, and simulate a write from another device between the version check and the save. They cover every row of the error codes table that does not need a real resource, versions (`ETag`, `428`, `400`, `412`), duplicates and other users' data. From block 4 the real resources reuse exactly these mechanisms, so their tests only check the codes of their own cases.
+
 `EndpointDiscoveryTests` call the discovery directly with lists of sample types: grouping and order, modules without endpoints, abstract types, and every mistake that must stop startup. They also check that the API assembly is discovered without errors and that every module has at least one endpoint.
 
 ### Host tests
 
-`ApiHostTests` run on the real host: health public, unknown route `401`, OpenAPI document and Scalar in Development, absent in Production, `HttpCurrentUser` registered, and the **list of public routes** — any endpoint with `AllowAnonymous()` outside the list fails the test.
+`ApiHostTests` run on the real host: health public, unknown route `401` with a ProblemDetails body, OpenAPI document and Scalar in Development, absent in Production, `HttpCurrentUser` registered, the **list of public routes** — any endpoint with `AllowAnonymous()` outside the list fails the test — and **`If-Match` on every `PUT` / `PATCH` / `DELETE`**.
+
+### Mapping tests
+
+- `ErrorMappingTests` (unit): every constant of `DomainErrors` has a status family and nothing else is mapped; status → default code; entity tag format and parsing (weak tags, `*`, lists, overflow rejected).
+- `UniqueConstraintErrorsTests`: reads the unique indexes of user tables from `pg_indexes` and compares them with the mapped and internal lists — a new unique index in a migration fails the test until it has a code.
 
 ### Architecture tests
 
@@ -84,7 +91,8 @@ From block 4, following the Definition of Done ([ADR-0006](../architecture/adr/0
 1. **Success**: status, body and, for writes, the saved data.
 2. **`401` without a session**.
 3. **Validation error** if the endpoint accepts input: `400` and the field in `errors`.
-4. **Isolation**: user B neither sees nor changes user A's data (status decided in block 2).
+4. **Isolation**: user B neither sees nor changes user A's data — `404` `resource.not_found` for a route id, `400` `{resource}.not_found` for an id in the body ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
+5. **Versions**, for updates and deletes: `412` with a stale `If-Match` (`428` and malformed headers are covered once by `ErrorHandlingTests`).
 
 How tests sign in and the test data builders are decided in block 3.
 
@@ -95,6 +103,7 @@ How tests sign in and the test data builders are decided in block 3.
 | One API host per test class on the class database, cached by the assembly fixture | Same per-class isolation as persistence tests; one host startup per class, not per test | [ADR-0011](../architecture/adr/0011-persistence-testing.md), [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Connection string as last configuration source, read lazily by `Program.cs` | Tests can never hit the development database | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Mechanism tests on a minimal host with sample endpoints | The foundation is tested before any real endpoint exists | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
+| Mapping tables checked against their source (`DomainErrors`, PostgreSQL unique indexes, endpoints with `PUT` / `PATCH` / `DELETE`) | A new code, index or endpoint cannot be forgotten | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | ArchUnitNET for architecture tests, each "forbidden call" rule checked against a known violation | Rules on types and method calls; a rule that sees nothing cannot pass silently | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 
 ## Tests
@@ -111,7 +120,7 @@ This document describes tests; it is verified by `dotnet test` passing locally a
 ## To do / open questions
 
 - Block 3: how tests authenticate (real login through the API or a test authentication handler), authenticated `HttpClient` helper, test data builders for endpoints.
-- Block 2: expected status for another user's data, used by every isolation test.
+- ✅ Expected status for another user's data: `404` / `400` `{resource}.not_found` ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 - Block 3: startup tests — no users and no `Auth__InitialUser__*` → startup fails; the initial user gets the default categories; variables ignored once a user exists.
 - `[DevOps]` CI job with Docker for `Api.Tests`.
 

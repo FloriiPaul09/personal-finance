@@ -93,7 +93,7 @@ Names that must be unique without regard to case are stored twice: `name` as typ
 ### Concurrency
 
 - Editable entities (`accounts`, `categories`, `transactions`, `transfers`, `budgets`, `tags`) map PostgreSQL's system column `xmin` as concurrency token: a shadow property `Version` (`uint`, column `xmin`, type `xid`), so the domain does not see it and no column is added.
-- A conflicting update raises `DbUpdateConcurrencyException`; the HTTP mapping (e.g. `409`) is decided in `[Backend]`.
+- A conflicting update raises `DbUpdateConcurrencyException`. The API exposes the version as `ETag`, requires it in `If-Match` and answers `412` on a conflict ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [backend/api-endpoints.md](../backend/api-endpoints.md#versions)); `RowVersion` (in `Infrastructure/Persistence`) reads it.
 
 ### Indexes
 
@@ -145,8 +145,8 @@ In `Infrastructure.Tests` ([testing.md](testing.md#persistence-tests)):
 
 ## To do / open questions
 
-- `[Backend]` HTTP status for a concurrency conflict.
+- ✅ `[Backend]` HTTP status for a concurrency conflict: `412` with `ETag` / `If-Match` ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 - Enable `pg_trgm` and `unaccent` when text search needs it.
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_
