@@ -27,7 +27,7 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | Merged (#16) |
 | 7 | Transfers | `feat/backend-transfers` | Merged (#17) |
 | 8 | Budgets | `feat/backend-budgets` | Merged (#18) |
-| 9 | Dashboard | `feat/backend-dashboard` | In review |
+| 9 | Dashboard | `feat/backend-dashboard` | Merged (#19) |
 
 ### Pipeline
 
