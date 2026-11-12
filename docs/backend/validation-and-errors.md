@@ -52,8 +52,9 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 
 | Code | Status | When |
 |---|---|---|
-| `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field |
-| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`, `?kind=transfer` with `errors.kind`) |
+| `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field; also query parameters out of range (`limit`, `to` before `from`, `q` too long) |
+| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, wrong type of a route or query value (`?includeArchived=maybe`, `?from=yesterday`), an unknown query enum (`?kind=refund`, with `errors.kind`), a cursor the API did not issue (`errors.cursor`) |
+| `id.invalid` | 400 | An empty id chosen by the caller (the domain refuses `00000000-…`) |
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
 | *domain code* | 400 / 409 | [Domain errors](#domain-errors) |
@@ -64,6 +65,7 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 | `auth.invalid_credentials` | 401 | Login failed: wrong email, wrong password or locked account — one answer for all |
 | `auth.forbidden` | 403 | Session without the permission (no roles yet) |
 | `auth.email_taken` | 409 | Registration with an email already in use, on `email` |
+| `resource.conflict` | 409 | An id chosen by the client is used by another user's data (`errors.id`): generate another one. Nothing else is revealed |
 | `resource.not_found` | 404 | No such resource **for this user** — including another user's ([security.md](security.md#another-users-data)) |
 | `request.method_not_allowed` | 405 | Method not supported on the route |
 | `account.name_taken`, `category.name_taken`, `tag.name_taken`, `budget.month_taken` | 409 | [Duplicates](#duplicates) |
@@ -81,7 +83,7 @@ API codes are constants of `ApiErrors`; domain codes of `DomainErrors`.
 
 | Family | Status | Codes |
 |---|---|---|
-| Invalid values — the values sent cannot be accepted, whatever the data | `400` | `amount.not_positive`, `amount.too_many_decimals`, `amount.out_of_range`, `name.required`, `name.too_long`, `description.too_long`, `currency.invalid`, `month.invalid`, `account.type_invalid`, `category.kind_invalid`, `category.too_deep`, `category.parent_itself`, `category.kind_mismatch`, `category.kind_follows_parent`, `category.not_a_subcategory`, `transfer.same_account`, `transfer.currency_mismatch`, `budget.category_not_expense` |
+| Invalid values — the values sent cannot be accepted, whatever the data | `400` | `id.invalid`, `amount.not_positive`, `amount.too_many_decimals`, `amount.out_of_range`, `name.required`, `name.too_long`, `description.too_long`, `currency.invalid`, `month.invalid`, `account.type_invalid`, `category.kind_invalid`, `category.too_deep`, `category.parent_itself`, `category.kind_mismatch`, `category.kind_follows_parent`, `category.not_a_subcategory`, `transfer.same_account`, `transfer.currency_mismatch`, `budget.category_not_expense` |
 | State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `account.has_movements`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `category.in_use`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
 | Programming errors — invariants slices must guarantee before calling the domain | `500` (logged, no details) | `user.required`, `user.different`, `account.transaction_of_another_account`, `budget.entries_of_another_category` |
 
@@ -128,7 +130,8 @@ public sealed record Request(
 
 - Request records are **`public`**: the generator skips non-public types without warning.
 - Attributes go on the positional parameters of the record (no `[property: …]` needed).
-- Rules between fields: implement `IValidatableObject` on the record.
+- Rules between fields: implement `IValidatableObject` on the record (e.g. `CreateTransaction.Request` refuses `kind: transfer`).
+- Query parameters are validated in the handler: `ApiProblemException.InvalidQuery` (`validation.failed`) for values out of range, `UnreadableQuery` (`request.invalid`) for values that cannot be read, both with the parameter name in `errors`.
 - Nested records and collections are validated recursively.
 - An endpoint can opt out with `.DisableValidation()` (none should need it).
 
@@ -151,6 +154,8 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 - `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
 - `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
 - From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
+- `TransactionsTests`: missing fields, `kind: transfer` and a non-UUIDv7 `id` (`IValidatableObject`, `UuidV7Attribute`), too many tags and long descriptions, invalid query parameters (`validation.failed` / `request.invalid` on the parameter), domain codes for amounts, kinds and archived data, `{resource}.not_found` on `accountId` / `categoryId`, `resource.conflict` on `id`.
+- `TagsTests`: empty and long names, duplicate names.
 - `CategoriesTests`: missing fields, unknown kind in the body and in the query (on `kind`), `category.not_found` on `parentId`, domain codes (`category.too_deep`, `category.kind_mismatch`, `category.parent_itself`, `category.archived`, `category.kind_locked`, `category.has_subcategories`, `category.in_use`, `budget.branch_conflict`), duplicate names.
 - `AccountsTests`: missing and invalid fields on the field, unknown enum values and malformed JSON (`request.invalid`, in Development and Production), domain codes (`currency.invalid`, `amount.too_many_decimals`, `account.currency_locked`, `account.has_movements`), duplicate names.
 

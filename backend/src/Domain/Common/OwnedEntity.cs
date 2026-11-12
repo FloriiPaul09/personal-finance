@@ -7,13 +7,27 @@ namespace PersonalFinance.Domain.Common;
 public abstract class OwnedEntity : IOwnedByUser
 {
     protected OwnedEntity(Guid userId)
+        : this(userId, id: null)
+    {
+    }
+
+    /// <summary>
+    /// With an identifier chosen by the caller: a client that works offline (PWA) sends the same id again after a
+    /// lost response, and the API recognizes the duplicate (ADR-0017). Null generates one.
+    /// </summary>
+    protected OwnedEntity(Guid userId, Guid? id)
     {
         if (userId == Guid.Empty)
         {
             throw new DomainException(DomainErrors.UserRequired, "An owner is required.");
         }
 
-        Id = Guid.CreateVersion7();
+        if (id == Guid.Empty)
+        {
+            throw new DomainException(DomainErrors.IdInvalid, "An identifier cannot be empty.");
+        }
+
+        Id = id ?? Guid.CreateVersion7();
         UserId = userId;
     }
 

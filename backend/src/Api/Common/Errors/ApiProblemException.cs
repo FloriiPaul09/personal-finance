@@ -43,6 +43,14 @@ public sealed class ApiProblemException(int statusCode, string code, string deta
         ApiErrors.InvalidCredentials,
         "Invalid email or password, or the account is temporarily locked after too many failed attempts.");
 
+    /// <summary>A query parameter that can be read but breaks a rule (a limit out of range, a period that ends before it starts).</summary>
+    public static ApiProblemException InvalidQuery(string field, string detail) => new(
+        StatusCodes.Status400BadRequest, ApiErrors.ValidationFailed, detail, field);
+
+    /// <summary>A query parameter that cannot be read (an unknown enum name, a cursor not issued by the API).</summary>
+    public static ApiProblemException UnreadableQuery(string field, string detail) => new(
+        StatusCodes.Status400BadRequest, ApiErrors.RequestInvalid, detail, field);
+
     /// <param name="resource">Lowercase name of the resource, e.g. <c>account</c>.</param>
     /// <param name="field">Request field holding the id, e.g. <c>accountId</c>.</param>
     public static ApiProblemException ReferenceNotFound(string resource, string field) => new(

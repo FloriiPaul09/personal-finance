@@ -120,7 +120,8 @@ The query filter `UserScope` makes another user's rows invisible: for the API th
 |---|---|
 | Route id of another user (`GET`, `PUT`, `DELETE /api/x/{id}`) | `404` `resource.not_found` — identical to an id that never existed, before any version check |
 | Id of another user in the body (e.g. `accountId` of a transaction) | `400` `{resource}.not_found` on that field (`GetReferenceAsync`) — identical to a nonexistent id |
-| Lists and aggregates | Only the user's rows; nothing to report |
+| Lists and aggregates | Only the user's rows; nothing to report. A filter on another user's account or category finds nothing |
+| Client-chosen id already used by another user (`POST /api/transactions` with `id`) | `409` `resource.conflict` on `id`, with no detail about the other row — practically impossible with UUIDv7, and it reveals nothing the client did not send |
 
 `403` is never used for this: it would reveal that the id exists, and telling "exists but not yours" apart would need reading without the filter, which is banned in `Api`. Even the database refuses cross-user references through the composite foreign keys ([database/user-isolation.md](../database/user-isolation.md)).
 

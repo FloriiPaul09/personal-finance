@@ -6,6 +6,8 @@ public static class DomainErrors
     public const string UserRequired = "user.required";
     public const string DifferentUser = "user.different";
 
+    public const string IdInvalid = "id.invalid";
+
     public const string AmountNotPositive = "amount.not_positive";
     public const string AmountTooManyDecimals = "amount.too_many_decimals";
     public const string AmountOutOfRange = "amount.out_of_range";

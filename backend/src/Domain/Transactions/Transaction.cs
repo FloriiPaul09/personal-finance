@@ -22,8 +22,9 @@ public sealed class Transaction : OwnedEntity
         decimal signedAmount,
         Guid? categoryId,
         Guid? transferId,
-        string? description)
-        : base(account.UserId)
+        string? description,
+        Guid? id = null)
+        : base(account.UserId, id)
     {
         AccountId = account.Id;
         Kind = kind;
@@ -59,16 +60,18 @@ public sealed class Transaction : OwnedEntity
 
     public IReadOnlyCollection<TransactionTag> Tags => _tags;
 
-    public static Transaction Income(Account account, Category category, DateOnly date, decimal amount, string? description = null)
+    /// <param name="id">Chosen by the caller (offline client, import), or null to generate one.</param>
+    public static Transaction Income(Account account, Category category, DateOnly date, decimal amount, string? description = null, Guid? id = null)
     {
         EnsureCanRecord(account, category, TransactionKind.Income);
-        return new Transaction(account, TransactionKind.Income, date, Amounts.EnsurePositive(amount), category.Id, null, description);
+        return new Transaction(account, TransactionKind.Income, date, Amounts.EnsurePositive(amount), category.Id, null, description, id);
     }
 
-    public static Transaction Expense(Account account, Category category, DateOnly date, decimal amount, string? description = null)
+    /// <param name="id">Chosen by the caller (offline client, import), or null to generate one.</param>
+    public static Transaction Expense(Account account, Category category, DateOnly date, decimal amount, string? description = null, Guid? id = null)
     {
         EnsureCanRecord(account, category, TransactionKind.Expense);
-        return new Transaction(account, TransactionKind.Expense, date, -Amounts.EnsurePositive(amount), category.Id, null, description);
+        return new Transaction(account, TransactionKind.Expense, date, -Amounts.EnsurePositive(amount), category.Id, null, description, id);
     }
 
     /// <summary>
@@ -108,6 +111,32 @@ public sealed class Transaction : OwnedEntity
     }
 
     public void RemoveTag(Guid tagId) => _tags.RemoveAll(link => link.TagId == tagId);
+
+    /// <summary>Leaves exactly <paramref name="tags"/> on the transaction: links missing from it are removed, new ones added.</summary>
+    public void ReplaceTags(IReadOnlyCollection<Tag> tags)
+    {
+        foreach (var tag in tags)
+        {
+            EnsureSameUser(tag);
+        }
+
+        var wanted = tags.Select(tag => tag.Id).ToHashSet();
+        _tags.RemoveAll(link => !wanted.Contains(link.TagId));
+
+        foreach (var tag in tags)
+        {
+            AddTag(tag);
+        }
+    }
+
+    /// <summary>A transfer leg is deleted with its transfer, never alone: the other account would keep half a transfer.</summary>
+    public void EnsureCanDelete()
+    {
+        if (Kind == TransactionKind.Transfer)
+        {
+            throw new DomainException(DomainErrors.TransactionIsTransferLeg, "A transfer leg is deleted through its transfer.");
+        }
+    }
 
     internal static Transaction TransferLeg(Account account, Guid transferId, DateOnly date, decimal signedAmount, string? description) =>
         new(account, TransactionKind.Transfer, date, signedAmount, null, transferId, description);

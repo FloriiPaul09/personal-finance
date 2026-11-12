@@ -63,10 +63,13 @@ public static class TestData
         decimal amount = 100m,
         DateOnly? date = null,
         Category? category = null,
+        string? description = null,
+        IReadOnlyCollection<Tag>? tags = null,
         CancellationToken cancellationToken = default)
     {
         category ??= await database.CreateCategoryAsync(account.UserId, kind: CategoryKind.Income, cancellationToken: cancellationToken);
-        var income = Transaction.Income(account, category, date ?? DefaultDate, amount);
+        var income = Transaction.Income(account, category, date ?? DefaultDate, amount, description);
+        income.ReplaceTags(tags ?? []);
         return await database.SaveAsync(account.UserId, income, cancellationToken);
     }
 
@@ -77,10 +80,13 @@ public static class TestData
         decimal amount = 100m,
         DateOnly? date = null,
         Category? category = null,
+        string? description = null,
+        IReadOnlyCollection<Tag>? tags = null,
         CancellationToken cancellationToken = default)
     {
         category ??= await database.CreateCategoryAsync(account.UserId, kind: CategoryKind.Expense, cancellationToken: cancellationToken);
-        var expense = Transaction.Expense(account, category, date ?? DefaultDate, amount);
+        var expense = Transaction.Expense(account, category, date ?? DefaultDate, amount, description);
+        expense.ReplaceTags(tags ?? []);
         return await database.SaveAsync(account.UserId, expense, cancellationToken);
     }
 
@@ -94,6 +100,16 @@ public static class TestData
     {
         var transfer = new Transfer(from, to, date ?? DefaultDate, amount);
         return await database.SaveAsync(from.UserId, transfer, cancellationToken);
+    }
+
+    public static async Task<Tag> CreateTagAsync(
+        this TestDatabase database,
+        Guid userId,
+        string? name = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tag = new Tag(userId, name ?? UniqueName("tag"));
+        return await database.SaveAsync(userId, tag, cancellationToken);
     }
 
     private static async Task<TEntity> SaveAsync<TEntity>(

@@ -31,7 +31,7 @@ public static class QueryValues
         }
 
         var allowed = string.Join(", ", Enum.GetValues<TEnum>().Select(member => NameOf(member)));
-        throw new ApiProblemException(StatusCodes.Status400BadRequest, ApiErrors.RequestInvalid, $"Allowed values: {allowed}.", field);
+        throw ApiProblemException.UnreadableQuery(field, $"Allowed values: {allowed}.");
     }
 
     private static string NameOf<TEnum>(TEnum member)
