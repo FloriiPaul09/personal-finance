@@ -6,7 +6,7 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md); budgets in [ADR-0019](../architecture/adr/0019-budgets-module.md). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md); budgets in [ADR-0019](../architecture/adr/0019-budgets-module.md); the dashboard in [ADR-0020](../architecture/adr/0020-dashboard-module.md). **Every MVP endpoint is implemented.** Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
@@ -618,6 +618,40 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 - `ratio` is exact (`spent / limit`, above 1 when over budget): round only when displaying. `remaining` is negative when over budget.
 - The app should send `month` itself: near midnight on the last day of a month, the server's UTC month can differ from the user's.
 
+### Dashboard
+
+Module `dashboard` ([ADR-0020](../architecture/adr/0020-dashboard-module.md)). Read-only.
+
+| | |
+|---|---|
+| **Route** | `GET /api/dashboard` |
+| **Auth** | Session |
+| **Request** | Query `month` (`yyyy-MM`, optional: the server's current month in UTC; the app should send its own) |
+| **Responses** | `200` `DashboardResponse` · `400` `request.invalid` on `month` · `401` `auth.required` |
+| **Isolation** | Only the user's accounts, movements and budgets |
+| **Tests** | `DashboardTests` |
+
+```json
+{
+  "month": "2026-06",
+  "accounts": [ { "id": "…", "name": "Conto corrente", "type": "checking", "currency": "EUR", "balance": 1520.50, "…": "AccountResponse" } ],
+  "balances": [ { "currency": "EUR", "balance": 1770.50, "archivedBalance": -50.00 } ],
+  "totals": [ { "currency": "EUR", "income": 2000.00, "expense": 180.50, "net": 1819.50 } ],
+  "spending": [ { "categoryId": "…", "currency": "EUR", "spent": 150.50 } ],
+  "budgets": [ { "categoryId": "…", "budgetId": "…", "month": "2026-06", "limit": 100.00, "spent": 30.00, "remaining": 70.00, "ratio": 0.3, "isOverBudget": false } ]
+}
+```
+
+| Section | Content |
+|---|---|
+| `accounts` | Active accounts by name, as `AccountResponse` with their **current** balance (all movements) |
+| `balances` | Per currency: total balance of every account, archived ones included, and `archivedBalance`, the part on archived accounts (not in `accounts`) |
+| `totals` | Per currency: income and expenses of the month (positive) and `net` = income − expense. Transfers never count |
+| `spending` | Expenses of the month per **top-level** category and currency, subcategories included, largest first. The detail of a category: `GET /api/transactions?categoryId=…&from=…&to=…` |
+| `budgets` | Progress of every budgeted category in the month, as `GET /api/budgets/progress` |
+
+Amounts of different currencies are never added together: with only euros, `balances` and `totals` have one item. Empty sections are empty lists.
+
 ### Resources
 
 | Resource | Module prefix | Block | Status |
@@ -628,7 +662,7 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 | Transactions (with tags, filters) | `transactions`, `tags` | 6 | Implemented — [Transactions](#transactions), [Tags](#tags) |
 | Transfers | `transfers` | 7 | Implemented — [Transfers](#transfers) |
 | Budgets | `budgets` | 8 | Implemented — [Budgets](#budgets) |
-| Dashboard | `dashboard` | 9 | To do |
+| Dashboard | `dashboard` | 9 | Implemented — [Dashboard](#dashboard) |
 
 ## Decisions
 
@@ -639,6 +673,7 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
 | Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 | Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Dashboard: one request with every section, sums per currency, spending per top-level category, archived accounts in the totals only, period queries on a date range | One request from the phone; right with several currencies; charts reuse the queries | [ADR-0020](../architecture/adr/0020-dashboard-module.md) |
 | Budgets: entries as a resource, months `yyyy-MM`, progress of a month from one query with the domain's arithmetic, stop with an entry without amount or delete a wrong one, no paging | Same rules as every resource; progress equal to the domain; history kept | [ADR-0019](../architecture/adr/0019-budgets-module.md) |
 | Transfers: one response with both leg ids, no list of their own (legs via `/api/transactions?kind=transfer`), the `transfers` row version covers the legs, optional client id, no tags | One mechanism for listing movements; same headers as every resource; offline-safe | [ADR-0018](../architecture/adr/0018-transfers-module.md) |
 | Transactions: kind + positive amount in, `amount` + `signedAmount` out; optional client UUIDv7 id makes create safe to repeat; cursor paging; single-value filters; tags by name created on the fly; transfer legs listed read-only | No sign bugs in clients; offline replay without duplicates; fast stable paging | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md) |
@@ -650,6 +685,7 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `DashboardTests`: every section with several currencies, an archived account, subcategories, a transfer and an out-of-month expense; an empty user; the default month; a malformed month; isolation; `401`.
 - `BudgetsTests`: every budget endpoint — success, `401`, validation, isolation, versions — plus history order, ending a budget, archived categories, one level per branch, moving a budget to subcategories after deleting the parent's entries; progress with the latest entry, subcategories, month boundaries, ended budgets, over budget, the default month, compared with `BudgetProgress.Calculate`.
 - `TransfersTests`: every transfer endpoint — success, `401`, validation, isolation (route ids and both account fields), versions — plus balances of both accounts after create, update and delete, legs listed with `transferId`, repeated create with the same id, domain codes (same account, currencies, archived accounts).
 - `TransactionsTests`: every transaction endpoint — success, `401`, validation, isolation (route ids, ids in the body, filters), versions — plus amounts and signs, cursor paging without gaps, every filter, repeated create with the same id, tags reused and created, tag-only changes bumping the version, transfer legs read-only, balance after create and delete.
@@ -670,6 +706,7 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 - **Text search**: `ILIKE` scans the user's transactions; with many years of data, a `pg_trgm` index on `description` (`[DB]`) keeps `q` fast without changing the API.
 - **Exports**: the cursor walks the whole history page by page; a streaming export endpoint can reuse the same filters.
 - **Attachments, recurring transactions, CSV import**: they reuse client or caller ids (`OwnedEntity` takes one), so a retried upload or import row never duplicates a transaction.
+- **Dashboard load**: five small queries per opening; cache per user and month (invalidated on writes) or split sections into their own endpoints if it ever shows.
 - **Category order**: a `position` field (user-defined order) or an order by usage for the PWA can be added to `CategoryResponse` without breaking clients; the in-memory ordering moves to SQL if a user ever has thousands of categories.
 - **CSV import**: rows are matched to categories by normalized name, kind and parent — the same key as the unique index.
 - **Currencies**: when transfers between currencies arrive, the balance stays per account in its own currency; totals across currencies belong to the dashboard with exchange rates.
@@ -680,7 +717,9 @@ Module `budgets` ([ADR-0019](../architecture/adr/0019-budgets-module.md)). A bud
 - Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
 - ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - ✅ Paging (cursor), signs of amounts, idempotent create — [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
-- Contract of the dashboard (block 9).
+- ✅ Contract of the dashboard (block 9) — every MVP endpoint is implemented.
+- Charts: endpoints over a range of months reusing `TotalsOfAsync`, `SpendingOfAsync` and `ProgressOf`; balance at a date (`Account.BalanceAt` in SQL) for the end of a past month.
+- Budgets per currency, if accounts in several currencies become common.
 - OpenAPI: describe months as `string` with pattern `^\d{4}-\d{2}$` (schema transformer for `YearMonth`).
 - Progress over a range of months for charts, reusing `ProgressOf`, when charts arrive.
 - Transfers: a list of their own, tags, transfers between currencies (`toAmount`) — when needed ([ADR-0018](../architecture/adr/0018-transfers-module.md)).

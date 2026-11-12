@@ -26,8 +26,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | 5 | Categories | `feat/backend-categories` | Merged (#15) |
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | Merged (#16) |
 | 7 | Transfers | `feat/backend-transfers` | Merged (#17) |
-| 8 | Budgets | `feat/backend-budgets` | In review |
-| 9 | Dashboard | `feat/backend-dashboard` | To do |
+| 8 | Budgets | `feat/backend-budgets` | Merged (#18) |
+| 9 | Dashboard | `feat/backend-dashboard` | In review |
 
 ### Pipeline
 
@@ -138,6 +138,7 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Transactions: kind + positive amount in requests, `amount` + `signedAmount` in responses; optional client UUIDv7 id (repeated create returns the first, `200`); cursor paging `{ items, nextCursor }`; filters period / account / category branch / kind / tag / text; tags by name created on the fly, `/api/tags` to list, rename, delete; transfer legs listed read-only | [ADR-0017](../architecture/adr/0017-transactions-and-tags.md), [api-endpoints.md](api-endpoints.md#transactions) |
 | 2026-11-12 | Transfers: one response with both leg ids, no list of their own, version of the `transfers` row rewritten on every change, optional client UUIDv7 id, no tags | [ADR-0018](../architecture/adr/0018-transfers-module.md), [api-endpoints.md](api-endpoints.md#transfers) |
 | 2026-11-12 | Budgets: entries as a resource, months `yyyy-MM`, `GET /api/budgets/progress` from one query with the domain's arithmetic, stop with an entry without amount, delete for corrections, no paging | [ADR-0019](../architecture/adr/0019-budgets-module.md), [api-endpoints.md](api-endpoints.md#budgets) |
+| 2026-11-12 | Dashboard: one `GET /api/dashboard?month=` with accounts, balances and totals per currency, spending per top-level category, budget progress; archived accounts only in the totals; period queries on a date range | [ADR-0020](../architecture/adr/0020-dashboard-module.md), [api-endpoints.md](api-endpoints.md#dashboard) |
 
 ## Tests
 
@@ -165,6 +166,7 @@ Summary of [testing.md](testing.md):
 - ✅ Block 6 — transactions, tags, paging and idempotent create: [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
 - ✅ Block 7 — transfers: [ADR-0018](../architecture/adr/0018-transfers-module.md).
 - ✅ Block 8 — budgets: [ADR-0019](../architecture/adr/0019-budgets-module.md).
+- ✅ Block 9 — dashboard: [ADR-0020](../architecture/adr/0020-dashboard-module.md). Every MVP endpoint is implemented; what follows (charts, recurring transactions, CSV import, attachments) starts in `[Feature]` chats with the conventions above.
 - ✅ Validation of request records is tested (login).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 
