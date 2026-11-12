@@ -60,7 +60,7 @@ each test class ──► Database (cloned from the template, DatabaseTest)
 
 ### Architecture tests
 
-ArchUnitNET (`TngTech.ArchUnitNET.xUnitV3`) loads the compiled `Api`, `Domain`, `Infrastructure` assemblies, EF Core and the test assembly once (`Solution.Model`).
+ArchUnitNET (`TngTech.ArchUnitNET.xUnitV3`) loads the compiled `Api`, `Domain`, `Infrastructure` assemblies and the test assembly once (`Solution.Model`).
 
 | Test | Rule |
 |---|---|
@@ -70,6 +70,8 @@ ArchUnitNET (`TngTech.ArchUnitNET.xUnitV3`) loads the compiled `Api`, `Domain`, 
 | `ApiRulesTests.Modules_AreSealedClassesOfAFeature` | Every `ApiModule` is `sealed`, in `PersonalFinance.Api.Features.*` |
 | `ApiRulesTests.Api_NeverBypassesTheUserScopeFilter` | No call to `IgnoreQueryFilters` in `Api` |
 | `ApiRulesTests.IgnoreQueryFiltersRule_DetectsACall` | The rule above fails on a known call in the test assembly, so it cannot pass by not seeing calls |
+
+The `IgnoreQueryFilters` rule matches called methods by declaring type and name (`FollowCustomCondition`), not with `NotCallAny(MethodMembers()…)`: ArchUnitNET records a call to a generic method (`IgnoreQueryFilters<Account>`) with the signature seen at the call site, which never equals the member loaded from EF Core, so `NotCallAny` passed even with a violation. `IgnoreQueryFiltersRule_DetectsACall` caught exactly this on the first run.
 
 The endpoint and module rules use `WithoutRequiringPositiveResults()` because the API has no module yet; they apply from the first one. The `IgnoreQueryFilters` rule is also enforced at compile time by the banned API analyzer ([security.md](security.md#banned-apis)).
 

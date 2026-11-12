@@ -1,3 +1,4 @@
+using ArchUnitNET.Domain.Extensions;
 using ArchUnitNET.Fluent;
 using ArchUnitNET.xUnitV3;
 using Microsoft.EntityFrameworkCore;
@@ -53,10 +54,16 @@ public sealed class ApiRulesTests
         Assert.False(rule.HasNoViolations(Solution.Model));
     }
 
+    // Matched by declaring type and name, not with NotCallAny(MethodMembers()...): a call to a generic method such as
+    // IgnoreQueryFilters<Account> is recorded with the signature seen at the call site, which never equals the method
+    // member loaded from EF Core, so NotCallAny would never see it.
     private static IArchRule NoCallToIgnoreQueryFilters(ArchUnitNET.Fluent.Syntax.Elements.Types.GivenTypesConjunction types) =>
-        types.Should().NotCallAny(
-                MethodMembers().That().AreDeclaredIn(typeof(EntityFrameworkQueryableExtensions))
-                    .And().HaveNameStartingWith(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters)))
+        types.Should().FollowCustomCondition(
+                type => !type.GetCalledMethods().Any(method =>
+                    method.DeclaringType.FullName == typeof(EntityFrameworkQueryableExtensions).FullName
+                    && method.Name.StartsWith(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), StringComparison.Ordinal)),
+                "not call IgnoreQueryFilters",
+                "calls IgnoreQueryFilters")
             .Because("slices never read or write data of other users (docs/database/user-isolation.md)");
 
     /// <summary>A known violation, never called: the Api project bans this call at compile time (BannedSymbols.txt).</summary>
