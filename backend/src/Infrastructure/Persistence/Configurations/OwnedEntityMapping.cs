@@ -9,7 +9,7 @@ namespace PersonalFinance.Infrastructure.Persistence.Configurations;
 internal static class OwnedEntityMapping
 {
     /// <summary>Name of the shadow property mapped to PostgreSQL's <c>xmin</c> system column.</summary>
-    public const string VersionProperty = "Version";
+    public const string VersionProperty = RowVersion.PropertyName;
 
     public static void MapOwnedEntity<TEntity>(this EntityTypeBuilder<TEntity> builder)
         where TEntity : OwnedEntity
