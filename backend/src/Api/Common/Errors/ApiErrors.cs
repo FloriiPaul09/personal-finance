@@ -14,6 +14,11 @@ public static class ApiErrors
 
     public const string AuthenticationRequired = "auth.required";
     public const string Forbidden = "auth.forbidden";
+    public const string AntiforgeryInvalid = "auth.antiforgery_invalid";
+    public const string InvalidCredentials = "auth.invalid_credentials";
+    public const string PasswordIncorrect = "auth.password_incorrect";
+    public const string PasswordRejected = "auth.password_rejected";
+    public const string EmailTaken = "auth.email_taken";
 
     public const string NotFound = "resource.not_found";
     public const string Conflict = "resource.conflict";

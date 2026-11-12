@@ -6,7 +6,12 @@ How the schema evolves: where EF Core migrations live, how they are created and 
 
 ## Current state
 
-Implemented ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)): first migration `InitialCreate`, applied at API startup (`MigrateDatabaseAsync` in `Program.cs`).
+Implemented ([ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md)), applied at API startup (`MigrateDatabaseAsync` in `Program.cs`):
+
+| Migration | Content |
+|---|---|
+| `InitialCreate` | Identity tables and the MVP data model |
+| `AddDataProtectionKeys` | Table `data_protection_keys` for the keys that protect cookies ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)), from `[Backend]` |
 
 ### Where they live
 
@@ -73,4 +78,4 @@ Names are PascalCase and describe the change: `InitialCreate`, `AddTransactionNo
 - `[DevOps]` CI check that `dotnet ef migrations has-pending-model-changes` is clean (in addition to the test).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-12_

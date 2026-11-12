@@ -10,8 +10,8 @@ The HTTP API of the application (`backend/src/Api`): how endpoints are written a
 |---|---|---|
 | [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`) and the contract of every endpoint, one section per resource | Conventions and versions implemented; resources to come |
 | [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013 |
-| [security.md](security.md) | Authentication cookie, fallback policy, public endpoints, current user, other users' data, banned APIs, auth endpoints | Foundation implemented — ADR-0001, ADR-0012, ADR-0013; auth endpoints open (block 3) |
-| [testing.md](testing.md) | Test projects, API hosts on Testcontainers, mechanism and host tests, architecture tests, minimum per endpoint | Implemented for the foundation — ADR-0006, ADR-0011, ADR-0012 |
+| [security.md](security.md) | Session cookie, password and lockout, login, CSRF, rate limiting, fallback policy, public endpoints, current user, other users' data, initial user, Data Protection keys, banned APIs | Implemented — ADR-0001, ADR-0012, ADR-0013, ADR-0014 |
+| [testing.md](testing.md) | Test projects, API hosts on Testcontainers, authentication in tests, test data, mechanism, startup, host and architecture tests, minimum per endpoint | Implemented — ADR-0006, ADR-0011, ADR-0012, ADR-0013, ADR-0014 |
 
 ## Current state
 
@@ -20,8 +20,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 | # | Block | Branch | Status |
 |---|---|---|---|
 | 1 | Foundation: endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, API test hosts | `feat/backend-api-foundation` | Merged (#10) |
-| 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | In review |
-| 3 | Authentication: login, logout, me, change password, CSRF, rate limiting, initial user, Data Protection | `feat/backend-auth` | To do |
+| 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | Merged (#11) |
+| 3 | Authentication: antiforgery, login, logout, me, change password, registration, rate limiting, initial user, Data Protection keys, test authentication | `feat/backend-auth` | In review |
 | 4 | Accounts | `feat/backend-accounts` | To do |
 | 5 | Categories | `feat/backend-categories` | To do |
 | 6 | Transactions (with tags and filters) | `feat/backend-transactions` | To do |
@@ -36,10 +36,12 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 ```
 AddPersistence (connection string read from the final configuration)
 AddApiErrors          → ProblemDetails with code + traceId, ApiExceptionHandler
-AddApiSecurity        → Identity cookie (401/403, no redirects), fallback policy, HttpCurrentUser
+AddApiSecurity        → Auth options, Identity + session cookie (401/403, no redirects), Data Protection keys in the DB,
+                        antiforgery, login rate limiter, fallback policy, HttpCurrentUser
 AddValidation         → built-in Minimal API validation
 AddApiDocumentation   → built-in OpenAPI document
-migrations → UseApiErrors (exception handler, status code pages) → UseAuthentication → UseAuthorization
+migrations → initial user → UseApiErrors (exception handler, status code pages)
+           → UseApiSecurity (authentication, authorization, rate limiter, antiforgery)
 /api/health (public) · /openapi + /scalar (Development only) · MapApiEndpoints()
 ```
 
@@ -109,6 +111,9 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Duplicates from unique indexes (`23505`) → `409` `*.name_taken` | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | 2026-11-12 | Versions with `ETag` / mandatory `If-Match`: `428` / `400` / `412` | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [api-endpoints.md](api-endpoints.md#versions) |
 | 2026-11-12 | Another user's data: `404` for route ids, `400` `{resource}.not_found` for ids in the body | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [security.md](security.md#another-users-data) |
+| 2026-11-12 | Custom auth endpoints (`antiforgery`, `login`, `logout`, `me`, `change-password`), registration mapped only when enabled | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [api-endpoints.md](api-endpoints.md#authentication) |
+| 2026-11-12 | `SameSite=Strict` + antiforgery tokens on every unsafe request; password ≥ 12, lockout 5 / 15 min, sliding 14-day cookie; rate limiter on login and registration; Data Protection keys in the database | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [security.md](security.md) |
+| 2026-11-12 | Tests: test authentication handler for resources, real login for authentication; `TestData` factories | [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md), [testing.md](testing.md#authentication-in-tests) |
 
 ## Tests
 
@@ -130,9 +135,9 @@ Summary of [testing.md](testing.md):
 ## To do / open questions
 
 - ✅ Block 2 — error mapping, concurrency and cross-user access: [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
-- Block 3 — authentication: `MapIdentityApi` or custom endpoints; CSRF (antiforgery is also required by file uploads: CSV import, attachments); password, lockout and cookie values; login rate limiting; initial user and default categories; Data Protection keys; how tests authenticate; test data builders.
+- ✅ Block 3 — authentication: [ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md).
 - Block 6 — signed amounts or kind + positive amount in the API; client-generated ids or an idempotency key so an expense sent again by the PWA after going offline is not saved twice.
-- Validation of request records is tested with the first endpoint that accepts input (block 4).
+- ✅ Validation of request records is tested (login).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 
 ---

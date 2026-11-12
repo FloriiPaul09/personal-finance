@@ -20,7 +20,8 @@ public sealed class ApiHostTests(ApiServer server) : ApiTest(server)
     /// The only routes reachable without a session. A new public endpoint must be added here on purpose
     /// (docs/backend/security.md#public-endpoints).
     /// </summary>
-    private static readonly string[] PublicRoutePrefixes = ["/api/health", "/openapi/", "/scalar"];
+    private static readonly string[] PublicRoutePrefixes =
+        ["/api/health", "/api/auth/antiforgery", "/api/auth/login", "/api/auth/register", "/openapi/", "/scalar"];
 
     [Fact]
     public async Task Health_IsPublic()
@@ -102,7 +103,7 @@ public sealed class ApiHostTests(ApiServer server) : ApiTest(server)
     {
         await using var production = new ApiFactory(Database, Environments.Production);
 
-        var response = await production.CreateClient().GetAsync(route, Ct);
+        var response = await production.CreateApiClient().GetAsync(route, Ct);
 
         // No endpoint: an anonymous caller gets 401 from the fallback policy, like any unknown route.
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

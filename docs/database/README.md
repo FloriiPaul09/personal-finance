@@ -35,6 +35,7 @@ In short:
 - Monthly budgets as a history of entries per expense category (`effective_from`).
 - Accounts and categories archived, never deleted when they have history.
 - Isolation in three layers: named query filter `UserScope`, `SaveChanges` interceptor, composite foreign keys `(user_id, id)`.
+- `data_protection_keys` (migration `AddDataProtectionKeys`, `[Backend]`, ADR-0014): keys of the session and antiforgery cookies; not user data.
 
 ## Decisions
 
@@ -64,7 +65,7 @@ In short:
 ## To do / open questions
 
 - Refunds on expense categories ([domain-model.md](domain-model.md#scalability)).
-- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts, calling `DefaultCategoriesInitializer` for new users — concurrency and cross-user status decided in [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md); `[DevOps]`: CI with Docker, backups before migrations).
+- Questions for other areas are listed in each document (`[Backend]`: exposure of signed amounts — default categories for new users, concurrency and cross-user status decided in [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md); `[DevOps]`: CI with Docker, backups before migrations).
 
 ---
 _Last updated: 2026-11-12_

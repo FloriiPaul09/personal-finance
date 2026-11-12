@@ -1,3 +1,5 @@
+using PersonalFinance.Api.Common.Security;
+
 namespace PersonalFinance.Api.Common.Endpoints;
 
 public static class EndpointRouteBuilderExtensions
@@ -14,7 +16,9 @@ public static class EndpointRouteBuilderExtensions
 
     internal static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder app, IEnumerable<ModuleEndpoints> modules)
     {
+        // Every unsafe request of every module carries the antiforgery token (docs/backend/security.md#csrf).
         var api = app.MapGroup(ApiPrefix);
+        api.AddEndpointFilter<AntiforgeryValidationFilter>();
 
         foreach (var (module, endpoints) in modules)
         {

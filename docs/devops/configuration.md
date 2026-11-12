@@ -30,6 +30,10 @@ ASP.NET Core maps `__` in variable names to nested keys: `Auth__InitialUser__Ema
 | `Auth__AllowRegistration` | `false` | Public registration ([ADR-0001](../architecture/adr/0001-authentication.md)) |
 | `Auth__InitialUser__Email` | `dev@example.com` | User created at first start when there are no users |
 | `Auth__InitialUser__Password` | `dev-only-password` | Its password (at least 12 characters); ignored once the user exists |
+| `Auth__LoginRateLimit__PermitLimit` | `10` | Login and registration attempts per client address per window ([backend/security.md](../backend/security.md#rate-limiting)) |
+| `Auth__LoginRateLimit__WindowSeconds` | `60` | Length of the rate limiting window, in seconds |
+
+The `Auth` section is validated at startup: email and password of the initial user together or neither, a valid email, rate limit values in range. Data Protection keys need no variable: they live in the database ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
 
 `.env.example` lists every variable with placeholder values and comments.
 
@@ -49,7 +53,7 @@ ASP.NET Core maps `__` in variable names to nested keys: `Auth__InitialUser__Ema
 
 ## Tests
 
-- `[Backend]` Startup tests: the app refuses to start without users and without `Auth__InitialUser__*`; the variables are ignored once a user exists ([authentication.md](../architecture/authentication.md)).
+- `StartupTests` (`[Backend]`): the app refuses to start without users and without `Auth__InitialUser__*`, or with invalid `Auth` values; the variables are ignored once a user exists ([backend/testing.md](../backend/testing.md#authentication-and-startup-tests)).
 - `docker compose config` with and without `.env` (CI, part 2).
 
 ## Scalability
@@ -61,8 +65,8 @@ ASP.NET Core maps `__` in variable names to nested keys: `Auth__InitialUser__Ema
 ## To do / open questions
 
 - ✅ `[Backend]` Connection string: read from the final configuration when the first `DbContext` is created; startup still fails at once without it (migrations run before serving requests) — [backend/testing.md](../backend/testing.md#hosts).
-- `[Backend]` Options classes and validation at startup for `Auth` (block 3).
-- `[Backend]` / `[DevOps]` Data Protection keys location (volume or database), and its variable.
+- ✅ `[Backend]` Options class and validation at startup for `Auth` (`AuthOptions`).
+- ✅ Data Protection keys: in the database, no variable ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
 - Production variables of the `api` service when it joins `compose.yaml`.
 
 ---

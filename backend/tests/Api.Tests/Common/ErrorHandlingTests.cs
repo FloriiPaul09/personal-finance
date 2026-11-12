@@ -14,6 +14,7 @@ using PersonalFinance.Api.Common.Concurrency;
 using PersonalFinance.Api.Common.Endpoints;
 using PersonalFinance.Api.Common.Errors;
 using PersonalFinance.Api.Common.Security;
+using PersonalFinance.Api.Features.Auth;
 using PersonalFinance.Api.Tests.Support;
 using PersonalFinance.Domain.Accounts;
 using PersonalFinance.Domain.Common;
@@ -33,7 +34,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync($"/api/samples/domain/{DomainErrors.AmountNotPositive}", Ct);
+        var response = await ClientOf(app).GetAsync($"/api/samples/domain/{DomainErrors.AmountNotPositive}", Ct);
 
         var problem = await AssertProblemAsync(response, HttpStatusCode.BadRequest, DomainErrors.AmountNotPositive);
         Assert.Equal(DomainMessage, problem.GetProperty("detail").GetString());
@@ -44,7 +45,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync($"/api/samples/domain/{DomainErrors.AccountArchived}", Ct);
+        var response = await ClientOf(app).GetAsync($"/api/samples/domain/{DomainErrors.AccountArchived}", Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.Conflict, DomainErrors.AccountArchived);
     }
@@ -54,7 +55,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync($"/api/samples/domain/{DomainErrors.DifferentUser}", Ct);
+        var response = await ClientOf(app).GetAsync($"/api/samples/domain/{DomainErrors.DifferentUser}", Ct);
 
         var problem = await AssertProblemAsync(response, HttpStatusCode.InternalServerError, ApiErrors.ServerError);
         Assert.DoesNotContain(DomainMessage, problem.GetRawText(), StringComparison.Ordinal);
@@ -67,7 +68,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync("/api/samples/crash", Ct);
+        var response = await ClientOf(app).GetAsync("/api/samples/crash", Ct);
 
         var problem = await AssertProblemAsync(response, HttpStatusCode.InternalServerError, ApiErrors.ServerError);
         Assert.DoesNotContain(SecretMessage, problem.GetRawText(), StringComparison.Ordinal);
@@ -78,7 +79,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync("/api/samples/missing", Ct);
+        var response = await ClientOf(app).GetAsync("/api/samples/missing", Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.NotFound, ApiErrors.NotFound);
     }
@@ -88,7 +89,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().GetAsync("/api/samples/private", Ct);
+        var response = await ClientOf(app).GetAsync("/api/samples/private", Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.Unauthorized, ApiErrors.AuthenticationRequired);
     }
@@ -99,7 +100,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task DuplicateName_Returns409WithTheNameTakenCode()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         await CreateAccountAsync(client, "Conto corrente");
 
         var response = await client.PostAsJsonAsync("/api/samples/accounts", new NameRequest("conto CORRENTE"), Ct);
@@ -113,7 +114,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task CreateAndRead_SendTheVersionAsETag()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
 
         var created = await CreateAccountAsync(client, "Contanti");
         var read = await client.GetAsync($"/api/samples/accounts/{created.Id}", Ct);
@@ -127,7 +128,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task UpdateWithoutIfMatch_Returns428()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         var created = await CreateAccountAsync(client, "Risparmi");
 
         var response = await client.PutAsJsonAsync($"/api/samples/accounts/{created.Id}", new NameRequest("Nuovo"), Ct);
@@ -143,7 +144,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task UpdateWithAMalformedIfMatch_Returns400(string ifMatch)
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         var created = await CreateAccountAsync(client, "Carta");
 
         var response = await client.SendAsync(Update(created.Id, "Nuovo", ifMatch), Ct);
@@ -155,7 +156,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task UpdateWithAStaleVersion_Returns412_AndChangesNothing()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         var created = await CreateAccountAsync(client, "Vecchio nome");
 
         var response = await client.SendAsync(Update(created.Id, "Nuovo nome", EntityTag.Format(created.Version + 1)), Ct);
@@ -168,7 +169,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task UpdateWithTheCurrentVersion_Succeeds_AndReturnsTheNewVersion()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         var created = await CreateAccountAsync(client, "Prima");
 
         var response = await client.SendAsync(Update(created.Id, "Dopo", EntityTag.Format(created.Version)), Ct);
@@ -184,7 +185,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     public async Task ChangeSavedByAnotherDeviceAfterTheCheck_Returns412()
     {
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
         var created = await CreateAccountAsync(client, "Telefono");
 
         var request = new HttpRequestMessage(HttpMethod.Put, $"/api/samples/accounts/{created.Id}/race");
@@ -202,7 +203,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         var otherAccountId = await CreateAccountOfAnotherUserAsync();
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
 
         var other = await client.GetAsync($"/api/samples/accounts/{otherAccountId}", Ct);
         var nonexistent = await client.GetAsync($"/api/samples/accounts/{Guid.CreateVersion7()}", Ct);
@@ -217,7 +218,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
         var otherAccountId = await CreateAccountOfAnotherUserAsync();
         await using var app = await StartAsync();
 
-        var response = await app.GetTestClient().SendAsync(Update(otherAccountId, "Mio", EntityTag.Format(1)), Ct);
+        var response = await ClientOf(app).SendAsync(Update(otherAccountId, "Mio", EntityTag.Format(1)), Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.NotFound, ApiErrors.NotFound);
     }
@@ -227,7 +228,7 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     {
         var otherAccountId = await CreateAccountOfAnotherUserAsync();
         await using var app = await StartAsync();
-        var client = app.GetTestClient();
+        var client = ClientOf(app);
 
         foreach (var accountId in new[] { otherAccountId, Guid.CreateVersion7() })
         {
@@ -252,16 +253,18 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
         builder.WebHost.UseTestServer();
         builder.Services.AddPersistence(Database.ConnectionString);
         builder.Services.AddApiErrors();
-        builder.Services.AddApiSecurity();
+        builder.Services.AddApiSecurity(builder.Configuration);
 
         // The samples act for one signed-in user without going through login (block 3).
         builder.Services.Replace(ServiceDescriptor.Scoped<ICurrentUser>(_ => new FixedCurrentUser(userId)));
 
         var app = builder.Build();
         app.UseApiErrors();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapModules(EndpointDiscovery.FromTypes([typeof(SamplesModule), typeof(SampleEndpoints)]));
+        app.UseApiSecurity();
+
+        // The antiforgery token endpoint of the real Auth module: unsafe sample requests need a token.
+        app.MapModules(EndpointDiscovery.FromTypes(
+            [typeof(SamplesModule), typeof(SampleEndpoints), typeof(AuthModule), typeof(GetAntiforgeryToken.Endpoint)]));
 
         await app.StartAsync(Ct);
         return app;
@@ -270,12 +273,10 @@ public sealed class ErrorHandlingTests(ApiServer server) : ApiTest(server)
     private async Task<Guid> CreateAccountOfAnotherUserAsync()
     {
         var otherUserId = await Database.CreateUserAsync(Ct);
-        await using var db = Database.CreateContext(otherUserId);
-        var account = new Account(otherUserId, "Conto di un altro", AccountType.Checking, "EUR", 0m);
-        db.Accounts.Add(account);
-        await db.SaveChangesAsync(Ct);
-        return account.Id;
+        return (await Database.CreateAccountAsync(otherUserId, cancellationToken: Ct)).Id;
     }
+
+    private static HttpClient ClientOf(WebApplication app) => TestClients.Create(app.GetTestServer().CreateHandler());
 
     private static async Task<AccountResponse> CreateAccountAsync(HttpClient client, string name)
     {
