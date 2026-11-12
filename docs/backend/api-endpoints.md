@@ -6,7 +6,7 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools and the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
@@ -18,8 +18,9 @@ The foundation is implemented: health, development tools and the mechanism that 
 | Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}` |
 | Amounts | JSON numbers with at most 2 decimals, never floats on the server (`decimal`); exposure of signs decided in block 6 |
 | Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); timestamps ISO 8601 in UTC |
-| Methods | `GET` read, `POST` create (`201` + `Location`), `PUT` replace, `DELETE` delete or archive (`204`) — final list per resource |
-| Errors | ProblemDetails (RFC 9457); validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
+| Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace (`200` + `ETag`), `DELETE` delete or archive (`204`) — final list per resource. `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
+| Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
+| Not found | `404` `resource.not_found` for a route id that is not the user's — another user's id included ([security.md](security.md#another-users-data)) |
 | Lists | Paging and sorting decided with the first list that needs them (transactions) |
 | OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults` |
 
@@ -32,9 +33,50 @@ Each endpoint is documented with this table, then request and response examples:
 | **Route** | `METHOD /api/...` |
 | **Auth** | Session / Public |
 | **Request** | Body or query parameters, with validation rules |
-| **Responses** | Status codes and bodies |
-| **Isolation** | What another user gets |
+| **Responses** | Status codes, codes and bodies |
+| **Versions** | `ETag` returned / `If-Match` required |
+| **Isolation** | What another user gets (`404`, or `400` `{resource}.not_found` for ids in the body) |
 | **Tests** | Test class |
+
+### Versions
+
+Every resource has a version: PostgreSQL's `xmin` of its row ([database/conventions.md](../database/conventions.md#concurrency), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). It prevents lost updates when the phone and the computer change the same item.
+
+| Where | How |
+|---|---|
+| Single resource (`GET /api/x/{id}`) and write responses (`POST`, `PUT`, `PATCH`) | Header `ETag: "12345"` — a strong tag, the version in quotes |
+| Lists | Each item has `version` (number) in the body, so an item can be edited from a list without reading it again |
+| `PUT`, `PATCH`, `DELETE` | Header `If-Match: "12345"` with the last version read — **mandatory** |
+
+| Situation | Response |
+|---|---|
+| `If-Match` missing | `428` `concurrency.version_required` |
+| `If-Match` malformed: `*`, weak tag `W/"…"`, several tags, no quotes | `400` `concurrency.version_invalid` |
+| Version different from the current one, or the row changed between the check and the save | `412` `concurrency.version_mismatch` — nothing is changed |
+| Resource not the user's | `404` before any version check |
+
+In a slice:
+
+```csharp
+internal static async Task<Results<Ok<Response>, NotFound>> Handle(
+    Guid id, Request request, IfMatch ifMatch, AppDbContext db, HttpResponse response, CancellationToken ct)
+{
+    var account = await db.Accounts.SingleOrDefaultAsync(a => a.Id == id, ct);
+    if (account is null) return TypedResults.NotFound();
+
+    db.EnsureVersion(account, ifMatch);          // 412 if the client read an older version
+    account.Rename(request.Name);
+    await db.SaveChangesAsync(ct);               // 412 if another write landed in between
+
+    var version = RowVersion.Of(db, account);
+    response.SetVersion(version);                // ETag of the new version
+    return TypedResults.Ok(new Response(account.Id, account.Name, version));
+}
+```
+
+- Taking an `IfMatch` parameter is what makes the header mandatory; `ApiHostTests.EveryUpdateAndDelete_RequiresIfMatch` fails if an update or delete endpoint does not take it.
+- Read projections get the version with `EF.Property<uint>(entity, RowVersion.PropertyName)`.
+- `If-None-Match` / `304` for reads is not implemented yet (see Scalability).
 
 ### Health
 
@@ -82,7 +124,8 @@ Both are public on a development machine. Requests sent from Scalar carry the se
 
 ## Tests
 
-- `ApiHostTests`: health is public; the OpenAPI document and Scalar exist in Development and not in Production; only the listed routes are public.
+- `ApiHostTests`: health is public; the OpenAPI document and Scalar exist in Development and not in Production; only the listed routes are public; every `PUT` / `PATCH` / `DELETE` requires `If-Match`.
+- `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - Each resource section names its test class; the minimum per endpoint is in [testing.md](testing.md#minimum-per-endpoint).
 
@@ -91,10 +134,13 @@ Both are public on a development machine. Requests sent from Scalar carry the se
 - **More resources**: one section per resource; the table above grows.
 - **Versioning**: not needed while the only client ships with the API. With third-party or native clients, a version segment (`/api/v2`) or header with a new ADR; `ApiModule` groups make it a change in one place.
 - **Generated clients**: the OpenAPI document can be exported at build time (`Microsoft.Extensions.ApiDescription.Server`) if `[Frontend]` generates its client.
+- **PWA and caching**: the offline queue stores the version with each pending change and sends it as `If-Match`; a `412` means the item changed elsewhere. Reads can answer `304 Not Modified` to `If-None-Match` when needed.
+- **OpenAPI**: `If-Match` and `ETag` are not described in the document yet; an operation transformer can add them for endpoints with `IfMatchRequiredMetadata`.
 
 ## To do / open questions
 
-- Status codes of errors, concurrency and cross-user access (block 2).
+- ✅ Status codes of errors, concurrency and cross-user access — [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
+- Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
 - Enum serialization, paging and sorting conventions (with the first endpoints that need them).
 - Contracts of every resource (blocks 3–9).
 

@@ -2,20 +2,108 @@
 
 ## Scope
 
-How the API checks requests and how every failure becomes an HTTP response: validation of the request shape, business rule violations (`DomainException`), concurrency conflicts, access to data that is not the user's, unexpected errors.
+How the API checks requests and how every failure becomes an HTTP response: validation of the request shape, business rule violations (`DomainException`), duplicates, concurrency conflicts, references to data that is not the user's, unexpected errors. Versions (`ETag` / `If-Match`) are described in [api-endpoints.md](api-endpoints.md#versions); access to other users' data in [security.md](security.md#another-users-data).
 
 ## Current state
 
-**Validation decided and registered** ([ADR-0012](../architecture/adr/0012-api-foundation.md)); its first tests come with the first endpoint that accepts input (block 4). **Error mapping open**: block 2.
+Implemented ([ADR-0012](../architecture/adr/0012-api-foundation.md), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)) in `Api/Common/Errors` and `Api/Common/Concurrency`. Request validation is registered; its first tests come with the first endpoint that accepts input (block 4).
 
 ### Two levels of checks
 
 | Level | Checks | Where | Failure |
 |---|---|---|---|
-| Request shape | Required fields, lengths, ranges, formats, enum values, paging limits | Request records of the slice, built-in validation | `400` validation problem, errors by field |
-| Business rules | Everything that protects money and data: amounts (zero, more than 2 decimals), archived accounts, category kinds, transfers, budgets | `Domain` entities and services ([database/domain-model.md](../database/domain-model.md)) | `DomainException` with a stable code → mapping in block 2 |
+| Request shape | Required fields, lengths, ranges, formats, enum values, paging limits | Request records of the slice, built-in validation | `400`, `validation.failed`, errors by field |
+| Business rules | Everything that protects money and data: amounts (zero, more than 2 decimals), archived accounts, category kinds, transfers, budgets | `Domain` entities and services ([database/domain-model.md](../database/domain-model.md)) | `DomainException` with a stable code → [Domain errors](#domain-errors) |
 
 A rule is never written twice: if `Domain` already enforces it, the request record does not repeat it, except for checks that give a better message per field (e.g. a required name). The `Worker` and the CSV import go through the same `Domain` rules, so they get the same codes.
+
+### Response shape
+
+Every error is a ProblemDetails (RFC 9457, `application/problem+json`) with two extensions:
+
+| Property | Content |
+|---|---|
+| `status`, `title`, `type` | Standard; `title` and `type` follow the status |
+| `detail` | English message for developers and logs. Absent on `500`. Never shown as is to the user |
+| `code` | **Stable code** the frontend switches on and translates — the contract |
+| `traceId` | Id to quote when reporting a problem; the same id is in the logs |
+| `errors` | Only on `400` about fields: field name → messages |
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "An archived account accepts no new transactions.",
+  "code": "account.archived",
+  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+}
+```
+
+How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
+
+- `ApiExceptionHandler` (an `IExceptionHandler`) maps the known exceptions below.
+- Anything else is logged by the exception handler middleware and answered `500` with code `server.error`, without details.
+- `UseStatusCodePages` gives a ProblemDetails body to responses that have none: `TypedResults.NotFound()`, the `401` of the cookie, `405`, `415`.
+- `CustomizeProblemDetails` adds `traceId`, and a `code` from the status when there is none.
+
+### Codes
+
+| Code | Status | When |
+|---|---|---|
+| `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field |
+| `request.invalid` | 400 | Malformed request (e.g. invalid JSON, wrong route value type) |
+| `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
+| `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
+| *domain code* | 400 / 409 | [Domain errors](#domain-errors) |
+| `auth.required` | 401 | No session |
+| `auth.forbidden` | 403 | Session without the permission (no roles yet) |
+| `resource.not_found` | 404 | No such resource **for this user** — including another user's ([security.md](security.md#another-users-data)) |
+| `request.method_not_allowed` | 405 | Method not supported on the route |
+| `account.name_taken`, `category.name_taken`, `tag.name_taken`, `budget.month_taken` | 409 | [Duplicates](#duplicates) |
+| `concurrency.version_mismatch` | 412 | The resource changed since the client read it ([api-endpoints.md](api-endpoints.md#versions)) |
+| `request.unsupported_media_type` | 415 | Body is not JSON |
+| `concurrency.version_required` | 428 | `PUT` / `PATCH` / `DELETE` without `If-Match` |
+| `request.too_many` | 429 | Rate limit (login, block 3) |
+| `server.error` | 500 | Unexpected error, or a domain invariant broken by a bug |
+
+API codes are constants of `ApiErrors`; domain codes of `DomainErrors`.
+
+### Domain errors
+
+`DomainErrorStatuses` gives each `DomainException` code a status by family:
+
+| Family | Status | Codes |
+|---|---|---|
+| Invalid values — the values sent cannot be accepted, whatever the data | `400` | `amount.not_positive`, `amount.too_many_decimals`, `amount.out_of_range`, `name.required`, `name.too_long`, `description.too_long`, `currency.invalid`, `month.invalid`, `account.type_invalid`, `category.kind_invalid`, `category.too_deep`, `category.parent_itself`, `category.kind_mismatch`, `category.kind_follows_parent`, `category.not_a_subcategory`, `transfer.same_account`, `transfer.currency_mismatch`, `budget.category_not_expense` |
+| State conflicts — the values are fine, the current data does not allow the change | `409` | `account.archived`, `account.currency_locked`, `category.archived`, `category.has_subcategories`, `category.kind_locked`, `transaction.is_transfer_leg`, `budget.branch_conflict` |
+| Programming errors — invariants slices must guarantee before calling the domain | `500` (logged, no details) | `user.required`, `user.different`, `account.transaction_of_another_account`, `budget.entries_of_another_category` |
+
+The `detail` is the domain message (English). A new code in `DomainErrors` makes `ErrorMappingTests` fail until it is placed in a family.
+
+### Duplicates
+
+Names are unique per user through unique indexes ([database/conventions.md](../database/conventions.md)). Slices do not check before saving: the database refuses the duplicate (`23505`), even when two devices send it at the same moment, and `UniqueConstraintErrors` maps the index name to a code:
+
+| Unique index | Code |
+|---|---|
+| `ix_accounts_user_id_normalized_name` | `account.name_taken` |
+| `ix_categories_user_id_kind_parent_id_normalized_name` | `category.name_taken` |
+| `ix_tags_user_id_normalized_name` | `tag.name_taken` |
+| `ix_budgets_user_id_category_id_effective_from` | `budget.month_taken` |
+| `ix_transactions_transfer_id_outgoing`, `…_incoming` | Internal invariant → `500` |
+
+`UniqueConstraintErrorsTests` reads the unique indexes from PostgreSQL and fails when one is neither mapped nor listed as internal. Other database errors (foreign keys, `CHECK`) are prevented by the domain and give `500`.
+
+### References in the body
+
+`GetReferenceAsync` loads the entity an id in the body points to, through the query filter:
+
+```csharp
+var account = await db.Accounts.GetReferenceAsync(request.AccountId, "account", "accountId", ct);
+```
+
+Another user's id and a nonexistent id give the same `400` with code `account.not_found` and `errors.accountId`.
 
 ### Request validation
 
@@ -34,32 +122,7 @@ public sealed record Request(
 - Nested records and collections are validated recursively.
 - An endpoint can opt out with `.DisableValidation()` (none should need it).
 
-Response for an invalid request (`400`, `application/problem+json`):
-
-```json
-{
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-  "title": "One or more validation errors occurred.",
-  "status": 400,
-  "errors": {
-    "Name": ["The Name field is required."]
-  }
-}
-```
-
-Field names and messages (language, casing) are reviewed with the first endpoint and `[Frontend]`, which maps errors to form fields.
-
-### Errors (to decide in block 2)
-
-| Case | Source | Options |
-|---|---|---|
-| Business rule violated | `DomainException.Code` (e.g. `account.archived`) | Status per code family (`400` / `409` / `422`) and the code in a ProblemDetails extension |
-| Concurrency conflict | `DbUpdateConcurrencyException` on `xmin` ([database/conventions.md](../database/conventions.md)) | `409` with the version in the body, or `412` with `ETag` / `If-Match` |
-| Another user's data | The query filter returns nothing | `404` (existence not revealed) or `403` |
-| `UserIsolationException` | Programming error ([database/user-isolation.md](../database/user-isolation.md)) | `500`, logged |
-| Unexpected exception | — | `500` ProblemDetails without details outside Development |
-
-Until block 2 an unhandled exception gives the ASP.NET Core default (`500`, developer page in Development).
+The response is `400` with `code: "validation.failed"` and `errors` by field. Field names and messages are reviewed with the first endpoint and `[Frontend]`.
 
 ## Decisions
 
@@ -67,22 +130,29 @@ Until block 2 an unhandled exception gives the ASP.NET Core default (`500`, deve
 |---|---|---|
 | Built-in .NET 10 validation for the request shape | No dependency; generated at compile time; standard `400` validation problem | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Business rules only in `Domain`, raised as `DomainException` with a stable code | One place for rules, shared by API and `Worker` | [ADR-0010](../architecture/adr/0010-data-model-and-user-isolation.md) |
+| One global `IExceptionHandler`; ProblemDetails with `code` and `traceId` everywhere | One shape for the frontend; slices stay linear | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
+| Domain codes by family (`400` / `409` / `500`) in one table checked by a test | Meaningful statuses, no forgotten code | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
+| Duplicates detected by the database (`23505` → `*.name_taken`, `409`) | Correct under simultaneous requests, no repeated checks | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 
 ## Tests
 
-- Every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)), from block 4.
-- Business rules are unit tested in `Domain.Tests`; their HTTP mapping gets one test per code family in block 2.
+- `ErrorMappingTests`: every `DomainErrors` code is mapped and nothing else; status of each family; code of each status; entity tag format and parsing.
+- `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
+- `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
+- From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
 
 ## Scalability
 
 - **More complex conditional rules**: `IValidatableObject` first; FluentValidation can be added per slice if that grows (ADR-0012).
 - **CSV import**: rows go through `Domain`; the stable codes allow a per-row report.
-- **Localization**: the frontend translates stable codes rather than server messages; server messages stay in English.
+- **Localization**: the frontend translates stable codes; server messages stay in English.
+- **New tables with unique names**: the unique index test fails until the code is added.
+- **Public API**: the codes table becomes part of the published contract; codes are never renamed, only added.
 
 ## To do / open questions
 
-- Block 2: everything in [Errors](#errors-to-decide-in-block-2).
 - Block 4: shape of validation errors as seen by the frontend (field names, messages), first validation tests.
+- `[Frontend]`: map `code` to Italian messages; read `errors` for form fields; on `412` reload the resource and tell the user it changed elsewhere.
 
 ---
 _Last updated: 2026-11-12_

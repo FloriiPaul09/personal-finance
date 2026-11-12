@@ -38,7 +38,7 @@ Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.
   - the successful case;
   - `401` without a session;
   - a validation error, if it accepts input;
-  - **isolation**: user B cannot read or change user A's data (expected status defined in `[Backend]`).
+  - **isolation**: user B cannot read or change user A's data (`404`, [ADR-0013](adr/0013-error-responses-and-concurrency.md)).
 - **Frontend shared components**: Italian amount parsing and formatting; dates never shifted by the time zone.
 - **End-to-end**: login, adding an expense on a phone-sized viewport, a transfer between accounts, dashboard loading.
 - **Bug fixes**: a test that reproduces the bug comes with the fix.
@@ -86,7 +86,7 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 ## To do / open questions
 
 - ✅ `[Backend]` Architecture-test library: ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md), [backend/testing.md](../backend/testing.md#architecture-tests)).
-- `[Backend]` How tests authenticate (real login or a test authentication handler) and endpoint-level test data builders — block 3; expected status for cross-user access — block 2 ([backend/README.md](../backend/README.md)).
+- `[Backend]` How tests authenticate (real login or a test authentication handler) and endpoint-level test data builders — block 3; ✅ expected status for cross-user access: `404` ([ADR-0013](adr/0013-error-responses-and-concurrency.md)) ([backend/README.md](../backend/README.md)).
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).

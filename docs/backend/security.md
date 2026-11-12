@@ -53,6 +53,18 @@ The only routes reachable without a session. Each one is listed here and in `Api
 - Registered with `Replace` over the "nobody" default of `AddPersistence`, so the order of registration does not matter.
 - Outside HTTP (default categories for a new user, the future `Worker`, tests) code uses `FixedCurrentUser`.
 
+### Another user's data
+
+The query filter `UserScope` makes another user's rows invisible: for the API they do not exist ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
+
+| Case | Response |
+|---|---|
+| Route id of another user (`GET`, `PUT`, `DELETE /api/x/{id}`) | `404` `resource.not_found` — identical to an id that never existed, before any version check |
+| Id of another user in the body (e.g. `accountId` of a transaction) | `400` `{resource}.not_found` on that field (`GetReferenceAsync`) — identical to a nonexistent id |
+| Lists and aggregates | Only the user's rows; nothing to report |
+
+`403` is never used for this: it would reveal that the id exists, and telling "exists but not yours" apart would need reading without the filter, which is banned in `Api`. Even the database refuses cross-user references through the composite foreign keys ([database/user-isolation.md](../database/user-isolation.md)).
+
 ### Banned APIs
 
 `Microsoft.CodeAnalysis.BannedApiAnalyzers` checks `backend/src/Api/BannedSymbols.txt` at compile time; `.editorconfig` makes the diagnostic (`RS0030`) an error.
@@ -71,6 +83,7 @@ The same rule is checked by an architecture test ([testing.md](testing.md#archit
 | Fallback policy requiring authentication, public routes listed and tested | Secure by default; a mistake closes an endpoint instead of opening it | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | `HttpCurrentUser` from the `NameIdentifier` claim, read on every access | Works with cookies and future bearer tokens, behind several instances | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | `IgnoreQueryFilters` banned in `Api` at compile time | Isolation cannot be bypassed from a slice | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
+| Another user's data is `404` (route) or `400` `{resource}.not_found` (body), never `403` | Existence is not revealed; follows from the query filter | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 
 ## Tests
 
@@ -78,6 +91,7 @@ The same rule is checked by an architecture test ([testing.md](testing.md#archit
 - `EndpointMappingTests`: an endpoint without `AllowAnonymous` returns `401` (not a redirect); an unknown route returns `401`.
 - `ApiHostTests`: health is public; only the listed routes are public; the registered `ICurrentUser` is `HttpCurrentUser`; development tools do not exist in Production.
 - `ApiRulesTests` (architecture): no call to `IgnoreQueryFilters` in `Api`, and the rule detects a known call.
+- `ErrorHandlingTests`: another user's resource gives `404` like a nonexistent one, also on update with a version; another user's id in the body gives `400` `account.not_found` like a nonexistent one; `401` has a ProblemDetails body with `auth.required`.
 - From block 4, every endpoint: `401` without a session and isolation between two users ([testing.md](testing.md#minimum-per-endpoint)).
 
 ## Scalability

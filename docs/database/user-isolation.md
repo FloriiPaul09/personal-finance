@@ -117,7 +117,7 @@ Endpoint-level isolation tests stay in `Api.Tests` ([testing-strategy.md](../arc
 ## To do / open questions
 
 - ✅ `[Backend]` HTTP current user: `HttpCurrentUser` reads the `NameIdentifier` claim on every access ([backend/security.md](../backend/security.md#current-user)).
-- `[Backend]` Expected status for cross-user access (`404` recommended, so existence is not revealed) — block 2.
+- ✅ `[Backend]` Expected status for cross-user access: `404` for route ids, `400` `{resource}.not_found` for ids in the body ([backend/security.md](../backend/security.md#another-users-data), [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 - ✅ `IgnoreQueryFilters` forbidden in `Api`: compile error through the banned API analyzer, plus an ArchUnitNET test ([backend/security.md](../backend/security.md#banned-apis)).
 - ✅ EF Core maps the optional composite keys (`category_id`, `parent_id`) sharing `user_id` with other keys: verified by the isolation tests (`Database_RejectsATransactionWithAnotherUsersCategory`, `Database_RejectsASubcategoryOfAnotherUsersCategory`); the fallback of ADR-0010 is not needed.
 

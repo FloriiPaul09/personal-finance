@@ -1,4 +1,5 @@
 using PersonalFinance.Api.Common.Endpoints;
+using PersonalFinance.Api.Common.Errors;
 using PersonalFinance.Api.Common.OpenApi;
 using PersonalFinance.Api.Common.Security;
 using PersonalFinance.Infrastructure.Persistence;
@@ -11,6 +12,7 @@ builder.Services.AddPersistence(services =>
     services.GetRequiredService<IConfiguration>().GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required (docs/devops/configuration.md)."));
 
+builder.Services.AddApiErrors();
 builder.Services.AddApiSecurity();
 builder.Services.AddValidation();
 builder.Services.AddApiDocumentation();
@@ -21,6 +23,8 @@ var app = builder.Build();
 // Pending migrations are applied before serving requests (docs/database/migrations.md).
 await app.Services.MigrateDatabaseAsync();
 
+// Before authentication, so every error — a 401 included — is a ProblemDetails with a code (docs/backend/validation-and-errors.md).
+app.UseApiErrors();
 app.UseAuthentication();
 app.UseAuthorization();
 

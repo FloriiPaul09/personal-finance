@@ -8,9 +8,9 @@ The HTTP API of the application (`backend/src/Api`): how endpoints are written a
 
 | Document | Covers | Status |
 |---|---|---|
-| [api-endpoints.md](api-endpoints.md) | Conventions of the API and the contract of every endpoint, one section per resource | Conventions decided; health and development tools implemented; resources to come |
-| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses, domain errors, concurrency | Validation decided — ADR-0012; error mapping open (block 2) |
-| [security.md](security.md) | Authentication cookie, fallback policy, public endpoints, current user, banned APIs, auth endpoints | Foundation implemented — ADR-0001, ADR-0012; auth endpoints open (block 3) |
+| [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`) and the contract of every endpoint, one section per resource | Conventions and versions implemented; resources to come |
+| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013 |
+| [security.md](security.md) | Authentication cookie, fallback policy, public endpoints, current user, other users' data, banned APIs, auth endpoints | Foundation implemented — ADR-0001, ADR-0012, ADR-0013; auth endpoints open (block 3) |
 | [testing.md](testing.md) | Test projects, API hosts on Testcontainers, mechanism and host tests, architecture tests, minimum per endpoint | Implemented for the foundation — ADR-0006, ADR-0011, ADR-0012 |
 
 ## Current state
@@ -19,8 +19,8 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 
 | # | Block | Branch | Status |
 |---|---|---|---|
-| 1 | Foundation: endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, API test hosts | `feat/backend-api-foundation` | In review |
-| 2 | Errors: `DomainException` → ProblemDetails, concurrency, cross-user access | `feat/backend-errors` | To do |
+| 1 | Foundation: endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, API test hosts | `feat/backend-api-foundation` | Merged (#10) |
+| 2 | Errors: `DomainException` → ProblemDetails, duplicates, versions with `ETag` / `If-Match`, cross-user access | `feat/backend-errors` | In review |
 | 3 | Authentication: login, logout, me, change password, CSRF, rate limiting, initial user, Data Protection | `feat/backend-auth` | To do |
 | 4 | Accounts | `feat/backend-accounts` | To do |
 | 5 | Categories | `feat/backend-categories` | To do |
@@ -35,10 +35,11 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 
 ```
 AddPersistence (connection string read from the final configuration)
+AddApiErrors          → ProblemDetails with code + traceId, ApiExceptionHandler
 AddApiSecurity        → Identity cookie (401/403, no redirects), fallback policy, HttpCurrentUser
 AddValidation         → built-in Minimal API validation
 AddApiDocumentation   → built-in OpenAPI document
-migrations → UseAuthentication → UseAuthorization
+migrations → UseApiErrors (exception handler, status code pages) → UseAuthentication → UseAuthorization
 /api/health (public) · /openapi + /scalar (Development only) · MapApiEndpoints()
 ```
 
@@ -87,6 +88,8 @@ Rules:
 - **No mediator**: the endpoint calls `Handle` directly. Cross-cutting behavior goes in endpoint filters on the module (`ApiModule.Configure`).
 - **Thin slices**: every business rule lives in `Domain`, so the future `Worker` and the CSV import apply the same rules without calling the API.
 - **Never `IgnoreQueryFilters`** in `Api`: it does not compile (banned API) and an architecture test checks it again.
+- **Errors are thrown or returned, never formatted by hand**: the domain throws `DomainException`; `GetReferenceAsync` checks ids in the body; `TypedResults.NotFound()` for a route id; duplicates are left to the database. The response shape comes from one handler ([validation-and-errors.md](validation-and-errors.md)).
+- **Updates and deletes take `IfMatch`** and call `db.EnsureVersion(entity, ifMatch)`; single reads and writes send the version with `response.SetVersion(...)` ([api-endpoints.md](api-endpoints.md#versions)).
 
 Mistakes in modules stop startup with the name of the type to fix: an endpoint with no module or two modules, an invalid prefix (lowercase words with hyphens only), two modules with the same prefix, a module with no tag.
 
@@ -101,12 +104,18 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Manual mapping, no mediator | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | 2026-11-12 | Built-in OpenAPI document and Scalar UI, Development only | [ADR-0012](../architecture/adr/0012-api-foundation.md), [api-endpoints.md](api-endpoints.md#openapi) |
 | 2026-11-12 | ArchUnitNET for architecture tests; `IgnoreQueryFilters` banned in `Api` at compile time | [ADR-0012](../architecture/adr/0012-api-foundation.md), [testing.md](testing.md#architecture-tests) |
+| 2026-11-12 | One global `IExceptionHandler`; ProblemDetails with stable `code` and `traceId` for every error | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [validation-and-errors.md](validation-and-errors.md) |
+| 2026-11-12 | Domain codes by family: `400` invalid values, `409` state conflicts, `500` programming errors | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
+| 2026-11-12 | Duplicates from unique indexes (`23505`) → `409` `*.name_taken` | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
+| 2026-11-12 | Versions with `ETag` / mandatory `If-Match`: `428` / `400` / `412` | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [api-endpoints.md](api-endpoints.md#versions) |
+| 2026-11-12 | Another user's data: `404` for route ids, `400` `{resource}.not_found` for ids in the body | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md), [security.md](security.md#another-users-data) |
 
 ## Tests
 
 Summary of [testing.md](testing.md):
 
-- discovery rules (unit), module groups and the fallback policy on a minimal host, the real host on PostgreSQL (public routes, development tools by environment, current user);
+- discovery rules (unit), module groups and the fallback policy on a minimal host, the real host on PostgreSQL (public routes, development tools by environment, current user, `If-Match` on every update and delete);
+- error responses, duplicates, versions and other users' data on a host with sample endpoints over a real database; mapping tables checked against `DomainErrors` and the unique indexes of PostgreSQL;
 - architecture rules with ArchUnitNET, with a check that the `IgnoreQueryFilters` rule really detects a call;
 - from block 4 on, every endpoint: success, `401` without session, validation error, isolation between users.
 
@@ -120,7 +129,7 @@ Summary of [testing.md](testing.md):
 
 ## To do / open questions
 
-- Block 2 — error mapping: codes of `DomainException` → status and ProblemDetails; `409` or `412` for concurrency conflicts and how the client sends the version (the PWA offline sync favors `ETag` / `If-Match`); `404` or `403` for another user's data.
+- ✅ Block 2 — error mapping, concurrency and cross-user access: [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
 - Block 3 — authentication: `MapIdentityApi` or custom endpoints; CSRF (antiforgery is also required by file uploads: CSV import, attachments); password, lockout and cookie values; login rate limiting; initial user and default categories; Data Protection keys; how tests authenticate; test data builders.
 - Block 6 — signed amounts or kind + positive amount in the API; client-generated ids or an idempotency key so an expense sent again by the PWA after going offline is not saved twice.
 - Validation of request records is tested with the first endpoint that accepts input (block 4).
