@@ -1,0 +1,110 @@
+// Phone: content, then the navigation bar fixed at the bottom; the floating button
+// sits above the bar, where the thumb reaches it.
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.content {
+  flex: 1;
+  // Room for the bar (80px) and the floating button above it.
+  padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom));
+}
+
+.nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 2;
+  display: flex;
+  height: 80px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--mat-sys-surface-container);
+}
+
+.new-expense {
+  position: fixed;
+  right: 16px;
+  bottom: calc(80px + 16px + env(safe-area-inset-bottom));
+}
+
+.nav-item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+  text-decoration: none;
+  outline: none;
+
+  &:hover .indicator {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  &:focus-visible .indicator {
+    outline: 2px solid var(--mat-sys-primary);
+  }
+
+  &.active {
+    color: var(--mat-sys-on-surface);
+    font-weight: 700;
+
+    .indicator {
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+  }
+}
+
+.indicator {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+}
+
+// From 600px: navigation rail on the left, floating button at its top.
+@media (min-width: 600px) {
+  .shell {
+    flex-direction: row;
+  }
+
+  .content {
+    padding-bottom: 0;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    order: -1;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    width: 80px;
+    height: 100dvh;
+    padding: 16px 0 0;
+    background: var(--mat-sys-surface);
+  }
+
+  .new-expense {
+    // Relative, not static: the button's touch target is positioned against it.
+    position: relative;
+    right: auto;
+    bottom: auto;
+    margin-bottom: 28px;
+  }
+
+  .nav-item {
+    flex: none;
+    width: 80px;
+    height: 56px;
+  }
+
+  .indicator {
+    width: 56px;
+  }
+}

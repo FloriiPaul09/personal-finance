@@ -7,6 +7,9 @@ Angular application of Personal Finance. Setup and commands for the whole reposi
 | `pnpm install` | Install dependencies (pnpm 11, Node.js version in `.nvmrc`) |
 | `pnpm start` | Dev server on http://localhost:4200, `/api` proxied to http://localhost:5080 |
 | `pnpm test` | Unit tests with Vitest (watch mode); `pnpm test --watch=false` for a single run |
+| `pnpm test:coverage` | One run with coverage (`v8`), report in `coverage/` |
+| `pnpm lint` | ESLint: Angular rules, template accessibility, module boundaries (Sheriff) |
+| `pnpm api:types` | Regenerate the API types (`src/app/core/api/schema.ts`) from the API running on http://localhost:5080 |
 | `pnpm build` | Production build in `dist/` |
 
 Documentation: [docs/frontend/](../docs/frontend/README.md).
