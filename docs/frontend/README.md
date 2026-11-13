@@ -8,28 +8,37 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 | Document | Covers | Status |
 |---|---|---|
-| `app-structure.md` | Folders, feature areas, shared code, API client | Not started |
-| `routing.md` | Routes, lazy loading, guards | Not started |
-| `state-management.md` | Signals, services, server state, caching | Not started |
-| [ui-components.md](ui-components.md) | Component library, theme, shared components, dates and amounts, mobile | Decided — ADR-0004 |
-| `testing.md` | Vitest conventions, Playwright, phone viewport | Not started |
+| [app-structure.md](app-structure.md) | Folders, module boundaries (Sheriff), API types, locale and i18n, scripts | Implemented — ADR-0021 |
+| [routing.md](routing.md) | Routes, lazy loading, shell and navigation, page titles; login, guard and `401` from block 3 | Implemented (block 1) — ADR-0021 |
+| [state-management.md](state-management.md) | Stores with signals and `httpResource`, refresh after writes, paging | Decided — ADR-0021; first stores from block 2 |
+| [ui-components.md](ui-components.md) | Component library, theme and dark mode, typography, icons, shared components, dates and amounts, mobile | Theme and layout implemented — ADR-0004, ADR-0021 |
+| [testing.md](testing.md) | Vitest conventions, coverage, Playwright, phone viewport | Vitest and coverage set up; Playwright from block 3 |
 
 ## Current state
 
-**Workspace created** in `frontend/` by `[DevOps]` ([ADR-0008](../architecture/adr/0008-local-development-environment.md)); no feature yet, the page is still the Angular welcome page.
+**Block 1 (foundation) done** ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): Material 3 theme with dark mode from the system, Roboto and Material Symbols self-hosted, shell with navigation bar (phone) or rail (desktop) and the "Nuova spesa" button, five lazy features with placeholder pages, Italian locale, ESLint with module boundaries, coverage.
 
-- Angular 22 (`ng new` defaults: standalone components, zoneless, TypeScript strict), SCSS, no SSR.
+- Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
-- **Vitest** through the Angular unit-test builder (`@angular/build:unit-test`, jsdom): `pnpm test`.
+- **Vitest** through the Angular unit-test builder (jsdom): `pnpm test`; coverage with `pnpm test:coverage`.
+- **ESLint** (`angular-eslint`, template accessibility, Sheriff): `pnpm lint`.
 - Dev server proxies `/api` to the API on `http://localhost:5080` (`proxy.conf.json`), so the app always calls its own origin.
+- Session through an `HttpOnly` cookie on the same origin as the API: the frontend never handles tokens ([ADR-0001](../architecture/adr/0001-authentication.md)). Served by nginx in containers, which also proxies `/api`.
 
-Fixed by the project context and ADRs:
+### Blocks
 
-- Latest stable Angular, standalone components, signals, TypeScript strict.
-- UI in Italian, ready for i18n.
-- Angular Material + CDK as UI foundation ([ADR-0004](../architecture/adr/0004-angular-ui-library.md)).
-- Session through an `HttpOnly` cookie on the same origin as the API: the frontend never handles tokens ([ADR-0001](../architecture/adr/0001-authentication.md)).
-- Served by nginx, which also proxies `/api` to the backend.
+The MVP frontend is built one block at a time, one branch and one pull request each (commits `type(frontend[/module])`).
+
+| # | Block | Content | End-to-end | Status |
+|---|---|---|---|---|
+| 1 | Foundation | Material and theme, structure and boundaries, shell and routing, state approach, API types, i18n, coverage | — | Done |
+| 2 | Backend integration | Antiforgery at startup, errors by `code` with Italian messages, `ETag` / `If-Match`, `{ items }` lists and cursor paging, UUIDv7 ids, first `schema.ts` | — | Next |
+| 3 | Authentication | Login page, guard, `401` interceptor, logout; Playwright setup | Login | |
+| 4 | Shared components | Amount input, date adapter, filter bar, empty and error states, selectors | — | |
+| 5 | Accounts and categories | Pages and forms; archive vs delete from `hasMovements`, `isInUse`, `hasSubcategories` | — | |
+| 6 | Transactions and transfers | List with filters and cursor, quick entry from the phone, transfers | Expense on phone, transfer | |
+| 7 | Budgets | Progress of the month; "stop from this month" vs "delete" | — | |
+| 8 | Dashboard | One row per currency; chart library | Dashboard | |
 
 ## Decisions
 
@@ -37,23 +46,30 @@ Fixed by the project context and ADRs:
 |---|---|---|
 | 2026-11-09 | Angular Material + CDK, shared wrappers for missing components, separate chart library | [ADR-0004](../architecture/adr/0004-angular-ui-library.md) |
 | 2026-11-09 | pnpm 11, Node.js 26 LTS, Vitest through the Angular builder, `/api` proxy in development | [ADR-0008](../architecture/adr/0008-local-development-environment.md) |
+| 2026-11-13 | M3 theme `azure`, dark mode from the system, money tokens; Roboto and Material Symbols (SVG) self-hosted | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-13 | Folders by feature like the backend modules; `core` / `shared` / `features` boundaries checked by Sheriff through ESLint | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-13 | Navigation bar on phones, rail from 600px, floating "Nuova spesa" button; English lazy routes | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-13 | Store services with signals and `httpResource`, no state library | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-13 | Types generated from OpenAPI (`openapi-typescript`), services by hand | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-13 | `@angular/localize` with source locale `it`; `v8` coverage without threshold | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest with `pnpm test` (single run: `pnpm test --watch=false`). Today only the generated `app.spec.ts` exists.
-- What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required); conventions go in `testing.md`.
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 21 tests after block 1. Conventions in [testing.md](testing.md).
+- Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
+- What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
 
 ## Scalability
 
-To evaluate in `app-structure.md`: organizing the app in feature areas that mirror the backend modules (accounts, categories, transactions, budgets, see [ADR-0002](../architecture/adr/0002-backend-structure.md)), so that a new end-to-end feature adds a backend module and a frontend area with the same name.
+The app is organized in feature areas that mirror the backend modules (accounts, categories, transactions, budgets, dashboard, see [ADR-0002](../architecture/adr/0002-backend-structure.md)): a new end-to-end feature adds a backend module and a frontend feature with the same name, and lint keeps features independent. Details in each micro category.
 
 ## To do / open questions
 
-- Chart library, date adapter, theme and dark mode, i18n approach → [ui-components.md](ui-components.md)
-- Login page, route guard, `401` interceptor → `routing.md`
-- Write `app-structure.md`, `routing.md`, `state-management.md`, `testing.md`
-- Add Angular Material (`ng add @angular/material`) and replace the welcome page
-- Playwright location and phone viewport; Vitest coverage provider
+- Block 2: first `schema.ts` from the running API; HTTP layer.
+- Block 3: Playwright location, phone viewport, how the full stack runs for E2E.
+- Block 4: date adapter and its time-zone tests.
+- Block 8: chart library.
+- `[DevOps]`: lint and coverage in CI; OpenAPI document exported at build time to check `schema.ts`.
 
 ---
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-13_

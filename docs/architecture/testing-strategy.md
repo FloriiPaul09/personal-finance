@@ -27,7 +27,7 @@ Coverage follows these risks, not a percentage.
 | API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, query filters, authentication | `backend/tests/Api.Tests` |
 | Architecture | ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md)) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing), slice rules, no `IgnoreQueryFilters` in `Api` | `backend/tests/Architecture.Tests` |
 | Frontend unit | Vitest through the Angular `@angular/build:unit-test` builder, jsdom | Shared components and logic: amount input, date adapter, services with logic | `frontend/src/**/*.spec.ts` |
-| End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` |
+| End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` block 3 ([frontend/testing.md](../frontend/testing.md)) |
 
 Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.json`), the default runner of xUnit v3 4.x and of the .NET 10 SDK. A test project that runs zero tests fails, so every project keeps at least one test.
 
@@ -52,7 +52,7 @@ Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.
 
 ### Coverage
 
-Measured for backend and frontend and shown in CI, **without a mandatory threshold**. It is used to spot untested areas, not as a target.
+Measured for backend and frontend and shown in CI, **without a mandatory threshold**. It is used to spot untested areas, not as a target. Frontend: Vitest's `v8` provider, `pnpm test:coverage` ([ADR-0021](adr/0021-frontend-foundation.md)).
 
 ### Where tests run
 
@@ -88,8 +88,9 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 - ✅ `[Backend]` Architecture-test library: ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md), [backend/testing.md](../backend/testing.md#architecture-tests)).
 - ✅ `[Backend]` How tests authenticate (test handler for resources, real login for authentication) and test data (`TestData` factories) — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md); ✅ expected status for cross-user access: `404` ([ADR-0013](adr/0013-error-responses-and-concurrency.md)) ([backend/README.md](../backend/README.md)).
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
-- `[Frontend]` Playwright location and phone viewport; Vitest coverage provider.
+- ✅ `[Frontend]` Vitest coverage provider: `v8` ([ADR-0021](adr/0021-frontend-foundation.md)).
+- `[Frontend]` Playwright location and phone viewport (block 3).
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-13_

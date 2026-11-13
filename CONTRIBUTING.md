@@ -59,7 +59,7 @@ Every change ships with its tests. The minimum required is the [Definition of Do
 - shared Angular components and services with logic: Vitest tests;
 - bug fixes: a test that reproduces the bug.
 
-Run them with `dotnet test` in `backend/` (Docker running) and `pnpm test` in `frontend/`.
+Run them with `dotnet test` in `backend/` (Docker running) and `pnpm test` in `frontend/`. In `frontend/`, `pnpm lint` must pass too: it also checks that features do not import each other ([docs/frontend/app-structure.md](docs/frontend/app-structure.md#boundaries)).
 
 ## Documentation
 
