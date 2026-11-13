@@ -1,1 +1,62 @@
-/* You can add global styles to this file, and also import other style files */
+// Global styles: the Material 3 theme and the app's own design tokens.
+// Components use --mat-sys-* and --pf-* tokens only, never hard-coded colors
+// (docs/frontend/ui-components.md#theme).
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+html {
+  // Light and dark mode follow the operating system: every color token is
+  // emitted as light-dark(light, dark) and the browser picks one.
+  color-scheme: light dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        theme-type: color-scheme,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+
+  // Semantic colors for money. Income uses the M3 green palette with the same
+  // tones as the primary roles (40 on light, 80 on dark); expenses use the
+  // error role.
+  --pf-income: light-dark(#{map.get(mat.$green-palette, 40)}, #{map.get(mat.$green-palette, 80)});
+  --pf-expense: var(--mat-sys-error);
+}
+
+body {
+  margin: 0;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-large);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Amounts line up in columns: every digit has the same width.
+.pf-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-income {
+  color: var(--pf-income);
+}
+
+.pf-expense {
+  color: var(--pf-expense);
+}
+
+// Page layout shared by every feature page.
+.pf-page {
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 16px;
+}
+
+.pf-page-title {
+  margin: 8px 0 16px;
+  font: var(--mat-sys-headline-small);
+}
