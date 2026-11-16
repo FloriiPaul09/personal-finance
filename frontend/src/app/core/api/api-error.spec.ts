@@ -74,14 +74,31 @@ describe('toApiError', () => {
     expect(error.code).toBe(CLIENT_ERROR_CODES.networkUnavailable);
   });
 
+  it.each([502, 503, 504])(
+    'reports a proxy answer %s without ProblemDetails as server.unavailable (the API is down)',
+    (status) => {
+      // Recorded from the dev server with the API stopped: 502, text/plain, empty body.
+      const error = toApiError(errorResponse(status, ''));
+
+      expect(error.status).toBe(status);
+      expect(error.code).toBe(CLIENT_ERROR_CODES.serverUnavailable);
+    },
+  );
+
+  it('keeps the code of a ProblemDetails even on a proxy status', () => {
+    const error = toApiError(errorResponse(503, { code: 'server.error', status: 503 }));
+
+    expect(error.code).toBe('server.error');
+  });
+
   it.each([
-    ['an HTML page', '<html>Bad gateway</html>'],
+    ['an HTML page', '<html>Internal error</html>'],
     ['a body without code', { title: 'Bad Request' }],
     ['no body', null],
   ])('reports %s as response.unexpected', (_, body) => {
-    const error = toApiError(errorResponse(502, body));
+    const error = toApiError(errorResponse(500, body));
 
-    expect(error.status).toBe(502);
+    expect(error.status).toBe(500);
     expect(error.code).toBe(CLIENT_ERROR_CODES.unexpectedResponse);
     expect(error.fieldErrors).toEqual({});
     expect(error.traceId).toBeNull();

@@ -7,7 +7,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 export const CLIENT_ERROR_CODES = {
   /** No answer: offline, the API is down, or the request was blocked. */
   networkUnavailable: 'network.unavailable',
-  /** An error answer without a ProblemDetails body (e.g. a proxy page). */
+  /**
+   * The proxy in front of the API answered instead of the API (502 / 503 / 504 without ProblemDetails):
+   * the API is down or restarting. The dev server and nginx answer this way.
+   */
+  serverUnavailable: 'server.unavailable',
+  /** Any other error answer without a ProblemDetails body. */
   unexpectedResponse: 'response.unexpected',
 } as const;
 
@@ -38,6 +43,9 @@ export class ApiError extends Error {
   }
 }
 
+/** Statuses a reverse proxy uses when the API behind it cannot answer. */
+const PROXY_STATUSES = [502, 503, 504];
+
 interface ProblemDetails {
   status?: number;
   code?: unknown;
@@ -54,7 +62,10 @@ export function toApiError(response: HttpErrorResponse): ApiError {
 
   const problem = asProblem(response.error);
   if (!problem || typeof problem.code !== 'string') {
-    return new ApiError(response.status, CLIENT_ERROR_CODES.unexpectedResponse);
+    const code = PROXY_STATUSES.includes(response.status)
+      ? CLIENT_ERROR_CODES.serverUnavailable
+      : CLIENT_ERROR_CODES.unexpectedResponse;
+    return new ApiError(response.status, code);
   }
 
   return new ApiError(

@@ -11,6 +11,7 @@ const SERVER = $localize`:API error:Errore del server. Riprova più tardi.`;
 const MESSAGES: Readonly<Record<string, string>> = {
   // App
   [CLIENT_ERROR_CODES.networkUnavailable]: $localize`:API error:Impossibile contattare il server. Controlla la connessione e riprova.`,
+  [CLIENT_ERROR_CODES.serverUnavailable]: $localize`:API error:Il server non risponde. Riprova tra poco.`,
   [CLIENT_ERROR_CODES.unexpectedResponse]: SERVER,
 
   // Requests
