@@ -170,9 +170,9 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 
 ## To do / open questions
 
-- `[Frontend]`: check the keys of `errors` against the form fields with the first form (accounts); tests compare them without regard to case.
+- `[Frontend]`: check the keys of `errors` against the form fields with the first form (accounts); tests compare them without regard to case. The app turns them into camelCase (`Email` → `email`), [ADR-0022](../architecture/adr/0022-frontend-api-integration.md); emitting camelCase keys here would remove that step.
 - A database error that slips past the domain because of a race (a movement saved while its account is deleted, foreign key `23503`) gives `500`; map foreign key violations if it ever shows up.
-- `[Frontend]`: map `code` to Italian messages; read `errors` for form fields; on `412` reload the resource and tell the user it changed elsewhere.
+- ✅ `[Frontend]`: map `code` to Italian messages, read `errors` for form fields, on `412` reload and say it changed elsewhere — `ApiError` and `core/api/error-messages.ts`, [ADR-0022](../architecture/adr/0022-frontend-api-integration.md).
 
 ---
 _Last updated: 2026-11-12_

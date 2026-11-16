@@ -6,7 +6,7 @@ Folders of the Angular application, what goes where, the module boundaries and h
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries are in place; the API types arrive with block 2.
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`.
 
 ### Folders
 
@@ -16,6 +16,8 @@ frontend/
 ├── eslint.config.js        # angular-eslint + Sheriff
 ├── sheriff.config.ts       # module boundaries
 ├── package.json            # scripts below
+├── scripts/
+│   └── api-types.mjs       # generates core/api/schema.ts (pnpm api:types)
 └── src/
     ├── index.html
     ├── main.ts
@@ -24,7 +26,10 @@ frontend/
         ├── app.ts / app.config.ts / app.routes.ts   # root: wires everything (tag "root")
         ├── core/           # one module (tag "core")
         │   ├── index.ts    # public API of core
-        │   ├── api/        # schema.ts generated from OpenAPI (block 2)
+        │   ├── api/        # openapi.json (snapshot), schema.ts (generated), models.ts (aliases), ApiError, messages
+        │   ├── errors/     # global ErrorHandler, ErrorNotifier (snackbar)
+        │   ├── http/       # provideApiHttp (XSRF, interceptor, antiforgery), ifMatch, cursorPager
+        │   ├── ids/        # newId() — UUIDv7 for client-created resources
         │   ├── icons/      # Material Symbols resolver
         │   └── layout/     # Shell, navigation items, page titles
         ├── shared/         # one module per library (tag "shared"), e.g. shared/ui, shared/util (block 4)
@@ -78,9 +83,19 @@ features/accounts/
 
 ### API types
 
-- `pnpm api:types` (API running in Development on `http://localhost:5080`) writes `src/app/core/api/schema.ts` with `openapi-typescript` and formats it. The file is committed and excluded from lint and coverage.
-- Services are written by hand on `HttpClient` and use the generated types for bodies and responses ([state-management.md](state-management.md)).
-- What the types do not say, and services add: `If-Match` with the version, the error `code`, months `yyyy-MM`, client UUIDv7 ids (block 2).
+`scripts/api-types.mjs` ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)):
+
+| Command | Source of the document |
+|---|---|
+| `pnpm api:types` | The API running in Development (`http://localhost:5080/openapi/v1.json`); the document is saved as `core/api/openapi.json` |
+| `pnpm api:types --url <url>` | Another address |
+| `pnpm api:types --file src/app/core/api/openapi.json` | The committed snapshot, without the API (e.g. a CI check) |
+
+1. The document is **adjusted** before generation, where it is looser than the API: every number is described as `number | string` (ASP.NET Core also *reads* numbers written as text) → `number` / `integer` only; `YearMonth` is an empty schema → a `yyyy-MM` string. Each rule goes away once `[Backend]` describes the value precisely.
+2. `openapi-typescript` writes `core/api/schema.ts` (formatted with Prettier). Both `openapi.json` and `schema.ts` are committed; `schema.ts` is excluded from lint and coverage. A change of the contract shows in the pull request as a diff of `openapi.json`.
+3. The app imports the **aliases** of `core/api/models.ts`, never `schema.ts` directly: `AccountResponse`, `CategoryResponse`, `TransactionResponse`, `TransferResponse`, `BudgetResponse`, `BudgetProgressResponse`, `DashboardResponse`, request types, `ListResponse<T>`, `PageResponse<T>`, `Version`, `IsoDate`, `YearMonth`.
+
+Services are written by hand per feature on `HttpClient` ([state-management.md](state-management.md#the-store-pattern)); what the types do not say comes from `core`: `ifMatch(version)`, `ApiError` and its `code`, `newId()`, `cursorPager()`.
 
 ### Locale and i18n
 
@@ -99,7 +114,7 @@ features/accounts/
 | `pnpm test` | Vitest in watch mode; `pnpm test --watch=false` for one run |
 | `pnpm test:coverage` | One run with coverage (`coverage/`) |
 | `pnpm lint` | ESLint: Angular rules, template accessibility, module boundaries |
-| `pnpm api:types` | Regenerate `core/api/schema.ts` from the running API |
+| `pnpm api:types` | Regenerate `core/api/openapi.json` and `schema.ts` from the running API (`--file` for a saved document) |
 
 Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 
@@ -118,6 +133,7 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 - `app-locale.spec.ts`: `LOCALE_ID` is `it` without providers; numbers and dates are formatted the Italian way (`1.234,50`, `13 novembre 2026`).
 - `app.spec.ts`: every feature is reached through its lazy route ([routing.md](routing.md#tests)).
 - `core/icons/app-icons.spec.ts`: icon names resolve to `icons/<name>.svg`; anything else (paths, URLs, namespaces) is refused.
+- The generation was checked against the API in Development: the snapshot is byte-identical to the document it served (SHA-256), and the generated types have `number` amounts and versions and `string` months.
 
 ## Scalability
 
@@ -129,10 +145,10 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 
 ## To do / open questions
 
-- Block 2: first `schema.ts` (needs the API running in Development), `core/http` (antiforgery, errors, versions), UUIDv7 generator.
-- `[Backend]` / `[DevOps]`: export the OpenAPI document at build time and check in CI that `schema.ts` matches it.
+- `[Backend]`: describe numbers as `number` only and `YearMonth` as a `yyyy-MM` string in the OpenAPI document, then remove the adjustments of `scripts/api-types.mjs`.
+- `[Backend]` / `[DevOps]`: export the OpenAPI document at build time and check in CI that `openapi.json` and `schema.ts` match it (`pnpm api:types --file …` then `git diff --exit-code`).
 - `[DevOps]`: run `pnpm lint` and `pnpm test:coverage` in CI.
 - Split `core` into libraries when it grows past a handful of folders.
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-16_

@@ -723,7 +723,7 @@ Amounts of different currencies are never added together: with only euros, `bala
 - OpenAPI: describe months as `string` with pattern `^\d{4}-\d{2}$` (schema transformer for `YearMonth`).
 - Progress over a range of months for charts, reusing `ProgressOf`, when charts arrive.
 - Transfers: a list of their own, tags, transfers between currencies (`toAmount`) — when needed ([ADR-0018](../architecture/adr/0018-transfers-module.md)).
-- `[Frontend]`: generate UUIDv7 ids for queued expenses; follow `nextCursor` for infinite scroll; never sum `amount`, use `signedAmount`; send the whole tag list on update.
+- `[Frontend]`: ✅ generate UUIDv7 ids (`newId()`) and follow `nextCursor` (`cursorPager`), [ADR-0022](../architecture/adr/0022-frontend-api-integration.md); never sum `amount`, use `signedAmount`; send the whole tag list on update.
 - Tag merge (two tags into one) and multi-value filters, when needed.
 - `[Frontend]`: build the grouped category menu from consecutive items; read `isInUse` / `hasSubcategories` to lock the kind and to offer archive instead of delete.
 - `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.

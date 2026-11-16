@@ -8,15 +8,17 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 | Document | Covers | Status |
 |---|---|---|
-| [app-structure.md](app-structure.md) | Folders, module boundaries (Sheriff), API types, locale and i18n, scripts | Implemented — ADR-0021 |
+| [app-structure.md](app-structure.md) | Folders, module boundaries (Sheriff), API types and their generation, locale and i18n, scripts | Implemented — ADR-0021, ADR-0022 |
 | [routing.md](routing.md) | Routes, lazy loading, shell and navigation, page titles; login, guard and `401` from block 3 | Implemented (block 1) — ADR-0021 |
-| [state-management.md](state-management.md) | Stores with signals and `httpResource`, refresh after writes, paging | Decided — ADR-0021; first stores from block 2 |
+| [state-management.md](state-management.md) | Stores with signals and `httpResource`, errors (`ApiError`), versions, cursor paging, client ids, refresh after writes | HTTP layer implemented — ADR-0021, ADR-0022; first stores from block 3 |
 | [ui-components.md](ui-components.md) | Component library, theme and dark mode, typography, icons, shared components, dates and amounts, mobile | Theme and layout implemented — ADR-0004, ADR-0021 |
 | [testing.md](testing.md) | Vitest conventions, coverage, Playwright, phone viewport | Vitest and coverage set up; Playwright from block 3 |
 
 ## Current state
 
 **Block 1 (foundation) done** ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): Material 3 theme with dark mode from the system, Roboto and Material Symbols self-hosted, shell with navigation bar (phone) or rail (desktop) and the "Nuova spesa" button, five lazy features with placeholder pages, Italian locale, ESLint with module boundaries, coverage.
+
+**Block 2 (backend integration) done** ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)): API types generated from a committed snapshot of the OpenAPI document, antiforgery at startup without blocking offline, `ApiError` with Italian messages for every code, global error snackbar, `ifMatch`, `cursorPager`, `newId()` (UUIDv7).
 
 - Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
@@ -31,9 +33,9 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 
 | # | Block | Content | End-to-end | Status |
 |---|---|---|---|---|
-| 1 | Foundation | Material and theme, structure and boundaries, shell and routing, state approach, API types, i18n, coverage | — | Done |
-| 2 | Backend integration | Antiforgery at startup, errors by `code` with Italian messages, `ETag` / `If-Match`, `{ items }` lists and cursor paging, UUIDv7 ids, first `schema.ts` | — | Next |
-| 3 | Authentication | Login page, guard, `401` interceptor, logout; Playwright setup | Login | |
+| 1 | Foundation | Material and theme, structure and boundaries, shell and routing, state approach, API types, i18n, coverage | — | Done (PR #21) |
+| 2 | Backend integration | Antiforgery at startup, errors by `code` with Italian messages, `ETag` / `If-Match`, `{ items }` lists and cursor paging, UUIDv7 ids, first `schema.ts` | — | Done |
+| 3 | Authentication | Login page, guard, `401` interceptor, logout; Playwright setup | Login | Next |
 | 4 | Shared components | Amount input, date adapter, filter bar, empty and error states, selectors | — | |
 | 5 | Accounts and categories | Pages and forms; archive vs delete from `hasMovements`, `isInUse`, `hasSubcategories` | — | |
 | 6 | Transactions and transfers | List with filters and cursor, quick entry from the phone, transfers | Expense on phone, transfer | |
@@ -52,10 +54,11 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 | 2026-11-13 | Store services with signals and `httpResource`, no state library | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | 2026-11-13 | Types generated from OpenAPI (`openapi-typescript`), services by hand | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | 2026-11-13 | `@angular/localize` with source locale `it`; `v8` coverage without threshold | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| 2026-11-16 | Antiforgery at startup (5 s at most, never blocking); `ApiError` for every failed request, Italian messages by code, global snackbar; explicit `ifMatch(version)`; `cursorPager`; `newId()` with `uuid`; types from a committed, adjusted OpenAPI snapshot | [ADR-0022](../architecture/adr/0022-frontend-api-integration.md) |
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 21 tests after block 1. Conventions in [testing.md](testing.md).
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 71 tests after block 2. Conventions in [testing.md](testing.md).
 - Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
 - What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
 
@@ -65,11 +68,11 @@ The app is organized in feature areas that mirror the backend modules (accounts,
 
 ## To do / open questions
 
-- Block 2: first `schema.ts` from the running API; HTTP layer.
 - Block 3: Playwright location, phone viewport, how the full stack runs for E2E.
 - Block 4: date adapter and its time-zone tests.
 - Block 8: chart library.
-- `[DevOps]`: lint and coverage in CI; OpenAPI document exported at build time to check `schema.ts`.
+- `[DevOps]`: lint and coverage in CI; OpenAPI document exported at build time to check `openapi.json` / `schema.ts`.
+- `[Backend]`: numbers and `YearMonth` described precisely in the OpenAPI document; field names of validation errors in camelCase (today `Email`, mapped by the app).
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-16_
