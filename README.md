@@ -37,7 +37,7 @@ A one-command start of the whole application (`docker compose up`) arrives toget
 | Area | Command | Notes |
 |---|---|---|
 | Backend | `dotnet test` (from `backend/`) | Unit, integration and architecture tests. Integration tests need Docker running. |
-| Frontend | `pnpm test` (from `frontend/`) | Vitest; watch mode in a terminal, single run with `pnpm test --watch=false`. |
+| Frontend | `pnpm test` (from `frontend/`) | Vitest; watch mode in a terminal, single run with `pnpm test --watch=false`, coverage with `pnpm test:coverage`. Lint with `pnpm lint`. |
 
 Testing strategy: [docs/architecture/testing-strategy.md](docs/architecture/testing-strategy.md).
 

@@ -1,0 +1,33 @@
+<div class="shell">
+  <nav class="nav" aria-label="Navigazione principale" i18n-aria-label>
+    <a
+      class="new-expense"
+      matFab
+      [routerLink]="newExpensePath"
+      aria-label="Nuova spesa"
+      i18n-aria-label
+      data-testid="new-expense"
+    >
+      <mat-icon svgIcon="add" />
+    </a>
+
+    @for (item of items; track item.path) {
+      <a
+        class="nav-item"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        #link="routerLinkActive"
+      >
+        <span class="indicator">
+          <mat-icon [svgIcon]="link.isActive ? item.icon + '-fill' : item.icon" />
+        </span>
+        <span class="label">{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

@@ -43,6 +43,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0018](adr/0018-transfers-module.md) | The transfers module | Accepted | 2026-11-12 |
 | [0019](adr/0019-budgets-module.md) | The budgets module | Accepted | 2026-11-12 |
 | [0020](adr/0020-dashboard-module.md) | The dashboard module | Accepted | 2026-11-12 |
+| [0021](adr/0021-frontend-foundation.md) | Frontend foundation — theme, structure, navigation, state, API client and i18n | Accepted | 2026-11-13 |
 
 ## Current state
 
@@ -50,6 +51,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 - **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
 - **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
 - **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014), accounts done together with the conventions of every resource (enums as strings, amounts as numbers, list envelope, ADR-0015), categories done (ADR-0016), transactions and tags done (ADR-0017), transfers done (ADR-0018), budgets done (ADR-0019), dashboard done (ADR-0020): every MVP endpoint is implemented; see [backend/README.md](../backend/README.md).
+- **Frontend in progress** in `[Frontend]`, one block at a time: foundation done (theme with dark mode from the system, structure by feature with boundaries checked by Sheriff, shell with navigation bar or rail, stores with signals, types generated from OpenAPI, `@angular/localize`, ADR-0021); see [frontend/README.md](../frontend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -77,6 +79,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-12 | Transfers: one response with both legs, listed through transactions, one version for the whole transfer, client ids (decided in `[Backend]`) | [ADR-0018](adr/0018-transfers-module.md) |
 | 2026-11-12 | Budgets: entries as a resource, months `yyyy-MM`, progress of a month equal to the domain, stop vs delete (decided in `[Backend]`) | [ADR-0019](adr/0019-budgets-module.md) |
 | 2026-11-12 | Dashboard: one request, sums per currency, spending per top-level category, archived accounts in the totals (decided in `[Backend]`) | [ADR-0020](adr/0020-dashboard-module.md) |
+| 2026-11-13 | Frontend foundation: M3 theme `azure` with dark mode from the system, Roboto and Material Symbols self-hosted, folders by feature with Sheriff boundaries, navigation bar / rail with a new expense button, stores with signals and `httpResource`, OpenAPI types with hand-written services, `@angular/localize` (source `it`), `v8` coverage (decided in `[Frontend]`) | [ADR-0021](adr/0021-frontend-foundation.md) |
 
 ## Tests
 
@@ -116,10 +119,11 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - From `[Backend]`: the end-to-end login test (Playwright) is written with the login page — [ADR-0006](adr/0006-testing-strategy.md)
 - From `[Backend]`: the offline queue of the PWA generates a UUIDv7 `id` for each expense and transfer and sends it again unchanged; a transfer leg in the list opens `/api/transfers/{transferId}`; budget screens and the dashboard send `month` explicitly; budget screens explain "stop from this month" vs "delete"; the dashboard shows one row per currency and the end-to-end test of the dashboard (critical flow) belongs to `[Frontend]`; lists of transactions follow `nextCursor`; running balances use `signedAmount` — [backend/api-endpoints.md](../backend/api-endpoints.md#transactions), [ADR-0017](adr/0017-transactions-and-tags.md)
 - From `[Backend]` to `[DB]`: a `pg_trgm` index on `transactions.description` when text search slows down — [ADR-0017](adr/0017-transactions-and-tags.md)
-- Chart library, date adapter (no time-zone shift), theme and dark mode, i18n approach — [frontend/ui-components.md](../frontend/ui-components.md)
-- `app-structure.md`, `routing.md` (login, guard, `401` interceptor), `state-management.md` — [frontend/README.md](../frontend/README.md)
+- ✅ Theme and dark mode (M3 `azure`, from the system), i18n approach (`@angular/localize`, source `it`) — decided in `[Frontend]`, [ADR-0021](adr/0021-frontend-foundation.md), [frontend/ui-components.md](../frontend/ui-components.md)
+- Chart library (block 8), date adapter without time-zone shift (block 4) — [frontend/ui-components.md](../frontend/ui-components.md)
+- ✅ `app-structure.md`, `state-management.md`, `routing.md` (routes, shell) — [ADR-0021](adr/0021-frontend-foundation.md); login, guard, `401` interceptor in block 3 — [frontend/routing.md](../frontend/routing.md)
 - ✅ Vitest setup — done in `[DevOps]` with the Angular unit-test builder ([devops/local-development.md](../devops/local-development.md#tests))
-- Playwright location, Vitest coverage provider, API client generated from OpenAPI — [testing-strategy.md](testing-strategy.md), [repository-structure.md](repository-structure.md)
+- ✅ Vitest coverage provider (`v8`), API client (types generated with `openapi-typescript`, services by hand) — [ADR-0021](adr/0021-frontend-foundation.md); Playwright location and phone viewport in block 3 — [frontend/testing.md](../frontend/testing.md)
 
 ### `[DevOps]`
 - From `[Backend]`: HTTPS is required for login outside `localhost` (`Secure` cookies); forwarded headers behind the reverse proxy for rate limiting — [backend/security.md](../backend/security.md#to-do--open-questions)
@@ -127,6 +131,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - HTTPS and reverse proxy, how the app is reached from the phone (LAN/VPN vs public) — [authentication.md](authentication.md)
 - ✅ `Auth__*` variables in `.env.example` — [devops/configuration.md](../devops/configuration.md)
 - CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers, when E2E tests run — part 2, [testing-strategy.md](testing-strategy.md)
+- From `[Frontend]`: run `pnpm lint` and `pnpm test:coverage` (`lcov` report) in `frontend/` on every pull request; export the OpenAPI document at build time (`Microsoft.Extensions.ApiDescription.Server`, with `[Backend]`) and fail when `frontend/src/app/core/api/schema.ts` does not match it — [frontend/app-structure.md](../frontend/app-structure.md#api-types)
 - ✅ Repository name, `.editorconfig` / `.gitattributes`, branch strategy, dependency updates — [ADR-0009](adr/0009-repository-workflow.md)
 - ✅ Compose for development — [ADR-0008](adr/0008-local-development-environment.md); production setup still open — [devops/docker.md](../devops/docker.md)
 - ✅ License section in the README, `CONTRIBUTING.md`; `LICENSE` with copyright holder Paul Florii, 2026 — [ADR-0005](adr/0005-license.md)
@@ -136,4 +141,4 @@ Questions raised here that belong to another conversation. Each one is detailed 
 None for the initial phase. This macro reopens when a new cross-cutting decision is needed (e.g. multi-user rollout, Worker host, native clients): each one gets its own ADR.
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-13_

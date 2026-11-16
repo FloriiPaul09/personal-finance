@@ -78,7 +78,8 @@ personal-finance/
 
 - `[DevOps]` Publish the repository on GitHub and configure the ruleset on `main` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main)).
 - `[DevOps]` Production Compose setup (required variables, HTTPS) when the `api` and `frontend` images exist.
-- `[Frontend]` Location of Playwright end-to-end tests; generation of the API client from OpenAPI.
+- `[Frontend]` Location of Playwright end-to-end tests (block 3).
+- ✅ `[Frontend]` API client: types generated from OpenAPI into `frontend/src/app/core/api/schema.ts`, services by hand ([ADR-0021](adr/0021-frontend-foundation.md)).
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-13_
