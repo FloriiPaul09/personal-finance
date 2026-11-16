@@ -18,7 +18,7 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 **Block 1 (foundation) done** ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): Material 3 theme with dark mode from the system, Roboto and Material Symbols self-hosted, shell with navigation bar (phone) or rail (desktop) and the "Nuova spesa" button, five lazy features with placeholder pages, Italian locale, ESLint with module boundaries, coverage.
 
-**Block 2 (backend integration) done** ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)): API types generated from a committed snapshot of the OpenAPI document, antiforgery at startup without blocking offline, `ApiError` with Italian messages for every code, global error snackbar, `ifMatch`, `cursorPager`, `newId()` (UUIDv7).
+**Block 2 (backend integration) done** ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)): API types generated from a committed snapshot of the OpenAPI document, antiforgery at startup without blocking offline, `ApiError` with Italian messages for every code, global error snackbar above the phone navigation, `server.unavailable` when the API is down, `ifMatch`, `cursorPager`, `newId()` (UUIDv7).
 
 - Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
@@ -58,7 +58,7 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 71 tests after block 2. Conventions in [testing.md](testing.md).
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 77 tests after block 2. Conventions in [testing.md](testing.md).
 - Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
 - What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
 

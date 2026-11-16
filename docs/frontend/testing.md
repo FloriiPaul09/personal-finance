@@ -52,8 +52,11 @@ To be decided with block 3: location of the tests (`frontend/e2e/` or a top-leve
 
 - Block 1 (21 tests): `app.spec.ts` (routes and shell), `app-locale.spec.ts`, `core/icons/app-icons.spec.ts`, `core/layout/page-title-strategy.spec.ts`.
 - Block 2 (50 tests): `core/api/api-error.spec.ts`, `error-messages.spec.ts` (every documented code), `core/http/api-error-interceptor.spec.ts`, `provide-api-http.spec.ts` (antiforgery at startup, `X-XSRF-TOKEN` on writes only and re-read at each request, startup never blocked offline or after 5 s), `cursor-pager.spec.ts`, `versions.spec.ts`, `core/ids/new-id.spec.ts` (version 7, time prefix, 2,000 ids unique and ordered), `core/errors/*.spec.ts`.
-- Coverage after block 2: 71 tests, 100% of statements, functions and lines, 94% of branches.
-- Contract checked by hand against the API in Development (block 2): `XSRF-TOKEN` readable after `GET /api/auth/antiforgery`, `400 auth.antiforgery_invalid` on a write without header, ProblemDetails with `code` and `traceId` on `401` and `400`, field names in PascalCase. The E2E tests of block 3 repeat these checks automatically.
+- Coverage after block 2: 77 tests, 100% of statements, functions and lines, 94% of branches.
+- Contract checked against the API in Development (block 2): `XSRF-TOKEN` readable after `GET /api/auth/antiforgery`, `400 auth.antiforgery_invalid` on a write without header, ProblemDetails with `code` and `traceId` on `401` and `400`, field names in PascalCase.
+- Block 2 checked in the built-in browser on the running app (dev server + API), through the app's own `HttpClient` and `ErrorHandler` (reached with `ng.getInjector` in development mode): antiforgery at startup (`204`, cookie set); the header added to writes (a login with fake credentials gets `auth.invalid_credentials`, not `auth.antiforgery_invalid`); `ApiError` with camelCase fields; no snackbar on `auth.required`; snackbar text and "Copia riferimento" copying the exact `traceId`; with the API stopped the app still opens (antiforgery `502` in 9 ms) and the error is `server.unavailable`.
+- Found and fixed while testing: on a phone the snackbar covered the navigation bar (now above the bar and the new expense button, `snack-bars.spec.ts` checks the class); with the API stopped the message said "server error" (now `server.unavailable`, recorded `502` with an empty body in `api-error.spec.ts`).
+- Block 3 E2E: repeat the layout check of snackbars at 390×844 (no overlap with the navigation bar or the button).
 
 ## Scalability
 

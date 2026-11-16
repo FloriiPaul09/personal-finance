@@ -79,13 +79,14 @@ Every failed `/api` request fails with an `ApiError` ([ADR-0022](../architecture
 | Property | Content |
 |---|---|
 | `status` | HTTP status; `0` when there was no answer |
-| `code` | Stable code of the API ([backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)) or of the app: `network.unavailable` (no answer), `response.unexpected` (no ProblemDetails) |
+| `code` | Stable code of the API ([backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)) or of the app: `network.unavailable` (no answer: offline), `server.unavailable` (`502` / `503` / `504` from the proxy: the API is down), `response.unexpected` (any other answer without ProblemDetails) |
 | `fieldErrors`, `fields` | Messages by field, keys in camelCase like the request (`Email` from the API → `email`) |
 | `traceId` | Id of the request in the API logs |
 
 - `errorMessage(code)` / `messageOf(error)`: the Italian message (one `$localize` map in `core/api/error-messages.ts`; unknown codes get a generic message).
 - A page handles what it expects, e.g. `account.name_taken` on the name field, `concurrency.version_mismatch` with a reload.
 - Anything not handled reaches `AppErrorHandler`, which logs it and shows it with `ErrorNotifier` (snackbar with the message and "Copia riferimento" for the `traceId`). `auth.required` is left to the `401` handling of block 3.
+- Snackbars: `provideSnackBars()` gives every snackbar the `pf-snackbar` class; on phones `styles.scss` lifts it above the navigation bar and the new expense button.
 - A failed `httpResource` exposes the `ApiError` in `error()`; the page shows it with the shared error state (block 4).
 
 ### Versions
