@@ -57,6 +57,7 @@ Tests of block 1 (21 tests): `app.spec.ts` (routes and shell), `app-locale.spec.
 ## To do / open questions
 
 - Block 3: Playwright location, phone viewport, how the stack runs for E2E; first test (login).
+- Block 3: regression test for the layout bug found in block 1 review — on the rail (≥ 600px) the page was 16px taller than the window and showed a scrollbar (padding outside `height: 100dvh`). The E2E check: `scrollHeight` equals the window height at 390×844, 1280×720 and 1920×1080. jsdom has no layout, so Vitest cannot catch it.
 - Block 4: time-zone tests of the date adapter; amount input tests.
 - `[DevOps]`: frontend jobs in CI.
 

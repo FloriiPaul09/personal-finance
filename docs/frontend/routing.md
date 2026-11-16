@@ -72,7 +72,7 @@ Planned, to be confirmed with block 3:
 
 `core/layout/page-title-strategy.spec.ts`: title with and without a page title.
 
-The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720; the end-to-end tests of block 3 run on a phone viewport ([testing.md](testing.md)).
+The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720, and by measuring that the page is never taller than the window from 390px to 3840px (a 16px overflow on the rail was found and fixed in review); the end-to-end tests of block 3 run on a phone viewport and keep that check ([testing.md](testing.md)).
 
 ## Scalability
 
