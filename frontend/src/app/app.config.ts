@@ -1,6 +1,12 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { provideApiHttp, provideAppErrorHandler, provideAppIcons, providePageTitles } from './core';
+import {
+  provideApiHttp,
+  provideAppErrorHandler,
+  provideAppIcons,
+  providePageTitles,
+  provideSnackBars,
+} from './core';
 import { routes } from './app.routes';
 
 // The locale (it) is not provided here: it comes from `i18n.sourceLocale` in angular.json,
@@ -13,5 +19,6 @@ export const appConfig: ApplicationConfig = {
     provideApiHttp(),
     providePageTitles(),
     provideAppIcons(),
+    provideSnackBars(),
   ],
 };

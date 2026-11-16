@@ -12,3 +12,4 @@ export { newId } from './ids/new-id';
 export { provideAppIcons } from './icons/app-icons';
 export { APP_NAME, providePageTitles } from './layout/page-title-strategy';
 export { Shell } from './layout/shell';
+export { provideSnackBars } from './layout/snack-bars';
