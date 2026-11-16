@@ -48,6 +48,14 @@ body {
   color: var(--pf-expense);
 }
 
+// Snackbars on phones: above the navigation bar (80px) and the new expense button (56px + 16px),
+// as Material 3 asks, instead of covering the navigation (core/layout/snack-bars.ts).
+@media (max-width: 599.98px) {
+  .mat-mdc-snack-bar-container.pf-snackbar {
+    margin-bottom: calc(80px + 16px + 56px + 8px + env(safe-area-inset-bottom));
+  }
+}
+
 // Page layout shared by every feature page.
 .pf-page {
   box-sizing: border-box;

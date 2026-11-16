@@ -6,7 +6,7 @@ How the Angular application is tested: unit tests with Vitest, coverage, end-to-
 
 ## Current state
 
-Vitest and coverage set up (blocks 0–1); Playwright arrives with the login page (block 3).
+Vitest and coverage set up (blocks 0–1), HTTP layer tested (block 2); Playwright arrives with the login page (block 3).
 
 ### Unit tests (Vitest)
 
@@ -23,6 +23,10 @@ Vitest and coverage set up (blocks 0–1); Playwright arrives with the login pag
 | Components with Material | Material component harnesses (`@angular/material/<component>/testing`) when the interaction matters |
 | Configuration the app relies on | A test that fails if the setting is lost (e.g. `app-locale.spec.ts` for the locale) |
 
+- **HTTP**: `provideApiHttp()` + `provideHttpClientTesting()` runs the real XSRF support and interceptors against `HttpTestingController`; flush the startup `GET /api/auth/antiforgery` first. Cookies are set with `document.cookie` and cleared after each test.
+- **Error shapes**: tests use bodies recorded from the API (e.g. the `validation.failed` answer with PascalCase field names in `api-error.spec.ts`), not invented ones.
+- **Snackbars and other overlays**: Material harnesses from `TestbedHarnessEnvironment.documentRootLoader(...)` (`MatSnackBarHarness`).
+- **Time**: `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync` (e.g. the antiforgery timeout); always restore real timers.
 - `<mat-icon svgIcon>` requests its SVG through `HttpClient`: tests that render icons provide `provideHttpClientTesting()` and leave those requests unanswered.
 - **Dates** (block 4): the date adapter is tested under time zones far from UTC (e.g. `Pacific/Kiritimati`, `America/Los_Angeles`), to prove a date never moves by a day.
 
@@ -46,7 +50,13 @@ To be decided with block 3: location of the tests (`frontend/e2e/` or a top-leve
 
 ## Tests
 
-Tests of block 1 (21 tests): `app.spec.ts` (routes and shell), `app-locale.spec.ts`, `core/icons/app-icons.spec.ts`, `core/layout/page-title-strategy.spec.ts`. Coverage after block 1: 100% of statements and lines.
+- Block 1 (21 tests): `app.spec.ts` (routes and shell), `app-locale.spec.ts`, `core/icons/app-icons.spec.ts`, `core/layout/page-title-strategy.spec.ts`.
+- Block 2 (50 tests): `core/api/api-error.spec.ts`, `error-messages.spec.ts` (every documented code), `core/http/api-error-interceptor.spec.ts`, `provide-api-http.spec.ts` (antiforgery at startup, `X-XSRF-TOKEN` on writes only and re-read at each request, startup never blocked offline or after 5 s), `cursor-pager.spec.ts`, `versions.spec.ts`, `core/ids/new-id.spec.ts` (version 7, time prefix, 2,000 ids unique and ordered), `core/errors/*.spec.ts`.
+- Coverage after block 2: 77 tests, 100% of statements, functions and lines, 94% of branches.
+- Contract checked against the API in Development (block 2): `XSRF-TOKEN` readable after `GET /api/auth/antiforgery`, `400 auth.antiforgery_invalid` on a write without header, ProblemDetails with `code` and `traceId` on `401` and `400`, field names in PascalCase.
+- Block 2 checked in the built-in browser on the running app (dev server + API), through the app's own `HttpClient` and `ErrorHandler` (reached with `ng.getInjector` in development mode): antiforgery at startup (`204`, cookie set); the header added to writes (a login with fake credentials gets `auth.invalid_credentials`, not `auth.antiforgery_invalid`); `ApiError` with camelCase fields; no snackbar on `auth.required`; snackbar text and "Copia riferimento" copying the exact `traceId`; with the API stopped the app still opens (antiforgery `502` in 9 ms) and the error is `server.unavailable`.
+- Found and fixed while testing: on a phone the snackbar covered the navigation bar (now above the bar and the new expense button, `snack-bars.spec.ts` checks the class); with the API stopped the message said "server error" (now `server.unavailable`, recorded `502` with an empty body in `api-error.spec.ts`).
+- Block 3 E2E: repeat the layout check of snackbars at 390×844 (no overlap with the navigation bar or the button).
 
 ## Scalability
 
@@ -62,4 +72,4 @@ Tests of block 1 (21 tests): `app.spec.ts` (routes and shell), `app-locale.spec.
 - `[DevOps]`: frontend jobs in CI.
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-16_

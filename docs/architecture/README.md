@@ -44,6 +44,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0019](adr/0019-budgets-module.md) | The budgets module | Accepted | 2026-11-12 |
 | [0020](adr/0020-dashboard-module.md) | The dashboard module | Accepted | 2026-11-12 |
 | [0021](adr/0021-frontend-foundation.md) | Frontend foundation — theme, structure, navigation, state, API client and i18n | Accepted | 2026-11-13 |
+| [0022](adr/0022-frontend-api-integration.md) | Frontend integration with the API — antiforgery, errors, versions, paging and ids | Accepted | 2026-11-16 |
 
 ## Current state
 
@@ -51,7 +52,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 - **Repository published** on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance), skeleton created by `[DevOps]` (ADR-0008, ADR-0009): .NET solution `PersonalFinance.slnx`, Angular workspace with pnpm and Vitest, Compose with PostgreSQL.
 - **Data model implemented** by `[DB]` (ADR-0010, ADR-0011): domain entities and rules, `AppDbContext` with Identity, isolation filter and interceptor, `InitialCreate` migration, default categories; see [database/README.md](../database/README.md).
 - **Backend API in progress** in `[Backend]` (ADR-0012): foundation done (endpoint discovery, fallback policy, current user, validation, OpenAPI, architecture tests, ADR-0012) error handling done (ProblemDetails with codes, versions with `ETag` / `If-Match`, ADR-0013), authentication done (login, CSRF, rate limiting, initial user, keys in the database, ADR-0014), accounts done together with the conventions of every resource (enums as strings, amounts as numbers, list envelope, ADR-0015), categories done (ADR-0016), transactions and tags done (ADR-0017), transfers done (ADR-0018), budgets done (ADR-0019), dashboard done (ADR-0020): every MVP endpoint is implemented; see [backend/README.md](../backend/README.md).
-- **Frontend in progress** in `[Frontend]`, one block at a time: foundation done (theme with dark mode from the system, structure by feature with boundaries checked by Sheriff, shell with navigation bar or rail, stores with signals, types generated from OpenAPI, `@angular/localize`, ADR-0021); see [frontend/README.md](../frontend/README.md).
+- **Frontend in progress** in `[Frontend]`, one block at a time: foundation done (theme with dark mode from the system, structure by feature with boundaries checked by Sheriff, shell with navigation bar or rail, stores with signals, types generated from OpenAPI, `@angular/localize`, ADR-0021); backend integration done (antiforgery at startup without blocking offline, `ApiError` with messages by code, `If-Match` from the version, cursor pager, UUIDv7 ids, ADR-0022); see [frontend/README.md](../frontend/README.md).
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -80,6 +81,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-12 | Budgets: entries as a resource, months `yyyy-MM`, progress of a month equal to the domain, stop vs delete (decided in `[Backend]`) | [ADR-0019](adr/0019-budgets-module.md) |
 | 2026-11-12 | Dashboard: one request, sums per currency, spending per top-level category, archived accounts in the totals (decided in `[Backend]`) | [ADR-0020](adr/0020-dashboard-module.md) |
 | 2026-11-13 | Frontend foundation: M3 theme `azure` with dark mode from the system, Roboto and Material Symbols self-hosted, folders by feature with Sheriff boundaries, navigation bar / rail with a new expense button, stores with signals and `httpResource`, OpenAPI types with hand-written services, `@angular/localize` (source `it`), `v8` coverage (decided in `[Frontend]`) | [ADR-0021](adr/0021-frontend-foundation.md) |
+| 2026-11-16 | Frontend integration with the API: antiforgery requested at startup (never blocking), every error an `ApiError` with an Italian message by `code` and a global snackbar, explicit `If-Match` from the body version, `cursorPager`, UUIDv7 ids with `uuid`, types from a committed and adjusted OpenAPI snapshot (decided in `[Frontend]`) | [ADR-0022](adr/0022-frontend-api-integration.md) |
 
 ## Tests
 
@@ -112,12 +114,13 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - ✅ Error model, HTTP side: ProblemDetails with stable `code`, domain codes by family — [ADR-0013](adr/0013-error-responses-and-concurrency.md)
 - ✅ From `[DB]`: `DefaultCategoriesInitializer.EnsureForUserAsync` called after creating the initial user and at registration — [backend/security.md](../backend/security.md#initial-user)
 - ✅ From `[DB]`: exposure of signed amounts in the API — kind + positive `amount` in requests, `signedAmount` in responses, [ADR-0017](adr/0017-transactions-and-tags.md)
+- From `[Frontend]`: in the OpenAPI document, describe numbers as `number` / `integer` only (today `number | string` because the web JSON defaults also read numbers as text) and `YearMonth` as a `yyyy-MM` string (today an empty schema); describe `If-Match` / `ETag`; consider camelCase keys in validation `errors` (today `Email`, mapped by the app). Then the adjustments in `frontend/scripts/api-types.mjs` go away — [ADR-0022](adr/0022-frontend-api-integration.md)
 
 ### `[Frontend]`
-- From `[Backend]`: call `GET /api/auth/antiforgery` at startup and keep Angular's default XSRF names (`XSRF-TOKEN` / `X-XSRF-TOKEN`); `GET /api/auth/me` to know whether to show the login; send `If-Match` with the `ETag` on updates and deletes; switch on the error `code` — [backend/security.md](../backend/security.md#csrf), [backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)
-- From `[Backend]`: lists come as `{ "items": [...] }`, enums as `camelCase` strings, amounts as JSON numbers never added on the client; accounts expose `balance` and `hasMovements` (lock the currency, offer archive instead of delete), categories come as a flat list to group by `parentId` with `isInUse` / `hasSubcategories` — [backend/api-endpoints.md](../backend/api-endpoints.md#accounts), [ADR-0015](adr/0015-resource-conventions-and-accounts.md)
+- ✅ From `[Backend]`: call `GET /api/auth/antiforgery` at startup and keep Angular's default XSRF names (`XSRF-TOKEN` / `X-XSRF-TOKEN`); send `If-Match` with the version on updates and deletes; switch on the error `code` — done in `[Frontend]`, [ADR-0022](adr/0022-frontend-api-integration.md). `GET /api/auth/me` to know whether to show the login — block 3, [frontend/routing.md](../frontend/routing.md#authentication-block-3)
+- From `[Backend]`: lists come as `{ "items": [...] }` (✅ `ListResponse<T>` / `PageResponse<T>`, `cursorPager`, ADR-0022), enums as `camelCase` strings, amounts as JSON numbers never added on the client; accounts expose `balance` and `hasMovements` (lock the currency, offer archive instead of delete), categories come as a flat list to group by `parentId` with `isInUse` / `hasSubcategories` — [backend/api-endpoints.md](../backend/api-endpoints.md#accounts), [ADR-0015](adr/0015-resource-conventions-and-accounts.md)
 - From `[Backend]`: the end-to-end login test (Playwright) is written with the login page — [ADR-0006](adr/0006-testing-strategy.md)
-- From `[Backend]`: the offline queue of the PWA generates a UUIDv7 `id` for each expense and transfer and sends it again unchanged; a transfer leg in the list opens `/api/transfers/{transferId}`; budget screens and the dashboard send `month` explicitly; budget screens explain "stop from this month" vs "delete"; the dashboard shows one row per currency and the end-to-end test of the dashboard (critical flow) belongs to `[Frontend]`; lists of transactions follow `nextCursor`; running balances use `signedAmount` — [backend/api-endpoints.md](../backend/api-endpoints.md#transactions), [ADR-0017](adr/0017-transactions-and-tags.md)
+- From `[Backend]`: the offline queue of the PWA generates a UUIDv7 `id` for each expense and transfer and sends it again unchanged (✅ `newId()`, ADR-0022); a transfer leg in the list opens `/api/transfers/{transferId}`; budget screens and the dashboard send `month` explicitly; budget screens explain "stop from this month" vs "delete"; the dashboard shows one row per currency and the end-to-end test of the dashboard (critical flow) belongs to `[Frontend]`; lists of transactions follow `nextCursor`; running balances use `signedAmount` — [backend/api-endpoints.md](../backend/api-endpoints.md#transactions), [ADR-0017](adr/0017-transactions-and-tags.md)
 - From `[Backend]` to `[DB]`: a `pg_trgm` index on `transactions.description` when text search slows down — [ADR-0017](adr/0017-transactions-and-tags.md)
 - ✅ Theme and dark mode (M3 `azure`, from the system), i18n approach (`@angular/localize`, source `it`) — decided in `[Frontend]`, [ADR-0021](adr/0021-frontend-foundation.md), [frontend/ui-components.md](../frontend/ui-components.md)
 - Chart library (block 8), date adapter without time-zone shift (block 4) — [frontend/ui-components.md](../frontend/ui-components.md)
@@ -131,7 +134,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - HTTPS and reverse proxy, how the app is reached from the phone (LAN/VPN vs public) — [authentication.md](authentication.md)
 - ✅ `Auth__*` variables in `.env.example` — [devops/configuration.md](../devops/configuration.md)
 - CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers, when E2E tests run — part 2, [testing-strategy.md](testing-strategy.md)
-- From `[Frontend]`: run `pnpm lint` and `pnpm test:coverage` (`lcov` report) in `frontend/` on every pull request; export the OpenAPI document at build time (`Microsoft.Extensions.ApiDescription.Server`, with `[Backend]`) and fail when `frontend/src/app/core/api/schema.ts` does not match it — [frontend/app-structure.md](../frontend/app-structure.md#api-types)
+- From `[Frontend]`: run `pnpm lint` and `pnpm test:coverage` (`lcov` report) in `frontend/` on every pull request; export the OpenAPI document at build time (`Microsoft.Extensions.ApiDescription.Server`, with `[Backend]`), regenerate with `pnpm api:types --file <document>` and fail when `frontend/src/app/core/api/openapi.json` or `schema.ts` change (`git diff --exit-code`) — [frontend/app-structure.md](../frontend/app-structure.md#api-types)
 - ✅ Repository name, `.editorconfig` / `.gitattributes`, branch strategy, dependency updates — [ADR-0009](adr/0009-repository-workflow.md)
 - ✅ Compose for development — [ADR-0008](adr/0008-local-development-environment.md); production setup still open — [devops/docker.md](../devops/docker.md)
 - ✅ License section in the README, `CONTRIBUTING.md`; `LICENSE` with copyright holder Paul Florii, 2026 — [ADR-0005](adr/0005-license.md)
@@ -141,4 +144,4 @@ Questions raised here that belong to another conversation. Each one is detailed 
 None for the initial phase. This macro reopens when a new cross-cutting decision is needed (e.g. multi-user rollout, Worker host, native clients): each one gets its own ADR.
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-16_

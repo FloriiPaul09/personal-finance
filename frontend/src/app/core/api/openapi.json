@@ -1,0 +1,1358 @@
+{
+  "openapi": "3.1.1",
+  "info": { "title": "PersonalFinance.Api | v1", "version": "1.0.0" },
+  "servers": [{ "url": "http://localhost:5080/" }],
+  "paths": {
+    "/api/accounts/{id}/archive": {
+      "post": {
+        "tags": ["Accounts"],
+        "operationId": "ArchiveAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/accounts": {
+      "post": {
+        "tags": ["Accounts"],
+        "operationId": "CreateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAccountRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Accounts"],
+        "operationId": "ListAccounts",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListResponseOfAccountResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "delete": {
+        "tags": ["Accounts"],
+        "operationId": "DeleteAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "get": {
+        "tags": ["Accounts"],
+        "operationId": "GetAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Accounts"],
+        "operationId": "UpdateAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateAccountRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/accounts/{id}/unarchive": {
+      "post": {
+        "tags": ["Accounts"],
+        "operationId": "UnarchiveAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": ["Auth"],
+        "operationId": "ChangePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePasswordRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/api/auth/antiforgery": {
+      "get": {
+        "tags": ["Auth"],
+        "operationId": "GetAntiforgeryToken",
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "operationId": "GetCurrentUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GetCurrentUserResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "operationId": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GetCurrentUserResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "operationId": "Logout",
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/api/budgets": {
+      "post": {
+        "tags": ["Budgets"],
+        "operationId": "CreateBudget",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateBudgetRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Budgets"],
+        "operationId": "ListBudgets",
+        "parameters": [
+          { "name": "categoryId", "in": "query", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListResponseOfBudgetResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budgets/{id}": {
+      "delete": {
+        "tags": ["Budgets"],
+        "operationId": "DeleteBudget",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "get": {
+        "tags": ["Budgets"],
+        "operationId": "GetBudget",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Budgets"],
+        "operationId": "UpdateBudget",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateBudgetRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/budgets/progress": {
+      "get": {
+        "tags": ["Budgets"],
+        "operationId": "GetBudgetProgress",
+        "parameters": [{ "name": "month", "in": "query", "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListResponseOfBudgetProgressResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/{id}/archive": {
+      "post": {
+        "tags": ["Categories"],
+        "operationId": "ArchiveCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/categories": {
+      "post": {
+        "tags": ["Categories"],
+        "operationId": "CreateCategory",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCategoryRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Categories"],
+        "operationId": "ListCategories",
+        "parameters": [
+          { "name": "kind", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListResponseOfCategoryResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/{id}": {
+      "delete": {
+        "tags": ["Categories"],
+        "operationId": "DeleteCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "get": {
+        "tags": ["Categories"],
+        "operationId": "GetCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Categories"],
+        "operationId": "UpdateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCategoryRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/categories/{id}/unarchive": {
+      "post": {
+        "tags": ["Categories"],
+        "operationId": "UnarchiveCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": ["Dashboard"],
+        "operationId": "GetDashboard",
+        "parameters": [{ "name": "month", "in": "query", "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/DashboardResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/tags/{id}": {
+      "delete": {
+        "tags": ["Tags"],
+        "operationId": "DeleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Tags"],
+        "operationId": "RenameTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RenameTagRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/TagResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/tags": {
+      "get": {
+        "tags": ["Tags"],
+        "operationId": "ListTags",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListResponseOfTagResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions": {
+      "post": {
+        "tags": ["Transactions"],
+        "operationId": "CreateTransaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTransactionRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResponse" }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResponse" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Transactions"],
+        "operationId": "ListTransactions",
+        "parameters": [
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "accountId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "categoryId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "kind", "in": "query", "schema": { "type": "string" } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": ["integer", "string"],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PageResponseOfTransactionResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/{id}": {
+      "delete": {
+        "tags": ["Transactions"],
+        "operationId": "DeleteTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "get": {
+        "tags": ["Transactions"],
+        "operationId": "GetTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResponse" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Transactions"],
+        "operationId": "UpdateTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateTransactionRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResponse" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/transfers": {
+      "post": {
+        "tags": ["Transfers"],
+        "operationId": "CreateTransfer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTransferRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/transfers/{id}": {
+      "delete": {
+        "tags": ["Transfers"],
+        "operationId": "DeleteTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "No Content" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "get": {
+        "tags": ["Transfers"],
+        "operationId": "GetTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": ["Transfers"],
+        "operationId": "UpdateTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateTransferRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
+            }
+          },
+          "404": { "description": "Not Found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountResponse": {
+        "required": [
+          "id",
+          "name",
+          "type",
+          "currency",
+          "initialBalance",
+          "balance",
+          "isArchived",
+          "hasMovements",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "$ref": "#/components/schemas/AccountType" },
+          "currency": { "type": "string" },
+          "initialBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "balance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "isArchived": { "type": "boolean" },
+          "hasMovements": { "type": "boolean" },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "AccountType": { "enum": ["cash", "checking", "creditCard", "savings", "other"] },
+      "BudgetProgressResponse": {
+        "required": [
+          "categoryId",
+          "budgetId",
+          "month",
+          "limit",
+          "spent",
+          "remaining",
+          "ratio",
+          "isOverBudget"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": { "type": "string", "format": "uuid" },
+          "budgetId": { "type": "string", "format": "uuid" },
+          "month": { "$ref": "#/components/schemas/YearMonth" },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "spent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "remaining": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "ratio": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "isOverBudget": { "type": "boolean" }
+        }
+      },
+      "BudgetResponse": {
+        "required": ["id", "categoryId", "from", "amount", "version"],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "categoryId": { "type": "string", "format": "uuid" },
+          "from": { "$ref": "#/components/schemas/YearMonth" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "CategoryKind": { "enum": ["income", "expense"] },
+      "CategoryResponse": {
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "parentId",
+          "isArchived",
+          "isInUse",
+          "hasSubcategories",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "kind": { "$ref": "#/components/schemas/CategoryKind" },
+          "parentId": { "type": ["null", "string"], "format": "uuid" },
+          "isArchived": { "type": "boolean" },
+          "isInUse": { "type": "boolean" },
+          "hasSubcategories": { "type": "boolean" },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "CategorySpendingResponse": {
+        "required": ["categoryId", "currency", "spent"],
+        "type": "object",
+        "properties": {
+          "categoryId": { "type": "string", "format": "uuid" },
+          "currency": { "type": "string" },
+          "spent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "required": ["currentPassword", "newPassword"],
+        "type": "object",
+        "properties": {
+          "currentPassword": { "type": "string" },
+          "newPassword": { "type": "string" }
+        }
+      },
+      "CreateAccountRequest": {
+        "required": ["name", "type", "currency", "initialBalance"],
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/AccountType" }] },
+          "currency": { "type": "string" },
+          "initialBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "CreateBudgetRequest": {
+        "required": ["categoryId", "from", "amount"],
+        "type": "object",
+        "properties": {
+          "categoryId": { "type": ["null", "string"], "format": "uuid" },
+          "from": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/YearMonth" }] },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "CreateCategoryRequest": {
+        "required": ["name", "kind", "parentId"],
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "kind": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CategoryKind" }]
+          },
+          "parentId": { "type": ["null", "string"], "format": "uuid" }
+        }
+      },
+      "CreateTransactionRequest": {
+        "required": [
+          "id",
+          "kind",
+          "accountId",
+          "categoryId",
+          "date",
+          "amount",
+          "description",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "id": { "type": ["null", "string"], "format": "uuid" },
+          "kind": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/TransactionKind" }]
+          },
+          "accountId": { "type": ["null", "string"], "format": "uuid" },
+          "categoryId": { "type": ["null", "string"], "format": "uuid" },
+          "date": { "type": ["null", "string"], "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] },
+          "tags": { "type": ["null", "array"], "items": { "type": "string" } }
+        }
+      },
+      "CreateTransferRequest": {
+        "required": ["id", "fromAccountId", "toAccountId", "date", "amount", "description"],
+        "type": "object",
+        "properties": {
+          "id": { "type": ["null", "string"], "format": "uuid" },
+          "fromAccountId": { "type": ["null", "string"], "format": "uuid" },
+          "toAccountId": { "type": ["null", "string"], "format": "uuid" },
+          "date": { "type": ["null", "string"], "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] }
+        }
+      },
+      "CurrencyBalanceResponse": {
+        "required": ["currency", "balance", "archivedBalance"],
+        "type": "object",
+        "properties": {
+          "currency": { "type": "string" },
+          "balance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "archivedBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "required": ["month", "accounts", "balances", "totals", "spending", "budgets"],
+        "type": "object",
+        "properties": {
+          "month": { "$ref": "#/components/schemas/YearMonth" },
+          "accounts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AccountResponse" }
+          },
+          "balances": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CurrencyBalanceResponse" }
+          },
+          "totals": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PeriodTotalsResponse" }
+          },
+          "spending": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CategorySpendingResponse" }
+          },
+          "budgets": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BudgetProgressResponse" }
+          }
+        }
+      },
+      "GetCurrentUserResponse": {
+        "required": ["id", "email"],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string" }
+        }
+      },
+      "ListResponseOfAccountResponse": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/AccountResponse" } }
+        }
+      },
+      "ListResponseOfBudgetProgressResponse": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BudgetProgressResponse" }
+          }
+        }
+      },
+      "ListResponseOfBudgetResponse": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/BudgetResponse" } }
+        }
+      },
+      "ListResponseOfCategoryResponse": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryResponse" } }
+        }
+      },
+      "ListResponseOfTagResponse": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/TagResponse" } }
+        }
+      },
+      "LoginRequest": {
+        "required": ["email", "password"],
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "rememberMe": { "type": "boolean", "default": false }
+        }
+      },
+      "PageResponseOfTransactionResponse": {
+        "required": ["items", "nextCursor"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TransactionResponse" }
+          },
+          "nextCursor": { "type": ["null", "string"] }
+        }
+      },
+      "PeriodTotalsResponse": {
+        "required": ["currency", "income", "expense", "net"],
+        "type": "object",
+        "properties": {
+          "currency": { "type": "string" },
+          "income": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "expense": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "net": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "RenameTagRequest": {
+        "required": ["name"],
+        "type": "object",
+        "properties": { "name": { "type": "string" } }
+      },
+      "TagResponse": {
+        "required": ["id", "name", "transactionCount", "version"],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "transactionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "TransactionKind": { "enum": ["income", "expense", "transfer"] },
+      "TransactionResponse": {
+        "required": [
+          "id",
+          "kind",
+          "accountId",
+          "categoryId",
+          "transferId",
+          "date",
+          "amount",
+          "signedAmount",
+          "description",
+          "tags",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "kind": { "$ref": "#/components/schemas/TransactionKind" },
+          "accountId": { "type": "string", "format": "uuid" },
+          "categoryId": { "type": ["null", "string"], "format": "uuid" },
+          "transferId": { "type": ["null", "string"], "format": "uuid" },
+          "date": { "type": "string", "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "signedAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "TransferResponse": {
+        "required": [
+          "id",
+          "fromAccountId",
+          "toAccountId",
+          "date",
+          "amount",
+          "description",
+          "outgoingTransactionId",
+          "incomingTransactionId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "fromAccountId": { "type": "string", "format": "uuid" },
+          "toAccountId": { "type": "string", "format": "uuid" },
+          "date": { "type": "string", "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] },
+          "outgoingTransactionId": { "type": "string", "format": "uuid" },
+          "incomingTransactionId": { "type": "string", "format": "uuid" },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "uint32"
+          }
+        }
+      },
+      "UpdateAccountRequest": {
+        "required": ["name", "type", "currency", "initialBalance"],
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/AccountType" }] },
+          "currency": { "type": "string" },
+          "initialBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "UpdateBudgetRequest": {
+        "required": ["amount"],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "required": ["name", "kind", "parentId"],
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "kind": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CategoryKind" }]
+          },
+          "parentId": { "type": ["null", "string"], "format": "uuid" }
+        }
+      },
+      "UpdateTransactionRequest": {
+        "required": ["accountId", "categoryId", "date", "amount", "description", "tags"],
+        "type": "object",
+        "properties": {
+          "accountId": { "type": ["null", "string"], "format": "uuid" },
+          "categoryId": { "type": ["null", "string"], "format": "uuid" },
+          "date": { "type": ["null", "string"], "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] },
+          "tags": { "type": ["null", "array"], "items": { "type": "string" } }
+        }
+      },
+      "UpdateTransferRequest": {
+        "required": ["fromAccountId", "toAccountId", "date", "amount", "description"],
+        "type": "object",
+        "properties": {
+          "fromAccountId": { "type": ["null", "string"], "format": "uuid" },
+          "toAccountId": { "type": ["null", "string"], "format": "uuid" },
+          "date": { "type": ["null", "string"], "format": "date" },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "description": { "type": ["null", "string"] }
+        }
+      },
+      "YearMonth": {}
+    }
+  },
+  "tags": [
+    { "name": "Accounts" },
+    { "name": "Auth" },
+    { "name": "Budgets" },
+    { "name": "Categories" },
+    { "name": "Dashboard" },
+    { "name": "Tags" },
+    { "name": "Transactions" },
+    { "name": "Transfers" }
+  ]
+}
