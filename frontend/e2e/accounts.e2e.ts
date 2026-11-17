@@ -32,7 +32,7 @@ test.describe('accounts', () => {
     await expect(row(renamed)).toBeVisible();
 
     // Archive without a question, then undo from the snackbar.
-    await page.getByRole('button', { name: `Azioni per ${renamed}` }).click();
+    await page.getByRole('button', { name: `Azioni per ${renamed}`, exact: true }).click();
     await page.getByRole('menuitem', { name: 'Archivia' }).click();
     await expect(page.getByText(`Conto «${renamed}» archiviato.`)).toBeVisible();
     await expect(row(renamed)).toHaveCount(0);
@@ -40,7 +40,7 @@ test.describe('accounts', () => {
     await expect(row(renamed)).toBeVisible();
 
     // Delete: the account has no movements, so it can go, after a confirmation.
-    await page.getByRole('button', { name: `Azioni per ${renamed}` }).click();
+    await page.getByRole('button', { name: `Azioni per ${renamed}`, exact: true }).click();
     await page.getByRole('menuitem', { name: 'Elimina' }).click();
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toContainText(`Eliminare «${renamed}»?`);
