@@ -27,9 +27,9 @@ test.describe('transfers', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuovo trasferimento');
 
     await page.getByLabel('Importo').fill('300');
-    await page.getByRole('combobox', { name: 'Dal conto' }).click();
+    await page.getByRole('combobox', { name: 'Dal conto', exact: true }).click();
     await page.getByRole('option', { name: new RegExp(from.name) }).click();
-    await page.getByRole('combobox', { name: 'Al conto' }).click();
+    await page.getByRole('combobox', { name: 'Al conto', exact: true }).click();
     await page.getByRole('option', { name: new RegExp(to.name) }).click();
     await page.getByLabel('Descrizione').fill('Risparmio');
     await page.getByTestId('save-transfer').click();

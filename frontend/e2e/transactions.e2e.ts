@@ -30,9 +30,9 @@ test.describe('movements', () => {
     // The amount has the focus: the person just types.
     await expect(page.getByLabel('Importo')).toBeFocused();
     await page.keyboard.type('12,50');
-    await page.getByRole('combobox', { name: 'Categoria' }).click();
+    await page.getByRole('combobox', { name: 'Categoria', exact: true }).click();
     await page.getByRole('option', { name: 'Spesa', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Conto' }).click();
+    await page.getByRole('combobox', { name: 'Conto', exact: true }).click();
     await page.getByRole('option', { name: new RegExp(account.name) }).click();
     await page.getByTestId('save-movement').click();
 
@@ -60,9 +60,9 @@ test.describe('movements', () => {
   test('"Annulla" after saving removes the new expense', async ({ page }) => {
     await page.goto('/transactions/new');
     await page.getByLabel('Importo').fill('5');
-    await page.getByRole('combobox', { name: 'Categoria' }).click();
+    await page.getByRole('combobox', { name: 'Categoria', exact: true }).click();
     await page.getByRole('option', { name: 'Svago', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Conto' }).click();
+    await page.getByRole('combobox', { name: 'Conto', exact: true }).click();
     await page.getByRole('option', { name: new RegExp(account.name) }).click();
     await page.getByTestId('save-movement').click();
 
