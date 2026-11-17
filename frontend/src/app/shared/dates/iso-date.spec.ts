@@ -12,7 +12,7 @@ import {
   monthRange,
   todayIso,
 } from './iso-date';
-import { setTimeZone, TIME_ZONES, useTimeZone } from './testing/time-zones';
+import { setTimeZone, TIME_ZONES, useTimeZone } from '../testing';
 
 describe('ISO dates', () => {
   it.each([

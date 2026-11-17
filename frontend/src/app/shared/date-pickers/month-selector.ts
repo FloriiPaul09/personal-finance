@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, LOCALE_ID, model } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { addMonthsToMonth, currentMonth, formatMonth, IsoMonth } from './iso-date';
+import { addMonthsToMonth, currentMonth, formatMonth, IsoMonth } from '../dates';
 
 /**
  * The month a page shows: `<app-month-selector [(month)]="month" />` → ‹ Novembre 2026 ›.

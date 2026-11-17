@@ -30,15 +30,11 @@
         [currency]="currency()"
         [formField]="entryForm.balance"
       />
-      <mat-form-field>
-        <mat-label>Data</mat-label>
-        <input matInput [matDatepicker]="picker" [formField]="entryForm.date" />
-        <mat-datepicker-toggle matIconSuffix [for]="picker" />
-        <mat-datepicker #picker />
-        @if (entryForm.date().touched() && entryForm.date().errors()[0]; as error) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
-      </mat-form-field>
+      <app-date-input
+        label="Data"
+        hint="Scrivila (17/11/2026) o sceglila dal calendario"
+        [formField]="entryForm.date"
+      />
 
       <div class="actions">
         <button matButton="filled" type="submit">Invia</button>

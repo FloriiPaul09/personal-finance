@@ -1,4 +1,5 @@
-// Public API of shared/dates: calendar dates as `YYYY-MM-DD` strings, never shifted by time zones.
+// Public API of shared/dates: calendar dates as `YYYY-MM-DD` strings, never shifted by time zones,
+// and the date adapter. No components: app.config imports it at startup (see shared/date-pickers).
 export {
   addDays,
   addMonths,
@@ -25,4 +26,3 @@ export {
   IsoDateAdapter,
   provideIsoDateAdapter,
 } from './iso-date-adapter';
-export { MonthSelector } from './month-selector';

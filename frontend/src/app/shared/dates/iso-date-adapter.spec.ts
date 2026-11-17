@@ -10,7 +10,7 @@ import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { INVALID_DATE, IsoDateAdapter, provideIsoDateAdapter } from './iso-date-adapter';
-import { TIME_ZONES, useTimeZone } from './testing/time-zones';
+import { TIME_ZONES, useTimeZone } from '../testing';
 
 describe('IsoDateAdapter', () => {
   let adapter: DateAdapter<string>;

@@ -3,19 +3,12 @@ import { Component, signal } from '@angular/core';
 import { form, FormField, required, submit, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ApiError, ErrorState } from '../../../core';
-import {
-  currentMonth,
-  formatIsoDate,
-  IsoMonth,
-  monthRange,
-  MonthSelector,
-  todayIso,
-} from '../../../shared/dates';
+import { DateInput, MonthSelector } from '../../../shared/date-pickers';
+import { currentMonth, formatIsoDate, IsoMonth, monthRange, todayIso } from '../../../shared/dates';
 import { AmountInput, AmountPipe } from '../../../shared/money';
 import { EmptyState } from '../../../shared/ui';
 
@@ -29,13 +22,13 @@ import { EmptyState } from '../../../shared/ui';
   imports: [
     AmountInput,
     AmountPipe,
+    DateInput,
     EmptyState,
     ErrorState,
     FormField,
     JsonPipe,
     MatButtonModule,
     MatButtonToggleModule,
-    MatDatepickerModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,
