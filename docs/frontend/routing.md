@@ -22,11 +22,13 @@ Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.
 | `/settings` | Account: email, logout, password change | `settings` |
 | `/login` | Login (outside the shell, `guestGuard`) | `auth` |
 | `/unavailable` | "Il server non risponde" with "Riprova" (outside the shell) | `core/layout` |
+| `/dev/components` | Catalog of the shared components, **development only** (not in the navigation; the production build has no `/dev` route) | `dev` |
 | `**` | Redirect to `/dashboard` | — |
 
 - **Paths are English** and do not change with the language of the UI: links and bookmarks keep working in every locale.
 - Every feature is **loaded on demand** from its barrel: `loadChildren: () => import('./features/accounts').then((m) => m.ACCOUNTS_ROUTES)`.
 - Every route above, except redirects, `/login` and `/unavailable`, is a child of the **shell** route (`path: ''`, component `Shell`, `canMatch: [authGuard]`). Pages without the navigation are siblings of the shell.
+- Development-only pages come from `dev-routes.ts`, spread into the shell's children; the production build replaces it with `dev-routes.prod.ts` (an empty list), so `/dev/…` falls to the dashboard there.
 - `withComponentInputBinding()`: route and query parameters reach the page as inputs (e.g. `id` of `/accounts/:id`, `month` of `/budgets?month=2026-11`).
 
 ### Shell and navigation
