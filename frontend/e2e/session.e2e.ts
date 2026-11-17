@@ -16,7 +16,7 @@ test.describe('session', () => {
 
     await expect(page).toHaveURL('/login');
     await page.goto('/dashboard');
-    await expect(page).toHaveURL('/login');
+    await expect(page).toHaveURL('/login?returnUrl=%2Fdashboard');
   });
 
   test('opens the login page when the session ends, and comes back afterwards', async ({
