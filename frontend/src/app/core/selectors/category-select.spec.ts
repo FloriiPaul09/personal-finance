@@ -18,12 +18,14 @@ import { CategorySelect } from './category-select';
     [topLevelOnly]="topLevelOnly()"
     [excludeId]="excludeId()"
     [noneLabel]="noneLabel()"
+    [includeArchived]="includeArchived()"
     [formField]="entryForm.categoryId"
   />`,
 })
 class Host {
   readonly model = signal<{ categoryId: string | null }>({ categoryId: null });
-  readonly kind = signal<CategoryKind>('expense');
+  readonly kind = signal<CategoryKind | null>('expense');
+  readonly includeArchived = signal(false);
   readonly topLevelOnly = signal(false);
   readonly excludeId = signal<string | null>(null);
   readonly noneLabel = signal<string | undefined>(undefined);
@@ -103,6 +105,26 @@ describe('CategorySelect', () => {
     host.model.set({ categoryId: svago.id });
 
     expect(await optionTexts()).toContain('Svago (archiviata)');
+  });
+
+  it('offers both kinds under their names when the kind is null, archived ones on request', async () => {
+    host.kind.set(null);
+    host.includeArchived.set(true);
+    const texts = await optionTexts();
+
+    expect(texts).toEqual([
+      'Spesa',
+      'Trasporti',
+      'Auto',
+      'Carburante',
+      'Svago (archiviata)',
+      'Stipendio',
+      'Altro',
+    ]);
+    const groups = Array.from(document.querySelectorAll('mat-optgroup')).map((g) =>
+      g.querySelector('.mat-mdc-optgroup-label')?.textContent?.trim(),
+    );
+    expect(groups).toEqual(['Uscite', 'Entrate']);
   });
 
   it('follows the disabled state of its field', async () => {

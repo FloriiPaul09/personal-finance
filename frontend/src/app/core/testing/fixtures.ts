@@ -1,5 +1,5 @@
 import { HttpTestingController } from '@angular/common/http/testing';
-import { AccountResponse, CategoryResponse } from '..';
+import { AccountResponse, CategoryResponse, TransactionResponse, TransferResponse } from '..';
 
 // Data shaped like the API's answers, for unit tests (docs/backend/api-endpoints.md).
 
@@ -51,6 +51,38 @@ export function someCategories(): CategoryResponse[] {
     aCategory({ name: 'Stipendio', kind: 'income', isInUse: true }),
     aCategory({ name: 'Altro', kind: 'income' }),
   ];
+}
+
+export function aTransaction(overrides: Partial<TransactionResponse> = {}): TransactionResponse {
+  return {
+    id: testId(),
+    kind: 'expense',
+    accountId: testId(),
+    categoryId: testId(),
+    transferId: null,
+    date: '2026-11-12',
+    amount: 12.5,
+    signedAmount: -12.5,
+    description: 'Pranzo',
+    tags: [],
+    version: 90411,
+    ...overrides,
+  };
+}
+
+export function aTransfer(overrides: Partial<TransferResponse> = {}): TransferResponse {
+  return {
+    id: testId(),
+    fromAccountId: testId(),
+    toAccountId: testId(),
+    date: '2026-11-12',
+    amount: 300,
+    description: 'Risparmio',
+    outgoingTransactionId: testId(),
+    incomingTransactionId: testId(),
+    version: 91022,
+    ...overrides,
+  };
 }
 
 /** Answers the pending read of the accounts list. */
