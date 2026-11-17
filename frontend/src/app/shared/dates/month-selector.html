@@ -1,0 +1,33 @@
+<div class="row" role="group" aria-label="Mese" i18n-aria-label="Month selector group">
+  <button
+    matIconButton
+    type="button"
+    aria-label="Mese precedente"
+    i18n-aria-label="Month selector button"
+    (click)="move(-1)"
+  >
+    <mat-icon svgIcon="chevron_left" />
+  </button>
+  <span class="label" aria-live="polite">{{ label() }}</span>
+  <button
+    matIconButton
+    type="button"
+    aria-label="Mese successivo"
+    i18n-aria-label="Month selector button"
+    [disabled]="atMax()"
+    (click)="move(1)"
+  >
+    <mat-icon svgIcon="chevron_right" />
+  </button>
+</div>
+@if (!isCurrent()) {
+  <button
+    matButton
+    type="button"
+    class="today"
+    (click)="backToCurrent()"
+    i18n="Month selector button"
+  >
+    Mese corrente
+  </button>
+}

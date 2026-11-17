@@ -95,7 +95,8 @@
               "lcov"
             ],
             "coverageExclude": [
-              "src/app/core/api/schema.ts"
+              "src/app/core/api/schema.ts",
+              "src/**/testing/**"
             ]
           }
         },
