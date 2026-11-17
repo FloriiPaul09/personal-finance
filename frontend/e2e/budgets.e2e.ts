@@ -53,6 +53,18 @@ test.describe('budgets', () => {
     await page.reload();
     await expect(row.getByTestId('budget-note')).toHaveText('Restano 5,00 €');
     await expect(row.locator('app-budget-progress')).toHaveAttribute('data-state', 'warning');
+    // ...and shows it: the theme's tertiary role is the same blue as primary, so the warning has
+    // its own color (--pf-warning).
+    const colors = await row.locator('app-budget-progress').evaluate((progress) => {
+      const bar = progress.querySelector('.mdc-linear-progress__bar-inner')!;
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--mat-sys-primary)';
+      progress.append(probe);
+      const primary = getComputedStyle(probe).color;
+      probe.remove();
+      return { bar: getComputedStyle(bar).borderTopColor, primary };
+    });
+    expect(colors.bar).not.toBe(colors.primary);
 
     // The row opens the expenses of the category in that month.
     await row.getByRole('link').click();

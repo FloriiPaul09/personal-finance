@@ -26,8 +26,8 @@ export function budgetState(figures: Pick<BudgetFigures, 'ratio' | 'isOverBudget
 
 /**
  * The progress of a budget in a month: "120,00 € di 350,00 €", a bar, then what is left or by
- * how much it went over. Normal up to 90% of the limit, "attenzione" (the tertiary role) from
- * there, red above the limit. Used by the budgets page and, later, the dashboard; it takes the
+ * how much it went over. Normal up to 90% of the limit, "attenzione" (`--pf-warning`, orange)
+ * from there, red above the limit. Used by the budgets page and, later, the dashboard; it takes the
  * figures of the API and never adds amounts itself.
  */
 @Component({
@@ -67,8 +67,8 @@ export function budgetState(figures: Pick<BudgetFigures, 'ratio' | 'isOverBudget
     }
 
     :host(.warning) {
-      --mat-progress-bar-active-indicator-color: var(--mat-sys-tertiary);
-      --mat-progress-bar-track-color: var(--mat-sys-tertiary-container);
+      --mat-progress-bar-active-indicator-color: var(--pf-warning);
+      --mat-progress-bar-track-color: var(--pf-warning-container);
     }
 
     :host(.over) {
