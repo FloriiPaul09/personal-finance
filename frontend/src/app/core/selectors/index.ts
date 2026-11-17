@@ -1,7 +1,8 @@
 // Public API of core/selectors: fields shared by the movement forms (accounts, categories, kind
-// of movement). A barrel of its own, like core/forms: these are components, and a component
+// of movement) and the account types with their labels and icons. A barrel of its own, like core/forms: these are components, and a component
 // exported from `core` would enter the initial bundle with Material's select
 // (docs/frontend/app-structure.md#boundaries).
 export { AccountSelect } from './account-select';
 export { CategorySelect, type CategoryDisabledReason } from './category-select';
 export { type MovementKind, MovementKindSwitch } from './movement-kind-switch';
+export { ACCOUNT_TYPES, accountTypeInfo, type AccountTypeInfo } from './account-types';

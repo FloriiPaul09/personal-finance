@@ -1,4 +1,4 @@
-import { AccountType } from '../../../core';
+import { AccountType } from '..';
 
 export interface AccountTypeInfo {
   readonly type: AccountType;
