@@ -9,6 +9,8 @@ const PAGES = [
   '/dashboard',
   '/transactions',
   '/transactions/new',
+  '/transactions/new?kind=income',
+  '/transfers/new',
   '/budgets',
   '/accounts',
   '/accounts/new',
