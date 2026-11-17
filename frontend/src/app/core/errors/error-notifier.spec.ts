@@ -20,7 +20,7 @@ describe('ErrorNotifier', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
 
-    TestBed.inject(ErrorNotifier).show(new ApiError(500, 'server.error', {}, '00-trace-01'));
+    await TestBed.inject(ErrorNotifier).show(new ApiError(500, 'server.error', {}, '00-trace-01'));
     const bar = await snackBar();
 
     expect(await bar.getMessage()).toBe('Errore del server. Riprova più tardi.');
@@ -30,7 +30,7 @@ describe('ErrorNotifier', () => {
   });
 
   it('shows a generic message, without action, for errors that are not API errors', async () => {
-    TestBed.inject(ErrorNotifier).show(new Error('boom'));
+    await TestBed.inject(ErrorNotifier).show(new Error('boom'));
     const bar = await snackBar();
 
     expect(await bar.getMessage()).toBe('Si è verificato un errore. Riprova.');

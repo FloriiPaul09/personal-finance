@@ -1,0 +1,43 @@
+// Pages with one form (new account, category, …): a back button next to the title, one column
+// of fields, the actions at the end (docs/frontend/ui-components.md#forms).
+
+@mixin form-page {
+  .heading {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 8px -8px;
+
+    .pf-page-title {
+      margin: 0;
+    }
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 480px;
+
+    mat-form-field,
+    app-amount-input {
+      width: 100%;
+    }
+  }
+
+  .form-error {
+    margin: 0 0 12px;
+    padding: 12px 16px;
+    border-radius: var(--mat-sys-corner-medium);
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+    font: var(--mat-sys-body-medium);
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}

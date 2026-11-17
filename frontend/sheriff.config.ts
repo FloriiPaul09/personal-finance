@@ -12,6 +12,10 @@ export const config: SheriffConfig = {
       core: 'core',
       // Own barrel so @angular/forms stays out of the initial bundle (app-structure.md#boundaries).
       'core/forms': 'core',
+      // Own barrel: components with Material's select, used only by lazy pages.
+      'core/selectors': 'core',
+      // Test data shaped like the API's answers (unit tests only).
+      'core/testing': 'core',
       'shared/<shared>': 'shared',
       'features/<feature>': 'feature',
     },

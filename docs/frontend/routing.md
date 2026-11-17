@@ -6,7 +6,7 @@ Routes of the application, lazy loading, the shell layout and its navigation, pa
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) added the login page, the settings page, the guards and the handling of an expired session (`core/auth/`).
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) added the login page, the settings page, the guards and the handling of an expired session (`core/auth/`); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) the form pages of accounts and categories.
 
 ### Routes
 
@@ -17,8 +17,12 @@ Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.
 | `/transactions` | Movements | `transactions` |
 | `/transactions/new` | New expense (quick entry) | `transactions` |
 | `/budgets` | Budgets | `budgets` |
-| `/accounts` | Accounts | `accounts` |
-| `/categories` | Categories | `categories` |
+| `/accounts` | Accounts with balance | `accounts` |
+| `/accounts/new` | New account | `accounts` |
+| `/accounts/:id` | Edit an account | `accounts` |
+| `/categories?kind=expense\|income` | Categories of a kind (a tab each; expenses without `kind`) | `categories` |
+| `/categories/new?kind=…&parent=…` | New category, optionally of a kind and under a parent | `categories` |
+| `/categories/:id` | Edit a category | `categories` |
 | `/settings` | Account: email, logout, password change | `settings` |
 | `/login` | Login (outside the shell, `guestGuard`) | `auth` |
 | `/unavailable` | "Il server non risponde" with "Riprova" (outside the shell) | `core/layout` |
@@ -45,6 +49,10 @@ Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.
 - The switch between bar and rail is CSS only: no breakpoint state in TypeScript.
 - The floating button ("Nuova spesa") links to `/transactions/new` from every page: it is the fastest path to the main use case.
 - The **account button** (`account_circle`, "Impostazioni") opens `/settings`: fixed at the top right on phones, at the bottom of the rail from 600px. Settings are not a sixth destination. On phones `.pf-page-title` leaves room for the button, so a long title wraps before it.
+
+### Form pages
+
+Block 5: creating or changing an item opens a page, not a dialog (`/accounts/new`, `/accounts/:id`, …): the phone's back button leaves the form, a form can be linked, and the PWA can reopen it. The page has a back button next to its title, its destination stays current in the navigation, and saving goes back to the list (for categories on the tab of the saved kind). An id that does not exist shows "non trovato" with a link back.
 
 ### Page titles
 
@@ -78,6 +86,7 @@ Block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md), code i
 | One interceptor for an expired session, back to the page after the login | Pages handle only their own errors | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | Logout with a full page load | No data of a user stays in memory | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | Settings behind an account button, not a destination | Five destinations at most on phones | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
+| Forms as pages with their own address; category kind in the query string | Back button and links work; the list reopens on the right tab | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 
 ## Tests
 
@@ -88,11 +97,12 @@ Block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md), code i
 - each destination loads its feature lazily, has `aria-current="page"` on its link only and sets the browser title;
 - the new expense button is on every page, has its label and opens the form;
 - an unknown path goes to the dashboard;
+- the form pages of accounts and categories (`/accounts/new`, `/categories/new`) load with their title and keep their destination current (block 5);
 - the account button opens the settings; without a session a page opens the login, with the API down the "unavailable" page (block 3).
 
 `core/layout/page-title-strategy.spec.ts`: title with and without a page title. Block 3: `core/auth/*.spec.ts` (return URL, session store, guards, interceptor), `core/layout/unavailable-page.spec.ts`.
 
-End-to-end ([testing.md](testing.md#end-to-end-playwright)): protected page → login → back to the page; signed-in user sent away from the login; logout; expired session → login with `returnUrl`.
+End-to-end ([testing.md](testing.md#end-to-end-playwright)): protected page → login → back to the page; signed-in user sent away from the login; logout; expired session → login with `returnUrl`; accounts and categories from list to form and back (block 5).
 
 The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720, and by measuring that the page is never taller than the window from 390px to 3840px (a 16px overflow on the rail was found and fixed in review). Since block 3 Playwright repeats the check on every page on a phone (Pixel 7, 412×839) and a 1280×720 desktop, together with reachable navigation buttons and a page title clear of the account button ([testing.md](testing.md)).
 

@@ -7,12 +7,19 @@ export async function signIn(page: Page, email: string, password: string): Promi
   await page.getByRole('button', { name: 'Accedi' }).click();
 }
 
-/** The page is never taller or wider than the window (block 1: a 16px overflow on the rail). */
+/**
+ * The page never scrolls more than its content needs, and never sideways (block 1: the rail
+ * made a short page 16px taller than the window). A long page (a list of categories on a phone)
+ * scrolls, as it should, by the height of its content only.
+ */
 export async function expectNoPageScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(() => ({
-    vertical: document.scrollingElement!.scrollHeight - window.innerHeight,
-    horizontal: document.scrollingElement!.scrollWidth - window.innerWidth,
-  }));
+  const overflow = await page.evaluate(() => {
+    const content = Math.ceil(document.querySelector('main')?.getBoundingClientRect().height ?? 0);
+    return {
+      vertical: document.scrollingElement!.scrollHeight - Math.max(window.innerHeight, content),
+      horizontal: document.scrollingElement!.scrollWidth - window.innerWidth,
+    };
+  });
   expect(overflow).toEqual({ vertical: 0, horizontal: 0 });
 }
 

@@ -1,7 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { ApiError, SessionStore } from '../../../core';
+import { ApiError, Notifier, SessionStore } from '../../../core';
 import { SettingsPage } from './settings-page';
 
 describe('SettingsPage', () => {
@@ -24,7 +23,7 @@ describe('SettingsPage', () => {
             logout,
           },
         },
-        { provide: MatSnackBar, useValue: { open } },
+        { provide: Notifier, useValue: { show: open } },
       ],
     });
     fixture = TestBed.createComponent(SettingsPage);

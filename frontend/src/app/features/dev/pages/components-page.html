@@ -50,6 +50,38 @@
     }
   </section>
 
+  <section class="block" aria-labelledby="selectors-title">
+    <h2 id="selectors-title" class="block-title">Conto e categoria (dati veri)</h2>
+
+    <mat-button-toggle-group
+      class="currency"
+      aria-label="Tipo di categoria"
+      [value]="kind()"
+      (change)="kind.set($event.value)"
+    >
+      <mat-button-toggle value="expense">Uscita</mat-button-toggle>
+      <mat-button-toggle value="income">Entrata</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <form class="form" novalidate (submit)="choose($event)">
+      <app-account-select label="Conto" [formField]="choiceForm.accountId" />
+      <app-category-select label="Categoria" [kind]="kind()" [formField]="choiceForm.categoryId" />
+      <app-category-select
+        label="Categoria madre"
+        noneLabel="Nessuna: è una categoria principale"
+        topLevelOnly
+        [kind]="kind()"
+        [formField]="choiceForm.parentId"
+      />
+      <div class="actions">
+        <button matButton="filled" type="submit">Invia</button>
+      </div>
+    </form>
+
+    <p class="label">Valore del form:</p>
+    <pre data-testid="choice-value">{{ choice() | json }}</pre>
+  </section>
+
   <section class="block" aria-labelledby="amounts-title">
     <h2 id="amounts-title" class="block-title">Importi in lettura</h2>
     <ul class="amounts">

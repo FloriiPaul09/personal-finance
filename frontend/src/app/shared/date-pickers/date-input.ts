@@ -23,7 +23,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { map } from 'rxjs';
-import { INVALID_DATE, IsoDate } from '../dates';
+import { INVALID_DATE, IsoDate, provideIsoDateAdapter } from '../dates';
 
 /** Kind of the error reported when the typed text is not a day. */
 export const DATE_PARSE_ERROR_KIND = 'date';
@@ -70,7 +70,12 @@ export class ItalianDatepickerIntl extends MatDatepickerIntl {
 @Component({
   selector: 'app-date-input',
   imports: [MatDatepickerModule, MatFormFieldModule, MatInputModule],
-  providers: [{ provide: MatDatepickerIntl, useClass: ItalianDatepickerIntl }],
+  // The adapter is provided here, not at startup: Material's date code stays out of the initial
+  // bundle (docs/frontend/app-structure.md#boundaries). Use this field for every date.
+  providers: [
+    provideIsoDateAdapter(),
+    { provide: MatDatepickerIntl, useClass: ItalianDatepickerIntl },
+  ],
   template: `
     <mat-form-field>
       <mat-label>{{ label() }}</mat-label>

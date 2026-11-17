@@ -19,7 +19,7 @@ export class AppErrorHandler implements ErrorHandler {
       return;
     }
     console.error(error);
-    this.injector.get(ErrorNotifier).show(error);
+    void this.injector.get(ErrorNotifier).show(error);
   }
 }
 

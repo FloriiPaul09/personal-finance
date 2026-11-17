@@ -1,0 +1,7 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+.currency-code {
+  font-weight: 500;
+}

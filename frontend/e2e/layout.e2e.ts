@@ -11,7 +11,9 @@ const PAGES = [
   '/transactions/new',
   '/budgets',
   '/accounts',
+  '/accounts/new',
   '/categories',
+  '/categories/new',
   '/settings',
 ];
 

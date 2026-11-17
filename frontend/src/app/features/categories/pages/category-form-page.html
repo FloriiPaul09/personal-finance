@@ -1,0 +1,105 @@
+<section class="pf-page">
+  <div class="heading">
+    <a
+      matIconButton
+      routerLink="/categories"
+      [queryParams]="listQuery()"
+      aria-label="Torna alle categorie"
+      i18n-aria-label="Back button of the category form"
+    >
+      <mat-icon svgIcon="arrow_back" />
+    </a>
+    @if (isNew()) {
+      <h1 class="pf-page-title" i18n="Page title">Nuova categoria</h1>
+    } @else {
+      <h1 class="pf-page-title" i18n="Page title">Modifica categoria</h1>
+    }
+  </div>
+
+  @if (store.error(); as error) {
+    <app-error-state [error]="error" (retry)="store.reload()" />
+  } @else if (store.loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (notFound()) {
+    <app-empty-state
+      icon="category"
+      title="Categoria non trovata"
+      i18n-title="Category form for a category that does not exist"
+      message="Potrebbe essere stata eliminata."
+      i18n-message="Category form for a category that does not exist"
+    >
+      <a matButton="filled" routerLink="/categories" i18n="Button back to the categories"
+        >Torna alle categorie</a
+      >
+    </app-empty-state>
+  } @else {
+    <form class="form" novalidate (submit)="save($event)">
+      @if (changedElsewhere()) {
+        <p class="form-error" role="alert" i18n="Category form after a version conflict">
+          La categoria è stata modificata altrove: ora vedi i dati aggiornati. Rifai le modifiche e
+          salva di nuovo.
+        </p>
+      }
+
+      <mat-form-field>
+        <mat-label i18n="Category form field">Nome</mat-label>
+        <input matInput autocomplete="off" [formField]="categoryForm.name" />
+        @if (categoryForm.name().touched() && categoryForm.name().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="kind" role="group" aria-labelledby="kind-label">
+        <span id="kind-label" class="kind-label" i18n="Category form field">Tipo</span>
+        <mat-button-toggle-group
+          hideSingleSelectionIndicator
+          [formField]="categoryForm.kind"
+          (change)="onKindChange()"
+        >
+          @for (kind of kinds; track kind.kind) {
+            <mat-button-toggle [value]="kind.kind">{{ kind.label }}</mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+        @if (categoryForm.kind().errors()[0]; as error) {
+          <p class="field-error" role="alert">{{ error.message }}</p>
+        } @else if (kindLock(); as reason) {
+          <p class="field-hint">{{ reason }}</p>
+        }
+      </div>
+
+      <app-category-select
+        label="Categoria madre"
+        i18n-label="Category form field"
+        noneLabel="Nessuna: è una categoria principale"
+        i18n-noneLabel="Choice of a top-level category in the parent field"
+        topLevelOnly
+        [kind]="model().kind"
+        [excludeId]="id() ?? null"
+        [hint]="parentHint()"
+        [formField]="categoryForm.parentId"
+      />
+
+      <div class="actions">
+        <a
+          matButton
+          routerLink="/categories"
+          [queryParams]="listQuery()"
+          i18n="Button that leaves the form"
+          >Annulla</a
+        >
+        <button
+          matButton="filled"
+          type="submit"
+          [disabled]="categoryForm().submitting()"
+          data-testid="save-category"
+        >
+          @if (isNew()) {
+            <ng-container i18n="Button that creates a category">Crea categoria</ng-container>
+          } @else {
+            <ng-container i18n="Button that saves a category">Salva</ng-container>
+          }
+        </button>
+      </div>
+    </form>
+  }
+</section>

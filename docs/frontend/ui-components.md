@@ -6,7 +6,7 @@ The UI component library, theming, typography and icons, the shared components b
 
 ## Current state
 
-Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)). Account and category selectors arrive with block 5, the list filter bar with block 6, charts with block 8.
+Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)); account and category selectors, confirmation dialog, messages (`Notifier`), lists with actions and the archive / delete rules since block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)). The list filter bar arrives with block 6, charts with block 8.
 
 ### Foundation
 
@@ -69,13 +69,17 @@ Block 4, [ADR-0024](../architecture/adr/0024-frontend-shared-components.md). Eve
 |---|---|---|
 | `<app-amount-input>` | `shared/money` | Money field of a Signal Form: `<app-amount-input label="Importo" [currency]="account.currency" [formField]="form.amount" />` |
 | `AmountPipe` (`amount`) | `shared/money` | Amounts to read: `{{ balance \| amount: 'EUR' }}` → `1.234,56 €`; `{ signed: true }` → `+50,00 €` |
-| `IsoDateAdapter` | `shared/dates` | Every Material date picker holds a `YYYY-MM-DD` string (provided once in `app.config`) |
+| `IsoDateAdapter` | `shared/dates` | Every Material date picker holds a `YYYY-MM-DD` string (provided by `<app-date-input>`, not at startup) |
 | `<app-date-input>` | `shared/date-pickers` | Date field of a Signal Form: `<app-date-input label="Data" [formField]="form.date" />`; calendar in a dialog on phones, Italian texts |
 | `<app-month-selector [(month)]>` | `shared/date-pickers` | ‹ Novembre 2026 › for budgets and the dashboard, "Mese corrente" when another month is shown, optional `max` |
 | `<app-empty-state>` | `shared/ui` | Nothing to show yet: icon, title, message, projected action |
 | `<app-error-state [error] (retry)>` | `core/feedback` | Data that could not be loaded: Italian message of the `code`, "Riprova", the reference (`traceId`) on its own line with a copy button |
 | Loading | Material | `<mat-progress-bar mode="indeterminate">` above the content while a resource loads |
-| Account and category selectors | `core` (block 5) | Fed by the reference data of `core`; category menu grouped by parent from the flat list (`parentId`) |
+| `<app-account-select>` | `core/selectors` | Account of a Signal Form: `<app-account-select label="Conto" [formField]="form.accountId" />`; active accounts with balance, `excludeId` |
+| `<app-category-select>` | `core/selectors` | Category of a kind: `<app-category-select label="Categoria" kind="expense" [formField]="form.categoryId" />`; parents and indented subcategories, `topLevelOnly`, `excludeId`, `noneLabel` |
+| `confirmAction(dialog, texts)` | `shared/ui` | Asks before an action that cannot be undone; resolves `true` only on the confirm button (`role="alertdialog"`, red confirm button) |
+| `Notifier` | `core/feedback` | Every snackbar: `show(message)`, `undoable(message, undo)` with "Annulla"; loads the snackbar on first use |
+| `searchCurrencies()`, `normalizeCurrency()` | `shared/money` | Currency suggestions from `Intl` named in Italian, common ones first; `eur` → `EUR` |
 | List filter bar | transactions (block 6) | Period, account, category, text for the movement list, in the query string |
 
 Pages show the state of a read with `@if`:
@@ -98,12 +102,37 @@ Pages show the state of a read with `@if`:
 - Rules of the use are validators of the form: `required`, greater than zero for movements (`validate`), and so on.
 - `inputmode="decimal"` opens the numeric keyboard on phones; the currency symbol comes from `Intl` (`€`, `CHF`, `USD`) and the `currency` input.
 
+#### Selectors
+
+Block 5, `core/selectors` (a barrel of its own: components with Material's select stay out of the initial bundle).
+
+- Both are Signal Forms controls holding the **id** (`string | null`), like the API, around a `mat-select` in its own form field: label, hint, first error once touched, red state through an `ErrorStateMatcher`; closing the list counts as leaving the field.
+- Data from the directories of `core/data` ([state-management.md](state-management.md#reference-data)): no request of their own.
+- `<app-account-select>`: active accounts by name with the balance on the right; an archived account only when it is the current value ("(archiviato)"); a hint when there is no active account or the list could not be read.
+- `<app-category-select>`: active categories of `kind`, each top-level category followed by its subcategories indented, all selectable; a subcategory shows as "Trasporti › Carburante" once chosen. `topLevelOnly` (parent of a category), `excludeId`, `noneLabel` (a "none" choice holding `null`, with the label always floating).
+- No search field: a tap opens the list without the keyboard on a phone. With many categories, an autocomplete would replace the select behind the same inputs.
+
+#### Lists
+
+Accounts and categories (block 5) use the same rows (`src/_list-rows.scss`): the **whole row is a link** to the item's form, a **menu button** on the right (`more_vert`, "Azioni per <name>") holds the other actions. Archived rows are dimmed with "Archiviato" / "Archiviata", hidden behind a "Mostra archiviati" toggle shown only when there are some. Balances are the API's (`pf-amount`, red below zero), never added up. Lists and their toolbar stop at 720px, so on a desktop the balance stays next to its name.
+
+#### Archive and delete
+
+| Action | Asks first | Offered when | Afterwards |
+|---|---|---|---|
+| Archivia | No | Always (an archived item keeps its history) | Snackbar with "Annulla" (8 s); for a top-level category "Annulla" restores the subcategories it archived too |
+| Ripristina | No | Archived items; a subcategory only once its parent is active ("Ripristina prima «Casa»") | Snackbar |
+| Elimina | Yes (`confirmAction`) | Account without movements (`hasMovements`), category not used and without subcategories (`isInUse`, `hasSubcategories`) | Snackbar |
+
+- When an action is not possible, its menu item is **disabled with the reason** under it ("Ha dei movimenti: puoi archiviarlo", "È usata: puoi archiviarla", "Ha delle sottocategorie"), so the person learns what to do instead.
+- Forms follow the same rule: the currency of an account with movements, the kind of a used category and the parent of a category with subcategories are disabled with the reason as hint.
+
 #### Dates and months
 
 - `shared/dates` works on `YYYY-MM-DD` (`IsoDate`) and `YYYY-MM` (`IsoMonth`) strings: `todayIso()` (the date on the person's clock, not in UTC), `addDays`, `addMonths` (31 January + 1 month = end of February), `monthOf`, `currentMonth`, `addMonthsToMonth`, `monthRange` (first and last day, for a period filter), `formatIsoDate` (`17 nov 2026`), `formatMonth` (`novembre 2026`).
 - `IsoDateAdapter`: the date picker reads typed dates day first (`17/11/2026`, `17/11/26`, `17-11-2026`, `17.11.2026`, `2026-11-17`), shows `17/11/2026` in the field, starts the week on Monday (from the locale) and never builds a `Date` at local midnight.
 - `<app-date-input>`: holds `YYYY-MM-DD` or `null`, like the API. Text that is not a day ("31/02/2026") is a Signal Forms parse error with an Italian message; with a plain `matDatepicker` input the field turned red without any message (block 4 review). The value is written into the field only when the page changes it, so typing `1/2/2` is not rewritten to `01/02/2002` halfway. The calendar opens in a centered dialog on phones (`touchUi` below 600px), a popup on wider screens, and speaks Italian (`ItalianDatepickerIntl`, provided by the component). `min` / `max` limit the calendar; the form validates the range.
-- **Libraries**: `shared/dates` (helpers and adapter, no components) is imported by `app.config` at startup; the fields live in `shared/date-pickers`, imported only by pages. Exporting the date field from `shared/dates` put the whole date picker in the initial bundle (779 kB instead of 481 kB): a component in a barrel imported at startup is not removed by tree shaking.
+- **Libraries**: `shared/dates` (helpers and adapter, no components); the fields live in `shared/date-pickers`, imported only by pages. Since block 5 the adapter is provided by `<app-date-input>` itself, not by `app.config`: Material's date code no longer loads at startup, so **every date field is an `<app-date-input>`**. Exporting the date field from `shared/dates` put the whole date picker in the initial bundle (779 kB instead of 481 kB): a component in a barrel imported at startup is not removed by tree shaking.
 
 ### Forms
 
@@ -148,6 +177,10 @@ protected async signIn(event: Event): Promise<void> {
 - **Messages appear once the field is touched** (blur, or submit, which touches every field). The `@if` sits directly inside `mat-form-field` with `touched()` in the same condition: a nested `@if` stops `mat-error` from being projected under the field, and it showed inside the input on load (block 3).
 - **Server errors** go through `apiFormErrors()` (`core/forms`): on the fields the API named (`validation.failed`, generic "Valore non valido." because the API's own messages are English), on a field chosen by code (`fieldsByCode`, e.g. `auth.password_incorrect` → `currentPassword`) or on the whole form (`formCodes`, shown in a `role="alert"` paragraph). A server error stays until the field changes, so the same wrong value is not sent twice.
 - `novalidate` on the `<form>`: the browser's own bubbles never show; the submit button is disabled only while submitting (`form().submitting()`), never because the form is invalid, so pressing it shows what is missing.
+- `submit(form, { action, onInvalid: focusFirstError })` (`core/forms`, block 5): pressing "Salva" with errors moves the focus to the first one, which on a phone also scrolls it into view.
+- Form pages (block 5, `src/_form-page.scss`): back button next to the title, one column up to 480px, "Annulla" and the submit button at the end; a `412` shows a message at the top and the current data ([state-management.md](state-management.md#versions)).
+- Material controls that are `ControlValueAccessor`s (`mat-select`, `mat-button-toggle-group`, `matAutocomplete`) take `[formField]` directly: Signal Forms drives them through its interop, `disabled` included.
+- Names are trimmed and a name of spaces only is refused; currencies are three letters, stored upper case.
 - Password fields: `autocomplete` set (`current-password`, `new-password`) for password managers; the login has a show/hide button with `aria-pressed` and a label.
 
 ### Dates and amounts
@@ -183,6 +216,10 @@ protected async signIn(event: Event): Promise<void> {
 | Small state components chosen with `@if`; error state in `core` | Explicit templates; the error state reads `ApiError` | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | Income green from a generated palette (`#2E7D32`) | Material's green palette is neon on dark surfaces | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | Selectors in block 5, filter bar in block 6 | Built with their real data and first page | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
+| Selectors as Material selects in `core/selectors`; archived item only as current value | One tap on a phone; old movements keep their account and category | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| Archive without asking but with "Annulla", delete with confirmation and only when allowed, disabled actions with the reason | Only the irreversible action asks; nothing the API would refuse is offered | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| Forms as pages; categories in a tab per kind | Back button and addresses work on phones; one screen per kind | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| Snackbar through `Notifier`, date adapter in the date field | Nothing of Material's overlays at startup | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 
 ## Tests
 
@@ -190,6 +227,7 @@ protected async signIn(event: Event): Promise<void> {
 - `app-locale.spec.ts`: Italian number and date formats.
 - Forms: `login-page.spec.ts`, `settings-page.spec.ts` (client validation, server errors on the right field or the form, nothing shown before a field is touched, `mat-error` below the field), `api-form-errors.spec.ts`.
 - Theme and layout: checked with screenshots on a phone (390×844, light and dark) and a desktop (1280×720) when block 1 was built; Playwright covers the critical flows on a phone viewport from block 3.
+- Block 5: `account-select.spec.ts`, `category-select.spec.ts` (options, archived current value, exclusions, "none", errors after closing, disabled), `confirm-dialog.spec.ts`, `notifier.spec.ts`, `currencies.spec.ts`; pages and forms of accounts and categories (rows, toggle, empty and error states, archive with "Annulla", restore order, disabled delete with the reason, confirmation, create and edit with `If-Match`, server errors on their field, `412`, focus on the first error, not found).
 - Block 4: `amount.spec.ts` (every accepted and refused text, round trip, JSON value without floating point noise), `amount-input.spec.ts` (number in the model, text kept while typing, canonical text on leaving, parse errors block the form, messages after touch, reset), `amount.pipe.spec.ts`, `iso-date.spec.ts` and `iso-date-adapter.spec.ts` (in three time zones, the date picker with a Signal Form included), `date-input.spec.ts` (in three time zones: typed and picked days, parse error with message, reset, Italian labels), `month-selector.spec.ts`, `empty-state.spec.ts`, `error-state.spec.ts` ([testing.md](testing.md)).
 
 ## Scalability
@@ -205,7 +243,8 @@ protected async signIn(event: Event): Promise<void> {
 ## To do / open questions
 
 - ✅ Block 4: amount input, date adapter, month selector, page states, softer income green ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
-- Block 5: account and category selectors with the reference data of `core`.
+- ✅ Block 5: account and category selectors with the reference data of `core` ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
+- Search in the category selector, if categories grow past a few tens.
 - Block 6: list filter bar for the movements.
 - `Temporal.PlainDate` instead of strings in the adapter, once Safari supports `Temporal`.
 - Block 8: chart library (bar/pie for categories, line for trends, good mobile rendering, active maintenance, theme tokens in light and dark).

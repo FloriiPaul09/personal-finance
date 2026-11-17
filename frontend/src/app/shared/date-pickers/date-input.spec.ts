@@ -5,7 +5,6 @@ import { form, FormField, required } from '@angular/forms/signals';
 import { MatDatepickerToggleHarness } from '@angular/material/datepicker/testing';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { DateInput } from './date-input';
-import { provideIsoDateAdapter } from '../dates';
 import { TIME_ZONES, useTimeZone } from '../testing';
 
 @Component({
@@ -29,8 +28,8 @@ describe('DateInput', () => {
 
     beforeEach(async () => {
       TestBed.configureTestingModule({
+        // No adapter here: the field provides its own, as in the app.
         imports: [MatIconTestingModule],
-        providers: [provideIsoDateAdapter()],
       });
       fixture = TestBed.createComponent(Host);
       host = fixture.componentInstance;
@@ -122,7 +121,6 @@ describe('DateInput', () => {
   it('speaks Italian in the calendar', async () => {
     TestBed.configureTestingModule({
       imports: [MatIconTestingModule],
-      providers: [provideIsoDateAdapter()],
     });
     const fixture = TestBed.createComponent(Host);
     await fixture.whenStable();

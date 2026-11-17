@@ -1,0 +1,113 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Conti</h1>
+
+  <div class="toolbar">
+    <a matButton="tonal" routerLink="new" data-testid="new-account">
+      <mat-icon svgIcon="add" />
+      <ng-container i18n="Button that opens the new account form">Nuovo conto</ng-container>
+    </a>
+    @if (hasArchived()) {
+      <mat-slide-toggle
+        [checked]="showArchived()"
+        (change)="showArchived.set($event.checked)"
+        i18n="Toggle that shows archived accounts"
+        >Mostra archiviati</mat-slide-toggle
+      >
+    }
+  </div>
+
+  @if (store.error(); as error) {
+    <app-error-state [error]="error" (retry)="store.reload()" />
+  } @else if (store.loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (store.all()?.length === 0) {
+    <app-empty-state
+      icon="account_balance_wallet"
+      title="Nessun conto"
+      i18n-title="Empty accounts page"
+      message="Aggiungi il conto corrente, i contanti o una carta per registrare le spese."
+      i18n-message="Empty accounts page"
+    >
+      <a matButton="filled" routerLink="new" i18n="Button of the empty accounts page"
+        >Aggiungi un conto</a
+      >
+    </app-empty-state>
+  } @else if (visible().length === 0) {
+    <app-empty-state
+      icon="inventory_2"
+      title="Tutti i conti sono archiviati"
+      i18n-title="Accounts page with only archived accounts"
+      message="Attiva «Mostra archiviati» per vederli, oppure aggiungi un conto."
+      i18n-message="Accounts page with only archived accounts"
+    />
+  } @else {
+    <ul class="list" aria-label="Conti" i18n-aria-label="List of accounts">
+      @for (account of visible(); track account.id) {
+        <li class="row" [class.archived]="account.isArchived" data-testid="account-row">
+          <a class="main" [routerLink]="account.id">
+            <mat-icon class="type-icon" [svgIcon]="typeOf(account.type).icon" />
+            <span class="text">
+              <span class="name">{{ account.name }}</span>
+              <span class="meta">
+                {{ typeOf(account.type).label }}
+                @if (account.isArchived) {
+                  ·
+                  <ng-container i18n="Label of an archived account">Archiviato</ng-container>
+                }
+              </span>
+            </span>
+            <span class="pf-amount balance" [class.pf-expense]="account.balance < 0">{{
+              account.balance | amount: account.currency
+            }}</span>
+          </a>
+          <button
+            matIconButton
+            type="button"
+            [matMenuTriggerFor]="actions"
+            [matMenuTriggerData]="{ account }"
+            [attr.aria-label]="actionsLabel(account)"
+          >
+            <mat-icon svgIcon="more_vert" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<mat-menu #actions xPosition="before">
+  <ng-template matMenuContent let-account="account">
+    <a mat-menu-item [routerLink]="account.id">
+      <mat-icon svgIcon="edit" />
+      <span i18n="Menu item that opens the account form">Modifica</span>
+    </a>
+    @if (account.isArchived) {
+      <button mat-menu-item type="button" (click)="unarchive(account)">
+        <mat-icon svgIcon="unarchive" />
+        <span i18n="Menu item that restores an archived account">Ripristina</span>
+      </button>
+    } @else {
+      <button mat-menu-item type="button" (click)="archive(account)">
+        <mat-icon svgIcon="archive" />
+        <span i18n="Menu item that archives an account">Archivia</span>
+      </button>
+    }
+    <button
+      mat-menu-item
+      type="button"
+      [disabled]="account.hasMovements"
+      (click)="delete(account)"
+      data-testid="delete-account"
+    >
+      <mat-icon svgIcon="delete" />
+      <span class="menu-text">
+        <span i18n="Menu item that deletes an account">Elimina</span>
+        @if (account.hasMovements) {
+          <span class="menu-hint" i18n="Why an account cannot be deleted"
+            >Ha dei movimenti: puoi archiviarlo</span
+          >
+        }
+      </span>
+    </button>
+  </ng-template>
+</mat-menu>

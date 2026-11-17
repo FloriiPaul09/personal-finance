@@ -6,7 +6,9 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ApiError, ErrorState } from '../../../core';
+import { ApiError, CategoryKind, ErrorState } from '../../../core';
+import { focusFirstError } from '../../../core/forms';
+import { AccountSelect, CategorySelect } from '../../../core/selectors';
 import { DateInput, MonthSelector } from '../../../shared/date-pickers';
 import { currentMonth, formatIsoDate, IsoMonth, monthRange, todayIso } from '../../../shared/dates';
 import { AmountInput, AmountPipe } from '../../../shared/money';
@@ -20,7 +22,9 @@ import { EmptyState } from '../../../shared/ui';
 @Component({
   selector: 'app-components-page',
   imports: [
+    AccountSelect,
     AmountInput,
+    CategorySelect,
     AmountPipe,
     DateInput,
     EmptyState,
@@ -76,6 +80,25 @@ export class ComponentsPage {
     '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
   );
   protected readonly loading = signal(true);
+
+  protected readonly kind = signal<CategoryKind>('expense');
+  protected readonly choice = signal<{
+    accountId: string | null;
+    categoryId: string | null;
+    parentId: string | null;
+  }>({ accountId: null, categoryId: null, parentId: null });
+  protected readonly choiceForm = form(this.choice, (path) => {
+    required(path.accountId, { message: 'Scegli il conto.' });
+    required(path.categoryId, { message: 'Scegli la categoria.' });
+  });
+
+  protected async choose(event: Event): Promise<void> {
+    event.preventDefault();
+    await submit(this.choiceForm, {
+      action: async () => undefined,
+      onInvalid: (field) => focusFirstError(field),
+    });
+  }
 
   /** What a page would send to the API (nothing is sent here). */
   protected readonly sent = signal<unknown>(null);
