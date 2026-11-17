@@ -114,7 +114,7 @@ Block 5, `core/selectors` (a barrel of its own: components with Material's selec
 
 #### Lists
 
-Accounts and categories (block 5) use the same rows (`src/_list-rows.scss`): the **whole row is a link** to the item's form, a **menu button** on the right (`more_vert`, "Azioni per <name>") holds the other actions. Archived rows are dimmed with "Archiviato" / "Archiviata", hidden behind a "Mostra archiviati" toggle shown only when there are some. Balances are the API's (`pf-amount`, red below zero), never added up.
+Accounts and categories (block 5) use the same rows (`src/_list-rows.scss`): the **whole row is a link** to the item's form, a **menu button** on the right (`more_vert`, "Azioni per <name>") holds the other actions. Archived rows are dimmed with "Archiviato" / "Archiviata", hidden behind a "Mostra archiviati" toggle shown only when there are some. Balances are the API's (`pf-amount`, red below zero), never added up. Lists and their toolbar stop at 720px, so on a desktop the balance stays next to its name.
 
 #### Archive and delete
 
