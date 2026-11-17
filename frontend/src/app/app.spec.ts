@@ -1,27 +1,41 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
-import { provideAppIcons, providePageTitles } from './core';
+import { provideAppIcons, providePageTitles, SessionStatus, SessionStore } from './core';
 
 // Routing and shell together, as the app runs them (icon requests are left unanswered).
+// The session is a stub: its own behavior is tested in core/auth.
+async function startApp(status: SessionStatus): Promise<RouterTestingHarness> {
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter(routes),
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      providePageTitles(),
+      provideAppIcons(),
+      {
+        provide: SessionStore,
+        useValue: {
+          ensureLoaded: () => Promise.resolve(status),
+          status: signal(status),
+          user: signal(status === 'authenticated' ? { id: '1', email: 'dev@example.com' } : null),
+        },
+      },
+    ],
+  });
+  return RouterTestingHarness.create();
+}
+
 describe('App routes and shell', () => {
   let harness: RouterTestingHarness;
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter(routes),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        providePageTitles(),
-        provideAppIcons(),
-      ],
-    });
-    harness = await RouterTestingHarness.create();
+    harness = await startApp('authenticated');
   });
 
   function navLinks(): HTMLAnchorElement[] {
@@ -83,5 +97,46 @@ describe('App routes and shell', () => {
     await harness.navigateByUrl('/does-not-exist');
 
     expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('opens the settings from the account button', async () => {
+    await harness.navigateByUrl('/accounts');
+
+    const account = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
+      '[data-testid="settings"]',
+    )!;
+    expect(account.getAttribute('href')).toBe('/settings');
+    expect(account.getAttribute('aria-label')).toBe('Impostazioni');
+
+    account.click();
+    await harness.fixture.whenStable();
+    expect(heading()).toBe('Impostazioni');
+    expect(TestBed.inject(Title).getTitle()).toBe('Impostazioni · Personal Finance');
+  });
+});
+
+describe('App routes without a session', () => {
+  it('opens the login page instead of a page of the shell, and comes back afterwards', async () => {
+    const harness = await startApp('anonymous');
+
+    await harness.navigateByUrl('/accounts');
+
+    expect(TestBed.inject(Router).url).toBe('/login?returnUrl=%2Faccounts');
+    expect(harness.routeNativeElement!.querySelector('h1')?.textContent?.trim()).toBe(
+      'Personal Finance',
+    );
+    expect(harness.routeNativeElement!.querySelector('nav')).toBeNull();
+    expect(TestBed.inject(Title).getTitle()).toBe('Accedi · Personal Finance');
+  });
+
+  it('shows the unavailable page when the API cannot be reached', async () => {
+    const harness = await startApp('unavailable');
+
+    await harness.navigateByUrl('/dashboard');
+
+    expect(TestBed.inject(Router).url).toBe('/unavailable?returnUrl=%2Fdashboard');
+    expect(harness.routeNativeElement!.querySelector('h1')?.textContent?.trim()).toBe(
+      'Il server non risponde',
+    );
   });
 });

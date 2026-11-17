@@ -27,7 +27,7 @@ Coverage follows these risks, not a percentage.
 | API integration | xUnit v3 + `WebApplicationFactory` + Testcontainers (real PostgreSQL) | Endpoints through HTTP: validation, persistence, query filters, authentication | `backend/tests/Api.Tests` |
 | Architecture | ArchUnitNET ([ADR-0012](adr/0012-api-foundation.md)) | Dependency rules of [ADR-0002](adr/0002-backend-structure.md) (e.g. `Domain` references nothing), slice rules, no `IgnoreQueryFilters` in `Api` | `backend/tests/Architecture.Tests` |
 | Frontend unit | Vitest through the Angular `@angular/build:unit-test` builder, jsdom | Shared components and logic: amount input, date adapter, services with logic | `frontend/src/**/*.spec.ts` |
-| End-to-end | Playwright | A few critical flows on the full stack | Location to define in `[Frontend]` block 3 ([frontend/testing.md](../frontend/testing.md)) |
+| End-to-end | Playwright | A few critical flows on the full stack | `frontend/e2e/`, real API, phone and desktop projects ([ADR-0023](adr/0023-frontend-authentication.md), [frontend/testing.md](../frontend/testing.md#end-to-end-playwright)) |
 
 Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.json`), the default runner of xUnit v3 4.x and of the .NET 10 SDK. A test project that runs zero tests fails, so every project keeps at least one test.
 
@@ -56,7 +56,7 @@ Measured for backend and frontend and shown in CI, **without a mandatory thresho
 
 ### Where tests run
 
-- **Locally**: `dotnet test` in `backend/` (Docker running for integration tests), `pnpm test` in `frontend/` (`--watch=false` for a single run), Playwright for end-to-end.
+- **Locally**: `dotnet test` in `backend/` (Docker running for integration tests), `pnpm test` in `frontend/` (`--watch=false` for a single run), `pnpm e2e` in `frontend/` for end-to-end (database running; the API and the dev server are started when needed).
 - **CI (GitHub Actions)**: build and all backend and frontend tests on every pull request and push to the main branch; when end-to-end tests run is decided in `[DevOps]` part 2.
 - A pull request is merged only with all tests green (required checks on `main`, [ADR-0009](adr/0009-repository-workflow.md)).
 
@@ -89,8 +89,8 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 - ✅ `[Backend]` How tests authenticate (test handler for resources, real login for authentication) and test data (`TestData` factories) — [ADR-0014](adr/0014-authentication-endpoints-and-sessions.md); ✅ expected status for cross-user access: `404` ([ADR-0013](adr/0013-error-responses-and-concurrency.md)) ([backend/README.md](../backend/README.md)).
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - ✅ `[Frontend]` Vitest coverage provider: `v8` ([ADR-0021](adr/0021-frontend-foundation.md)).
-- `[Frontend]` Playwright location and phone viewport (block 3).
+- ✅ `[Frontend]` Playwright location and phone viewport: `frontend/e2e/`, Pixel 7 and 1280×720 desktop ([ADR-0023](adr/0023-frontend-authentication.md)).
 - `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-17_

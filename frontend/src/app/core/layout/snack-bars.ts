@@ -7,9 +7,14 @@ import { MAT_SNACK_BAR_DEFAULT_OPTIONS, MatSnackBarConfig } from '@angular/mater
  * the whole time it was shown (found in block 2 review).
  */
 export const SNACK_BAR_PANEL_CLASS = 'pf-snackbar';
+/** How long a confirmation stays on screen (errors stay longer, `ERROR_DURATION_MS`). */
+export const SNACK_BAR_DURATION_MS = 4000;
 
 /** Defaults for every snackbar; options passed to `open()` are merged on top of them. */
 export function provideSnackBars(): Provider {
-  const defaults: MatSnackBarConfig = { panelClass: [SNACK_BAR_PANEL_CLASS] };
+  const defaults: MatSnackBarConfig = {
+    panelClass: [SNACK_BAR_PANEL_CLASS],
+    duration: SNACK_BAR_DURATION_MS,
+  };
   return { provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: defaults };
 }

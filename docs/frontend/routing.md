@@ -2,11 +2,11 @@
 
 ## Scope
 
-Routes of the application, lazy loading, the shell layout and its navigation, page titles, and (from block 3) the login page, the route guard and the redirect on `401`.
+Routes of the application, lazy loading, the shell layout and its navigation, page titles, the login page, the route guards and what happens when the session ends.
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Login, guard and `401` handling arrive with block 3.
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) added the login page, the settings page, the guards and the handling of an expired session (`core/auth/`).
 
 ### Routes
 
@@ -19,11 +19,14 @@ Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.
 | `/budgets` | Budgets | `budgets` |
 | `/accounts` | Accounts | `accounts` |
 | `/categories` | Categories | `categories` |
+| `/settings` | Account: email, logout, password change | `settings` |
+| `/login` | Login (outside the shell, `guestGuard`) | `auth` |
+| `/unavailable` | "Il server non risponde" with "Riprova" (outside the shell) | `core/layout` |
 | `**` | Redirect to `/dashboard` | — |
 
 - **Paths are English** and do not change with the language of the UI: links and bookmarks keep working in every locale.
 - Every feature is **loaded on demand** from its barrel: `loadChildren: () => import('./features/accounts').then((m) => m.ACCOUNTS_ROUTES)`.
-- Every route above, except redirects, is a child of the **shell** route (`path: ''`, component `Shell`). Pages without the navigation (login, block 3) are siblings of the shell.
+- Every route above, except redirects, `/login` and `/unavailable`, is a child of the **shell** route (`path: ''`, component `Shell`, `canMatch: [authGuard]`). Pages without the navigation are siblings of the shell.
 - `withComponentInputBinding()`: route and query parameters reach the page as inputs (e.g. `id` of `/accounts/:id`, `month` of `/budgets?month=2026-11`).
 
 ### Shell and navigation
@@ -39,17 +42,27 @@ Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.
 - The active item shows the filled icon and the indicator; its link has `aria-current="page"`.
 - The switch between bar and rail is CSS only: no breakpoint state in TypeScript.
 - The floating button ("Nuova spesa") links to `/transactions/new` from every page: it is the fastest path to the main use case.
+- The **account button** (`account_circle`, "Impostazioni") opens `/settings`: fixed at the top right on phones, at the bottom of the rail from 600px. Settings are not a sixth destination. On phones `.pf-page-title` leaves room for the button, so a long title wraps before it.
 
 ### Page titles
 
 Each route has a `title` (translated with `$localize`). `PageTitleStrategy` sets the browser title to `"<title> · Personal Finance"`, or `"Personal Finance"` when a route has none.
 
-### Authentication (block 3)
+### Authentication
 
-Planned, to be confirmed with block 3:
+Block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md), code in `core/auth/`:
 
-- `/login` outside the shell; the shell route protected by a guard that asks the session state (`GET /api/auth/me` at startup, [backend/security.md](../backend/security.md)).
-- An HTTP interceptor sends the user to `/login?returnUrl=…` on any `401`.
+| Situation | What happens |
+|---|---|
+| A protected page is opened | `authGuard` (`canMatch` on the shell) asks `SessionStore.ensureLoaded()`: one `GET /api/auth/me` per page load, shared by concurrent calls |
+| No session (`me` answers `401`) | `/login?returnUrl=<page>`; after the login the user lands on that page |
+| The API cannot be reached | `/unavailable?returnUrl=<page>`: message and "Riprova", which navigates to the page again (and asks `me` again) |
+| A signed-in user opens `/login` | `guestGuard` sends them to `returnUrl`, or to the dashboard |
+| A request answers `401 auth.required` (expired session, password changed elsewhere) | `sessionInterceptor` marks the session signed out and opens `/login?returnUrl=<current page>`; the error reaches the caller, the global handler stays silent. `/api/auth/me` and `/api/auth/login` are excluded: their `401` is an answer, not an expired session |
+| "Esci" in the settings | `POST /api/auth/logout`, then a **full page load** of `/login`, which drops every store |
+
+- `safeReturnUrl()` accepts only paths of the app: absolute URLs, `//host`, backslashes and the login page itself become `/dashboard` (no open redirect).
+- The login keeps the user signed in by default ("Resta connesso" checked: 14-day sliding cookie, [backend/security.md](../backend/security.md)).
 
 ## Decisions
 
@@ -59,6 +72,10 @@ Planned, to be confirmed with block 3:
 | Navigation bar on phones, rail from 600px, floating new expense button | One-handed use; adding an expense is one tap from every page | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Shell as a parent route | Pages without navigation (login) need no condition in the layout | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Unknown paths redirect to the dashboard | No dead end for a mistyped or old link | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| Session asked on the first protected page, `canMatch` guards, `/unavailable` when the API is down | Startup never waits for the network; lazy code is not loaded for a signed-out user | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
+| One interceptor for an expired session, back to the page after the login | Pages handle only their own errors | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
+| Logout with a full page load | No data of a user stays in memory | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
+| Settings behind an account button, not a destination | Five destinations at most on phones | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 
 ## Tests
 
@@ -68,24 +85,28 @@ Planned, to be confirmed with block 3:
 - the navigation shows the five destinations in Italian, with their links;
 - each destination loads its feature lazily, has `aria-current="page"` on its link only and sets the browser title;
 - the new expense button is on every page, has its label and opens the form;
-- an unknown path goes to the dashboard.
+- an unknown path goes to the dashboard;
+- the account button opens the settings; without a session a page opens the login, with the API down the "unavailable" page (block 3).
 
-`core/layout/page-title-strategy.spec.ts`: title with and without a page title.
+`core/layout/page-title-strategy.spec.ts`: title with and without a page title. Block 3: `core/auth/*.spec.ts` (return URL, session store, guards, interceptor), `core/layout/unavailable-page.spec.ts`.
 
-The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720, and by measuring that the page is never taller than the window from 390px to 3840px (a 16px overflow on the rail was found and fixed in review); the end-to-end tests of block 3 run on a phone viewport and keep that check ([testing.md](testing.md)).
+End-to-end ([testing.md](testing.md#end-to-end-playwright)): protected page → login → back to the page; signed-in user sent away from the login; logout; expired session → login with `returnUrl`.
+
+The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720, and by measuring that the page is never taller than the window from 390px to 3840px (a 16px overflow on the rail was found and fixed in review). Since block 3 Playwright repeats the check on every page on a phone (Pixel 7, 412×839) and a 1280×720 desktop, together with reachable navigation buttons and a page title clear of the account button ([testing.md](testing.md)).
 
 ## Scalability
 
 - **New feature**: one entry in `app.routes.ts`; a sixth destination does not fit the phone bar, so it goes in a page of an existing destination or in a "more" destination.
 - **Deep links** (`/transactions/:id`, filters in the query string) work with input binding and survive reloads.
 - **PWA**: the service worker serves `index.html` for every path; routes need no change.
-- **Multi-user / roles**: guards per route (`canMatch`) when roles exist.
+- **Multi-user / roles**: guards per route (`canMatch`) when roles exist; `SessionStore.user` is where roles would be read.
+- **PWA offline**: `SessionStore` can answer from the last known user instead of `unavailable`, so the app opens offline.
 
 ## To do / open questions
 
-- Block 3: login page, guard, `401` interceptor, logout; end-to-end login test.
+- ✅ Block 3: login page, guards, expired session, logout, settings; end-to-end tests ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
 - Block 6: access to transfers (from the new expense form and from the movement list).
 - Filters in the query string for the movement list (block 6), so a filtered list can be bookmarked.
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-17_

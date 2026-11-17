@@ -10,6 +10,8 @@ export const config: SheriffConfig = {
   modules: {
     'src/app': {
       core: 'core',
+      // Own barrel so @angular/forms stays out of the initial bundle (app-structure.md#boundaries).
+      'core/forms': 'core',
       'shared/<shared>': 'shared',
       'features/<feature>': 'feature',
     },

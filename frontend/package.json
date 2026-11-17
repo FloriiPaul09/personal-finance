@@ -9,7 +9,9 @@
     "test": "ng test",
     "test:coverage": "ng test --watch=false --coverage",
     "lint": "ng lint",
-    "api:types": "node scripts/api-types.mjs"
+    "api:types": "node scripts/api-types.mjs",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
   },
   "private": true,
   "packageManager": "pnpm@11.28.9",
@@ -35,8 +37,10 @@
     "@angular/compiler-cli": "^22.2.0",
     "@angular/localize": "^22.2.6",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.65.1",
     "@softarc/eslint-plugin-sheriff": "^0.20.0",
     "@softarc/sheriff-core": "^0.20.0",
+    "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "5.1.0",
     "angular-eslint": "22.6.0",
     "eslint": "^10.12.0",

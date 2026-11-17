@@ -25,6 +25,19 @@
         <span class="label">{{ item.label }}</span>
       </a>
     }
+
+    <a
+      class="account"
+      matIconButton
+      [routerLink]="settingsPath"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      aria-label="Impostazioni"
+      i18n-aria-label
+      data-testid="settings"
+    >
+      <mat-icon svgIcon="account_circle" />
+    </a>
   </nav>
 
   <main class="content">

@@ -56,6 +56,19 @@ body {
   }
 }
 
+// Pages outside the shell (login, server unavailable): one centered column.
+.pf-centered {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px 16px;
+  text-align: center;
+}
+
 // Page layout shared by every feature page.
 .pf-page {
   box-sizing: border-box;
@@ -67,4 +80,14 @@ body {
 .pf-page-title {
   margin: 8px 0 16px;
   font: var(--mat-sys-headline-small);
+  overflow-wrap: anywhere;
+}
+
+// On phones the account button is fixed at the top right (shell.scss): a long title
+// wraps before reaching it instead of running underneath
+// (40px = 8px from the edge + 40px button - 16px page padding + 8px gap).
+@media (max-width: 599.98px) {
+  .pf-page-title {
+    padding-inline-end: 40px;
+  }
 }

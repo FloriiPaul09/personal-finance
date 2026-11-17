@@ -24,5 +24,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { path: '/categories', icon: 'category', label: $localize`:Main navigation item:Categorie` },
 ];
 
+/** Account and settings (logout, password), reached from the account button of the shell. */
+export const SETTINGS_PATH = '/settings';
+
 /** Route of the quick-entry form, reachable from every page through the floating button. */
 export const NEW_EXPENSE_PATH = '/transactions/new';

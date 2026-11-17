@@ -1,0 +1,25 @@
+.block {
+  max-width: 480px;
+  margin-bottom: 32px;
+}
+
+.block-title {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-medium);
+}
+
+.email {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.password-form button {
+  align-self: flex-start;
+  margin-top: 8px;
+}

@@ -30,6 +30,18 @@
   bottom: calc(80px + 16px + env(safe-area-inset-bottom));
 }
 
+// Phone: top right of the page, away from the thumb's path.
+.account {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  color: var(--mat-sys-on-surface-variant);
+
+  &.active {
+    color: var(--mat-sys-primary);
+  }
+}
+
 .nav-item {
   display: flex;
   flex: 1;
@@ -90,6 +102,14 @@
     height: 100dvh;
     padding: 16px 0 0;
     background: var(--mat-sys-surface);
+  }
+
+  // At the bottom of the rail.
+  .account {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: auto 0 16px;
   }
 
   .new-expense {

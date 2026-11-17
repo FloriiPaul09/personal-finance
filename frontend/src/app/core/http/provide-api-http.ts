@@ -11,6 +11,7 @@ import {
   provideAppInitializer,
 } from '@angular/core';
 import { firstValueFrom, timeout } from 'rxjs';
+import { sessionInterceptor } from '../auth/session-interceptor';
 import { apiErrorInterceptor } from './api-error-interceptor';
 
 /** Endpoint that sets the antiforgery cookies (docs/backend/security.md#csrf). */
@@ -24,13 +25,15 @@ export const ANTIFORGERY_TIMEOUT_MS = 5000;
  *   cookie is copied into the `X-XSRF-TOKEN` header of every POST / PUT / PATCH / DELETE to the
  *   same origin. Angular reads the cookie at each request, so the new token set by login and
  *   logout is picked up without code;
- * - every API error becomes an `ApiError` (`apiErrorInterceptor`);
+ * - every API error becomes an `ApiError` (`apiErrorInterceptor`); a `401` on an ordinary request
+ *   ends the session and opens the login page (`sessionInterceptor`);
  * - the antiforgery cookie is requested once at startup, before the first page.
  */
 export function provideApiHttp(): EnvironmentProviders {
   return makeEnvironmentProviders([
     provideHttpClient(
-      withInterceptors([apiErrorInterceptor]),
+      // Outer first: the session interceptor sees the ApiError made by the inner one.
+      withInterceptors([sessionInterceptor, apiErrorInterceptor]),
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' }),
     ),
     provideAppInitializer(() => requestAntiforgeryToken(inject(HttpClient))),
