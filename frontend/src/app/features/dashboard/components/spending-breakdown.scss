@@ -1,0 +1,73 @@
+// Phone: the donut above its list. A wider card: the donut on the left, the list beside it.
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px 24px;
+  container-type: inline-size;
+}
+
+.rows,
+.more {
+  justify-self: stretch;
+}
+
+@container (min-width: 480px) {
+  :host {
+    grid-template-columns: 176px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  app-donut-chart {
+    grid-row: span 2;
+  }
+
+  .more {
+    justify-self: start;
+  }
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding-inline: 8px 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mat-sys-corner-small);
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
+}
+
+.swatch {
+  flex: none;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font: var(--mat-sys-body-large);
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex: none;
+  color: var(--mat-sys-on-surface-variant);
+}

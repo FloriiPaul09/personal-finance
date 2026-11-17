@@ -77,3 +77,29 @@ pre {
   gap: 16px;
   max-width: 480px;
 }
+
+.chart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+}
+
+.legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+  }
+}
+
+.swatch {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+}

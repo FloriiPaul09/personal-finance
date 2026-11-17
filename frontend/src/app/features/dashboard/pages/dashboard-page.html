@@ -1,0 +1,219 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Home</h1>
+
+  @if (!firstUse()) {
+    <div class="toolbar">
+      <app-month-selector [month]="view()" [max]="today" (monthChange)="setMonth($event)" />
+    </div>
+  }
+
+  @if (dashboard.error(); as error) {
+    <app-error-state [error]="error" (retry)="dashboard.reload()" />
+  } @else if (dashboard.loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (firstUse()) {
+    <app-empty-state
+      icon="account_balance_wallet"
+      title="Aggiungi il tuo primo conto"
+      i18n-title="Home page without accounts"
+      message="Il conto corrente, i contanti o una carta: poi registra le spese e qui vedrai come va il mese."
+      i18n-message="Home page without accounts"
+      data-testid="first-use"
+    >
+      <a
+        matButton="filled"
+        routerLink="/accounts/new"
+        i18n="Button of the home page without accounts"
+        >Aggiungi un conto</a
+      >
+    </app-empty-state>
+  } @else if (dashboard.value(); as data) {
+    <div class="sections">
+      <!-- 2. Income, expenses and net of the month -->
+      <section class="card totals" aria-labelledby="totals-title" data-testid="totals">
+        <div class="card-header">
+          <h2 id="totals-title" i18n="Section of the home page">Entrate e uscite</h2>
+          <a matButton routerLink="/transactions" [queryParams]="{ month: view() }"
+            ><ng-container i18n="Link of the home page to the movement list"
+              >Movimenti</ng-container
+            >
+            <mat-icon svgIcon="chevron_right" iconPositionEnd
+          /></a>
+        </div>
+        @for (total of data.totals; track total.currency) {
+          <dl class="figures" data-testid="totals-row" [attr.data-currency]="total.currency">
+            <div class="figure">
+              <dt i18n="Income of the month">Entrate</dt>
+              <dd class="pf-amount pf-income" data-testid="income">
+                {{ total.income | amount: total.currency }}
+              </dd>
+            </div>
+            <div class="figure">
+              <dt i18n="Expenses of the month">Uscite</dt>
+              <dd class="pf-amount pf-expense" data-testid="expense">
+                {{ total.expense | amount: total.currency }}
+              </dd>
+            </div>
+            <div class="figure">
+              <dt i18n="Income minus expenses of the month">Saldo netto</dt>
+              <dd class="pf-amount" [class.pf-expense]="total.net < 0" data-testid="net">
+                {{ total.net | amount: total.currency : { signed: true } }}
+              </dd>
+            </div>
+          </dl>
+        } @empty {
+          <div class="empty">
+            <p i18n="Home page section without movements">Nessun movimento in questo mese.</p>
+            <a
+              matButton="tonal"
+              routerLink="/transactions/new"
+              i18n="Button of an empty home page section"
+              >Aggiungi una spesa</a
+            >
+          </div>
+        }
+      </section>
+
+      <!-- 3. The budgets closest to their limit -->
+      <section class="card" aria-labelledby="budgets-title" data-testid="budgets">
+        <div class="card-header">
+          <h2 id="budgets-title" i18n="Section of the home page">Budget</h2>
+          @if (budgetCount() > 0) {
+            <a
+              matButton
+              routerLink="/budgets"
+              [queryParams]="{ month: view() }"
+              data-testid="all-budgets"
+            >
+              @if (budgetCount() > budgets().length) {
+                <ng-container i18n="Link of the home page to every budget, with their number"
+                  >Vedi tutti ({{ budgetCount() }})</ng-container
+                >
+              } @else {
+                <ng-container i18n="Link of the home page to the budgets page"
+                  >Vai ai budget</ng-container
+                >
+              }
+              <mat-icon svgIcon="chevron_right" iconPositionEnd />
+            </a>
+          }
+        </div>
+        @for (row of budgets(); track row.item.categoryId) {
+          <a
+            class="budget"
+            routerLink="/transactions"
+            [queryParams]="{ categoryId: row.item.categoryId, month: view() }"
+            data-testid="budget-row"
+          >
+            <span class="name">{{ row.name }}</span>
+            <app-budget-progress
+              [figures]="row.item"
+              [currency]="budgetCurrency"
+              [label]="row.name"
+            />
+          </a>
+        } @empty {
+          <div class="empty">
+            <p i18n="Home page section without budgets">Nessun budget in questo mese.</p>
+            <a
+              matButton="tonal"
+              routerLink="/budgets/new"
+              [queryParams]="{ month: view() }"
+              i18n="Button of an empty home page section"
+              >Imposta un budget</a
+            >
+          </div>
+        }
+      </section>
+
+      <!-- 4. Spending per category -->
+      <section class="card" aria-labelledby="spending-title" data-testid="spending">
+        <div class="card-header">
+          <h2 id="spending-title" i18n="Section of the home page">Spesa per categoria</h2>
+        </div>
+        @for (group of spending(); track group.currency) {
+          @if (manyCurrencies()) {
+            <h3 class="currency">{{ group.currency }}</h3>
+          }
+          <app-spending-breakdown
+            [items]="group.items"
+            [currency]="group.currency"
+            [month]="view()"
+          />
+        } @empty {
+          <div class="empty">
+            <p i18n="Home page section without expenses">Nessuna spesa in questo mese.</p>
+            <a
+              matButton="tonal"
+              routerLink="/transactions/new"
+              i18n="Button of an empty home page section"
+              >Aggiungi una spesa</a
+            >
+          </div>
+        }
+      </section>
+
+      <!-- 5. Accounts with their current balance -->
+      <section class="card" aria-labelledby="accounts-title" data-testid="accounts">
+        <div class="card-header">
+          <h2
+            id="accounts-title"
+            i18n="Section of the home page: balances of today, whatever the month"
+          >
+            Saldi attuali
+          </h2>
+          <a matButton routerLink="/accounts"
+            ><ng-container i18n="Link of the home page to the accounts page">Conti</ng-container>
+            <mat-icon svgIcon="chevron_right" iconPositionEnd
+          /></a>
+        </div>
+        <ul
+          class="accounts"
+          aria-label="Conti attivi"
+          i18n-aria-label="List of the active accounts"
+        >
+          @for (account of data.accounts; track account.id) {
+            <li>
+              <a
+                class="account"
+                routerLink="/transactions"
+                [queryParams]="{ accountId: account.id, month: view() }"
+                data-testid="account-row"
+              >
+                <mat-icon class="type-icon" [svgIcon]="typeOf(account.type).icon" />
+                <span class="name">{{ account.name }}</span>
+                <span class="pf-amount" [class.pf-expense]="account.balance < 0">{{
+                  account.balance | amount: account.currency
+                }}</span>
+              </a>
+            </li>
+          } @empty {
+            <li class="empty" i18n="Home page with archived accounts only">Nessun conto attivo.</li>
+          }
+        </ul>
+        @for (balance of data.balances; track balance.currency) {
+          <div class="total" data-testid="balance-total" [attr.data-currency]="balance.currency">
+            <span class="name">
+              @if (manyCurrencies()) {
+                <ng-container i18n="Total balance of the accounts in a currency"
+                  >Totale in {{ balance.currency }}</ng-container
+                >
+              } @else {
+                <ng-container i18n="Total balance of the accounts">Totale</ng-container>
+              }
+            </span>
+            <span class="pf-amount" [class.pf-expense]="balance.balance < 0">{{
+              balance.balance | amount: balance.currency
+            }}</span>
+            @if (balance.archivedBalance !== 0) {
+              <span class="archived" i18n="Part of the total balance on archived accounts"
+                >di cui {{ balance.archivedBalance | amount: balance.currency }} su conti
+                archiviati</span
+              >
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
+</section>

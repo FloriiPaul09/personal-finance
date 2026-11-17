@@ -49,3 +49,6 @@ export type UpdateBudgetRequest = Schemas['UpdateBudgetRequest'];
 export type BudgetProgressResponse = Schemas['BudgetProgressResponse'];
 
 export type DashboardResponse = Schemas['DashboardResponse'];
+export type CurrencyBalanceResponse = Schemas['CurrencyBalanceResponse'];
+export type PeriodTotalsResponse = Schemas['PeriodTotalsResponse'];
+export type CategorySpendingResponse = Schemas['CategorySpendingResponse'];

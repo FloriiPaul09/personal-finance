@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ApiError, CategoryKind, ErrorState } from '../../../core';
 import { focusFirstError } from '../../../core/forms';
 import { AccountSelect, CategorySelect } from '../../../core/selectors';
+import { chartColor, DonutChart, DonutSlice } from '../../../shared/charts';
 import { DateInput, MonthSelector } from '../../../shared/date-pickers';
 import { currentMonth, formatIsoDate, IsoMonth, monthRange, todayIso } from '../../../shared/dates';
 import { AmountInput, AmountPipe } from '../../../shared/money';
@@ -28,6 +29,7 @@ import { BudgetFigures, BudgetProgress, EmptyState } from '../../../shared/ui';
     AmountPipe,
     BudgetProgress,
     DateInput,
+    DonutChart,
     EmptyState,
     ErrorState,
     FormField,
@@ -73,6 +75,22 @@ export class ComponentsPage {
       isOverBudget: true,
     },
   ];
+
+  /** Seven parts: the five chart colors in their order, then two in the neutral color. */
+  protected readonly slices: DonutSlice[] = [
+    ['Spesa', 412.3],
+    ['Casa', 350],
+    ['Carburante', 120.5],
+    ['Svago', 86],
+    ['Salute', 45.9],
+    ['Regali', 30],
+    ['Altro', 12],
+  ].map(([label, value], index) => ({
+    label: label as string,
+    value: value as number,
+    color: chartColor(index),
+  }));
+  protected readonly formatSlice = (value: number) => `${value} ${this.currency()}`;
 
   protected readonly entry = signal<{
     amount: number | null;

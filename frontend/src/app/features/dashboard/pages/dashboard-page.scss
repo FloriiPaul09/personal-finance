@@ -1,0 +1,173 @@
+// One column on phones; from 905px (M3 "medium" window and up, with the rail) two columns:
+// income and expenses across the top, then budgets beside the spending, then the accounts.
+.toolbar {
+  margin-bottom: 16px;
+}
+
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 905px) {
+  .sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .totals {
+    grid-column: 1 / -1;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px 16px;
+  border-radius: var(--mat-sys-corner-large);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  margin-inline-end: -8px;
+
+  h2 {
+    margin: 0;
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+.currency {
+  margin: 8px 0 0;
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--mat-sys-on-surface-variant);
+
+  p {
+    margin: 0;
+  }
+}
+
+// Income, expenses, net: three figures side by side, even on a phone.
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+
+  dt {
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--mat-sys-title-large);
+    overflow-wrap: anywhere;
+  }
+
+  & + & {
+    padding-top: 8px;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+@media (max-width: 599.98px) {
+  .figures dd {
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+// Rows that open the movements: a budget, an account.
+.budget,
+.account {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mat-sys-corner-medium);
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
+}
+
+.budget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  margin-inline: -8px;
+}
+
+.name {
+  font: var(--mat-sys-body-large);
+  overflow-wrap: anywhere;
+}
+
+.accounts {
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+
+  .empty {
+    padding: 8px;
+  }
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  padding: 4px 8px;
+
+  .name {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.type-icon {
+  flex: none;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// The total of a currency, under the accounts.
+.total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  .name,
+  .pf-amount {
+    font: var(--mat-sys-title-medium);
+  }
+
+  .archived {
+    flex-basis: 100%;
+    font: var(--mat-sys-body-medium);
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

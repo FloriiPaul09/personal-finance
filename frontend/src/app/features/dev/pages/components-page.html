@@ -105,6 +105,21 @@
     </div>
   </section>
 
+  <section class="block" aria-labelledby="chart-title">
+    <h2 id="chart-title" class="block-title">Grafico a ciambella</h2>
+    <div class="chart">
+      <app-donut-chart [slices]="slices" label="Parti di esempio" [format]="formatSlice" />
+      <ul class="legend">
+        @for (slice of slices; track slice.label) {
+          <li>
+            <span class="swatch" [style.background]="slice.color"></span>
+            {{ slice.label }} · {{ slice.value | amount: currency() }}
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
   <section class="block" aria-labelledby="dates-title">
     <h2 id="dates-title" class="block-title">Date e mesi</h2>
     <p>
