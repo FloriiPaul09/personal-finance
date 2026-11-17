@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, Shell, UnavailablePage } from './core';
+import { DEV_ROUTES } from './dev-routes';
 
 // Every feature is loaded on demand from its barrel (features/<feature>/index.ts).
 // Paths are English and stay the same in every language (docs/frontend/routing.md).
@@ -45,6 +46,8 @@ export const routes: Routes = [
         path: 'settings',
         loadChildren: () => import('./features/settings').then((m) => m.SETTINGS_ROUTES),
       },
+      // Catalog of the shared components, only in development (docs/frontend/testing.md).
+      ...DEV_ROUTES,
       { path: '**', redirectTo: 'dashboard' },
     ],
   },
