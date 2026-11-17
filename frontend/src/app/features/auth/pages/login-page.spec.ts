@@ -50,10 +50,17 @@ describe('LoginPage', () => {
     return Array.from(el().querySelectorAll(selector)).map((e) => e.textContent!.trim());
   }
 
-  it('asks for email and password without calling the API', async () => {
+  it('shows no error before the user touches the form', () => {
+    // Regression (block 3 review): the messages showed at once, inside the fields.
+    expect(texts('mat-error')).toEqual([]);
+  });
+
+  it('asks for email and password without calling the API, below each field', async () => {
     await submit();
 
     expect(texts('mat-error')).toEqual(["Inserisci l'email.", 'Inserisci la password.']);
+    const errors = Array.from(el().querySelectorAll('mat-error'));
+    expect(errors.every((e) => e.closest('.mat-mdc-form-field-subscript-wrapper'))).toBe(true);
     expect(login).not.toHaveBeenCalled();
   });
 

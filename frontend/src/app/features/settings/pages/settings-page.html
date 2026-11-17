@@ -27,10 +27,11 @@
           autocomplete="current-password"
           [formField]="passwordForm.currentPassword"
         />
-        @if (passwordForm.currentPassword().errors(); as errors) {
-          @if (errors.length > 0) {
-            <mat-error>{{ errors[0].message }}</mat-error>
-          }
+        @if (
+          passwordForm.currentPassword().touched() && passwordForm.currentPassword().errors()[0];
+          as error
+        ) {
+          <mat-error>{{ error.message }}</mat-error>
         }
       </mat-form-field>
 
@@ -43,10 +44,11 @@
           [formField]="passwordForm.newPassword"
         />
         <mat-hint i18n="Password form hint">Almeno 12 caratteri.</mat-hint>
-        @if (passwordForm.newPassword().errors(); as errors) {
-          @if (errors.length > 0) {
-            <mat-error>{{ errors[0].message }}</mat-error>
-          }
+        @if (
+          passwordForm.newPassword().touched() && passwordForm.newPassword().errors()[0];
+          as error
+        ) {
+          <mat-error>{{ error.message }}</mat-error>
         }
       </mat-form-field>
 
@@ -58,10 +60,11 @@
           autocomplete="new-password"
           [formField]="passwordForm.confirmation"
         />
-        @if (passwordForm.confirmation().errors(); as errors) {
-          @if (errors.length > 0) {
-            <mat-error>{{ errors[0].message }}</mat-error>
-          }
+        @if (
+          passwordForm.confirmation().touched() && passwordForm.confirmation().errors()[0];
+          as error
+        ) {
+          <mat-error>{{ error.message }}</mat-error>
         }
       </mat-form-field>
 

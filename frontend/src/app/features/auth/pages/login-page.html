@@ -6,10 +6,8 @@
     <mat-form-field>
       <mat-label i18n="Login form field">Email</mat-label>
       <input matInput type="email" autocomplete="username" [formField]="loginForm.email" />
-      @if (loginForm.email().errors(); as errors) {
-        @if (errors.length > 0) {
-          <mat-error>{{ errors[0].message }}</mat-error>
-        }
+      @if (loginForm.email().touched() && loginForm.email().errors()[0]; as error) {
+        <mat-error>{{ error.message }}</mat-error>
       }
     </mat-form-field>
 
@@ -31,10 +29,8 @@
       >
         <mat-icon [svgIcon]="passwordVisible() ? 'visibility_off' : 'visibility'" />
       </button>
-      @if (loginForm.password().errors(); as errors) {
-        @if (errors.length > 0) {
-          <mat-error>{{ errors[0].message }}</mat-error>
-        }
+      @if (loginForm.password().touched() && loginForm.password().errors()[0]; as error) {
+        <mat-error>{{ error.message }}</mat-error>
       }
     </mat-form-field>
 
