@@ -59,7 +59,7 @@ cd frontend && pnpm install && pnpm start    # frontend → http://localhost:420
 | Area | Command (from the folder) | Runner |
 |---|---|---|
 | `backend/` | `dotnet test` | xUnit v3 on Microsoft Testing Platform, enabled in `global.json` |
-| `frontend/` | `pnpm test` (watch) or `pnpm test --watch=false` (single run); `pnpm test:coverage`; `pnpm lint` | Vitest through the Angular `@angular/build:unit-test` builder, jsdom, `v8` coverage; ESLint with module boundaries ([frontend/app-structure.md](../frontend/app-structure.md#scripts)) |
+| `frontend/` | `pnpm test` (watch) or `pnpm test --watch=false` (single run); `pnpm test:coverage`; `pnpm lint`; `pnpm e2e` (first time: `pnpm exec playwright install chromium`) | Vitest through the Angular `@angular/build:unit-test` builder, jsdom, `v8` coverage; ESLint with module boundaries; Playwright on the full stack, which needs the database running and starts the API and the dev server when they are not ([frontend/testing.md](../frontend/testing.md#end-to-end-playwright)) |
 
 - `dotnet test` runs the four test projects of `PersonalFinance.slnx` (`Testing` is a support library, not a test project). `Infrastructure.Tests` and `Api.Tests` start PostgreSQL with Testcontainers and need Docker running; `dotnet test --project tests/Domain.Tests` runs without Docker.
 - Microsoft Testing Platform fails a run that executes zero tests: every test project keeps at least one test (`Domain.Tests` has a placeholder until the first business rule).
@@ -98,9 +98,9 @@ This document is verified by following it on a fresh clone: both test commands m
 
 ## To do / open questions
 
-- `[Frontend]` Playwright location and phone viewport (block 3). ✅ Coverage provider for Vitest: `v8` ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)).
+- ✅ `[Frontend]` Playwright location and phone viewport ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)). ✅ Coverage provider for Vitest: `v8` ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)).
 - ✅ Testcontainers fixture and database per test class — decided and set up in `[DB]` ([database/testing.md](../database/testing.md)); `PostgresImage` lives in the `Testing` support project.
 - Optional `pnpm` scripts at the repository root are not planned: each area owns its tooling.
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-17_

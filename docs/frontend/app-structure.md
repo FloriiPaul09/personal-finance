@@ -6,7 +6,7 @@ Folders of the Angular application, what goes where, the module boundaries and h
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`.
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`; block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) the session (`core/auth`), form helpers (`core/forms`), the `auth` and `settings` features and the Playwright tests (`e2e/`).
 
 ### Folders
 
@@ -15,7 +15,9 @@ frontend/
 ├── angular.json            # build, i18n (sourceLocale "it"), assets (icons), lint, test (coverage)
 ├── eslint.config.js        # angular-eslint + Sheriff
 ├── sheriff.config.ts       # module boundaries
+├── playwright.config.ts    # end-to-end tests (testing.md#end-to-end-playwright)
 ├── package.json            # scripts below
+├── e2e/                    # Playwright tests and their support code
 ├── scripts/
 │   └── api-types.mjs       # generates core/api/schema.ts (pnpm api:types)
 └── src/
@@ -26,19 +28,23 @@ frontend/
         ├── app.ts / app.config.ts / app.routes.ts   # root: wires everything (tag "root")
         ├── core/           # one module (tag "core")
         │   ├── index.ts    # public API of core
+        │   ├── auth/       # SessionStore, authGuard / guestGuard, sessionInterceptor, safeReturnUrl
+        │   ├── forms/      # apiFormErrors — own barrel, keeps @angular/forms out of the initial bundle
         │   ├── api/        # openapi.json (snapshot), schema.ts (generated), models.ts (aliases), ApiError, messages
         │   ├── errors/     # global ErrorHandler, ErrorNotifier (snackbar)
         │   ├── http/       # provideApiHttp (XSRF, interceptor, antiforgery), ifMatch, cursorPager
         │   ├── ids/        # newId() — UUIDv7 for client-created resources
         │   ├── icons/      # Material Symbols resolver
-        │   └── layout/     # Shell, navigation items, page titles
+        │   └── layout/     # Shell, navigation items, page titles, snackbar options, "unavailable" page
         ├── shared/         # one module per library (tag "shared"), e.g. shared/ui, shared/util (block 4)
         └── features/       # one module per feature (tag "feature")
             ├── dashboard/
             ├── transactions/
             ├── budgets/
             ├── accounts/
-            └── categories/
+            ├── categories/
+            ├── auth/       # login page
+            └── settings/   # account settings: logout, password change
 ```
 
 Inside a feature:
@@ -79,6 +85,7 @@ features/accounts/
 
 - A module is a folder with an `index.ts`; other modules import only that file (**no deep imports**).
 - A barrel that matches no tag gets `noTag`, which may import nothing: a new top-level folder cannot slip past the rules.
+- `core/forms` is a second barrel of `core` (same tag): importing `core` must not pull `@angular/forms` into the initial bundle, which has a 500 kB budget (block 3 reached 548 kB before the split, 473 kB after).
 - When two features need the same thing, it moves to `core` (app-specific: e.g. the accounts list for selectors) or `shared` (generic: e.g. an amount input).
 
 ### API types
@@ -115,6 +122,7 @@ Services are written by hand per feature on `HttpClient` ([state-management.md](
 | `pnpm test:coverage` | One run with coverage (`coverage/`) |
 | `pnpm lint` | ESLint: Angular rules, template accessibility, module boundaries |
 | `pnpm api:types` | Regenerate `core/api/openapi.json` and `schema.ts` from the running API (`--file` for a saved document) |
+| `pnpm e2e` | Playwright tests on the full stack ([testing.md](testing.md#end-to-end-playwright)); `pnpm e2e:report` opens the last report |
 
 Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 
@@ -126,9 +134,12 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 | Boundaries checked by Sheriff through ESLint | Same idea as the architecture tests of the backend: the structure cannot erode silently | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Types generated from OpenAPI, services by hand | Types follow the backend; versions and error codes stay under our control | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | `@angular/localize`, source locale `it` in `angular.json` | Built into Angular, no runtime cost; locale, locale data and `lang` from one setting | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| Session in `core/auth`, form helpers in a separate `core/forms` barrel, Playwright in `frontend/e2e` | Every feature needs the session; forms only where there is a form; E2E share the workspace's dependencies | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 
 ## Tests
 
+- `pnpm build` checks the bundle budgets (initial bundle under 500 kB).
+- `pnpm lint` also lints `e2e/` and `playwright.config.ts`; `e2e/tsconfig.json` type-checks the Playwright tests.
 - `pnpm lint` runs Sheriff: when block 1 was set up, an import from `features/accounts` into `features/transactions` and a deep import into `core/layout` were both reported, then removed.
 - `app-locale.spec.ts`: `LOCALE_ID` is `it` without providers; numbers and dates are formatted the Italian way (`1.234,50`, `13 novembre 2026`).
 - `app.spec.ts`: every feature is reached through its lazy route ([routing.md](routing.md#tests)).
@@ -151,4 +162,4 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 - Split `core` into libraries when it grows past a handful of folders.
 
 ---
-_Last updated: 2026-11-16_
+_Last updated: 2026-11-17_
