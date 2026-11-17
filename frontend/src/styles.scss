@@ -31,7 +31,7 @@ html {
   );
   --pf-expense: var(--mat-sys-error);
 
-  // Warning (a budget past 90% of its limit): an orange palette generated the same way
+  // Warning (a budget past 90% of its limit): an amber palette generated the same way
   // (_warning-palette.scss), tones of the primary roles: 40 / 80, containers 90 / 30.
   --pf-warning: light-dark(
     #{map.get(warning.$primary-palette, 40)},
