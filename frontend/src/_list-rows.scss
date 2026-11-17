@@ -2,8 +2,12 @@
 // the right holds its actions (docs/frontend/ui-components.md#lists). Used by the pages'
 // own styles, so nothing here enters the global stylesheet.
 
+// Lists stop at 720px: on a desktop the balance stays next to the name it belongs to.
+$max-width: 720px;
+
 @mixin toolbar {
   .toolbar {
+    max-width: $max-width;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -15,6 +19,7 @@
 
 @mixin list {
   .list {
+    max-width: $max-width;
     margin: 0;
     padding: 0;
     list-style: none;

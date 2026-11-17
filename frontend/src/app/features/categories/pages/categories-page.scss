@@ -4,6 +4,10 @@
 @include rows.list;
 @include rows.menu-hint;
 
+.mat-mdc-tab-nav-bar {
+  max-width: rows.$max-width;
+}
+
 .panel {
   display: block;
   padding-top: 16px;
