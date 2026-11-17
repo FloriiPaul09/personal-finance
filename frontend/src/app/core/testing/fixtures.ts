@@ -1,5 +1,12 @@
 import { HttpTestingController } from '@angular/common/http/testing';
-import { AccountResponse, CategoryResponse, TransactionResponse, TransferResponse } from '..';
+import {
+  AccountResponse,
+  BudgetProgressResponse,
+  BudgetResponse,
+  CategoryResponse,
+  TransactionResponse,
+  TransferResponse,
+} from '..';
 
 // Data shaped like the API's answers, for unit tests (docs/backend/api-endpoints.md).
 
@@ -81,6 +88,33 @@ export function aTransfer(overrides: Partial<TransferResponse> = {}): TransferRe
     outgoingTransactionId: testId(),
     incomingTransactionId: testId(),
     version: 91022,
+    ...overrides,
+  };
+}
+
+export function aBudget(overrides: Partial<BudgetResponse> = {}): BudgetResponse {
+  return {
+    id: testId(),
+    categoryId: testId(),
+    from: '2026-06',
+    amount: 350,
+    version: 7781,
+    ...overrides,
+  };
+}
+
+export function aBudgetProgress(
+  overrides: Partial<BudgetProgressResponse> = {},
+): BudgetProgressResponse {
+  return {
+    categoryId: testId(),
+    budgetId: testId(),
+    month: '2026-11',
+    limit: 350,
+    spent: 120.25,
+    remaining: 229.75,
+    ratio: 0.3435714285714286,
+    isOverBudget: false,
     ...overrides,
   };
 }

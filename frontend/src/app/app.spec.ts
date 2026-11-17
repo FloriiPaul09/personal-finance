@@ -68,6 +68,7 @@ describe('App routes and shell', () => {
   it.each([
     ['/transactions', 'Movimenti'],
     ['/budgets', 'Budget'],
+    ['/budgets/new', 'Nuovo budget'],
     ['/accounts', 'Conti'],
     ['/accounts/new', 'Nuovo conto'],
     ['/categories', 'Categorie'],
@@ -84,7 +85,7 @@ describe('App routes and shell', () => {
 
   it('offers the new expense form from every page', async () => {
     // A page without data to load: whenStable() would wait for the unanswered requests.
-    await harness.navigateByUrl('/budgets');
+    await harness.navigateByUrl('/dashboard');
 
     const button = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
       '[data-testid="new-expense"]',
@@ -122,7 +123,7 @@ describe('App routes and shell', () => {
   });
 
   it('opens the settings from the account button', async () => {
-    await harness.navigateByUrl('/budgets');
+    await harness.navigateByUrl('/dashboard');
 
     const account = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
       '[data-testid="settings"]',
