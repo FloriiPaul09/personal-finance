@@ -4,7 +4,7 @@ import { ApiError } from '../api/api-error';
 import { ListResponse } from '../api/models';
 import { DataChanges, DataResource } from './data-changes';
 
-/** A small list read once and kept in memory (accounts, categories). */
+/** A small list read once and kept in memory (accounts, categories, budget entries). */
 export interface ReferenceList<T> {
   /** The last list received, kept while a newer one loads; `undefined` before the first. */
   readonly items: Signal<readonly T[] | undefined>;
@@ -19,17 +19,19 @@ export interface ReferenceList<T> {
 /**
  * Reads `url` (a list that is not paged) and reads it again after every write to the resources
  * it `dependsOn` (`DataChanges`). The list stays on screen while it is read again, so a list does
- * not flash a progress bar after each archive or rename. Call it in an injection context.
+ * not flash a progress bar after each archive or rename. `params` go in the query string
+ * (archived items included by default). Call it in an injection context.
  */
 export function referenceList<T>(
   url: string,
   dependsOn: readonly DataResource[],
+  params: Record<string, string | boolean> = { includeArchived: true },
 ): ReferenceList<T> {
   const changes = inject(DataChanges);
   const resource = httpResource<ListResponse<T>>(() => {
     // A new request after each write: the running read, if any, is cancelled.
     changes.version(...dependsOn);
-    return { url, params: { includeArchived: true } };
+    return { url, params };
   });
 
   const items = linkedSignal<readonly T[] | undefined, readonly T[] | undefined>({

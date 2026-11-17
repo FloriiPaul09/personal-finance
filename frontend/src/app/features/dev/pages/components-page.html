@@ -96,6 +96,15 @@
     </ul>
   </section>
 
+  <section class="block" aria-labelledby="budgets-title">
+    <h2 id="budgets-title" class="block-title">Avanzamento dei budget</h2>
+    <div class="budgets">
+      @for (budget of budgets; track budget.label) {
+        <app-budget-progress [figures]="budget" [currency]="currency()" [label]="budget.label" />
+      }
+    </div>
+  </section>
+
   <section class="block" aria-labelledby="dates-title">
     <h2 id="dates-title" class="block-title">Date e mesi</h2>
     <p>

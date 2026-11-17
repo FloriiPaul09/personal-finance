@@ -1,0 +1,75 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Budget</h1>
+
+  <div class="toolbar">
+    <app-month-selector [month]="view()" (monthChange)="setMonth($event)" />
+    <a
+      matButton="tonal"
+      routerLink="new"
+      [queryParams]="{ month: view() }"
+      data-testid="new-budget"
+    >
+      <mat-icon svgIcon="add" />
+      <ng-container i18n="Button that opens the new budget form">Nuovo budget</ng-container>
+    </a>
+  </div>
+
+  @if (progress.error(); as error) {
+    <app-error-state [error]="error" (retry)="progress.reload()" />
+  } @else if (progress.loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      icon="savings"
+      title="Nessun budget in questo mese"
+      i18n-title="Empty budgets page"
+      message="Imposta un limite di spesa per una categoria: qui vedrai quanto ti resta."
+      i18n-message="Empty budgets page"
+    >
+      <a
+        matButton="filled"
+        routerLink="new"
+        [queryParams]="{ month: view() }"
+        i18n="Button of the empty budgets page"
+        >Imposta un budget</a
+      >
+    </app-empty-state>
+  } @else {
+    <ul class="list" aria-label="Budget del mese" i18n-aria-label="List of the budgets of a month">
+      @for (row of rows(); track row.item.categoryId) {
+        <li class="row" data-testid="budget-row">
+          <a
+            class="main budget"
+            routerLink="/transactions"
+            [queryParams]="{ categoryId: row.item.categoryId, month: view() }"
+          >
+            <span class="name">{{ row.name }}</span>
+            <app-budget-progress [figures]="row.item" [currency]="currency" [label]="row.name" />
+          </a>
+          <button
+            matIconButton
+            type="button"
+            [matMenuTriggerFor]="actions"
+            [matMenuTriggerData]="{ row }"
+            [attr.aria-label]="actionsLabel(row)"
+          >
+            <mat-icon svgIcon="more_vert" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<mat-menu #actions xPosition="before">
+  <ng-template matMenuContent let-row="row">
+    <a mat-menu-item [routerLink]="row.item.categoryId" [queryParams]="{ month: view() }">
+      <mat-icon svgIcon="edit" />
+      <span i18n="Menu item that opens the budget form">Modifica</span>
+    </a>
+    <button mat-menu-item type="button" (click)="stop(row)" data-testid="stop-budget">
+      <mat-icon svgIcon="block" />
+      <span>{{ stopLabel() }}</span>
+    </button>
+  </ng-template>
+</mat-menu>

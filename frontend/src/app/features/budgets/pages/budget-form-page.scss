@@ -1,0 +1,68 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+app-category-select {
+  width: 100%;
+}
+
+.month {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.month-label {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.month-hint {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.history {
+  max-width: 480px;
+  margin-top: 32px;
+}
+
+.history-title {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-medium);
+}
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--mat-sys-corner-large);
+  background: var(--mat-sys-surface-container-low);
+  overflow: hidden;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding-inline: 16px 4px;
+
+  & + & {
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+.entry-text {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font: var(--mat-sys-body-large);
+}
+
+.entry-value {
+  color: var(--mat-sys-on-surface-variant);
+}

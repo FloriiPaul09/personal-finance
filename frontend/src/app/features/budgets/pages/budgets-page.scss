@@ -1,0 +1,12 @@
+@use '../../../../list-rows' as rows;
+
+@include rows.toolbar;
+@include rows.list;
+
+// A budget row: the name, then its progress across the whole width.
+.main.budget {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-block: 12px;
+}

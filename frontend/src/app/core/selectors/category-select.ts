@@ -7,7 +7,12 @@ import { SelectControl } from './select-control';
 interface CategoryOption {
   readonly category: CategoryResponse;
   readonly sub: boolean;
+  /** Why it cannot be chosen, shown under its name; `null` when it can. */
+  readonly reason: string | null;
 }
+
+/** Tells why a category cannot be chosen here, or `null` (e.g. budgets: one level per branch). */
+export type CategoryDisabledReason = (category: CategoryResponse) => string | null;
 
 /** The options of one kind; `label` names the kind when both kinds are shown. */
 interface CategorySection {
@@ -30,7 +35,8 @@ const KIND_LABELS: Record<CategoryKind, string> = {
  * only when it is the current value. `topLevelOnly` offers only top-level categories (the parent
  * of a category), `excludeId` leaves one out, `noneLabel` adds a choice for "none" (`null`).
  * `kind` `null` offers both kinds under "Uscite" and "Entrate", and `includeArchived` archived
- * categories too (filters of the movement list).
+ * categories too (filters of the movement list). `disabledReason` shows a category that cannot
+ * be chosen with its reason under the name, instead of letting the API refuse it (budgets).
  */
 @Component({
   selector: 'app-category-select',
@@ -56,25 +62,47 @@ const KIND_LABELS: Record<CategoryKind, string> = {
           @if (section.label) {
             <mat-optgroup [label]="section.label">
               @for (option of section.options; track option.category.id) {
-                <mat-option [value]="option.category.id" [class.sub]="option.sub">
-                  {{ option.category.name }}
-                  @if (option.category.isArchived) {
-                    <span class="archived" i18n="Label of an archived category in a selector"
-                      >(archiviata)</span
-                    >
-                  }
+                <mat-option
+                  [value]="option.category.id"
+                  [class.sub]="option.sub"
+                  [disabled]="option.reason !== null"
+                >
+                  <span class="option-text">
+                    <span>
+                      {{ option.category.name }}
+                      @if (option.category.isArchived) {
+                        <span class="archived" i18n="Label of an archived category in a selector"
+                          >(archiviata)</span
+                        >
+                      }
+                    </span>
+                    @if (option.reason; as reason) {
+                      <span class="reason">{{ reason }}</span>
+                    }
+                  </span>
                 </mat-option>
               }
             </mat-optgroup>
           } @else {
             @for (option of section.options; track option.category.id) {
-              <mat-option [value]="option.category.id" [class.sub]="option.sub">
-                {{ option.category.name }}
-                @if (option.category.isArchived) {
-                  <span class="archived" i18n="Label of an archived category in a selector"
-                    >(archiviata)</span
-                  >
-                }
+              <mat-option
+                [value]="option.category.id"
+                [class.sub]="option.sub"
+                [disabled]="option.reason !== null"
+              >
+                <span class="option-text">
+                  <span>
+                    {{ option.category.name }}
+                    @if (option.category.isArchived) {
+                      <span class="archived" i18n="Label of an archived category in a selector"
+                        >(archiviata)</span
+                      >
+                    }
+                  </span>
+                  @if (option.reason; as reason) {
+                    <span class="reason">{{ reason }}</span>
+                  }
+                </span>
               </mat-option>
             }
           }
@@ -105,6 +133,15 @@ const KIND_LABELS: Record<CategoryKind, string> = {
     .archived {
       color: var(--mat-sys-on-surface-variant);
     }
+
+    .option-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .reason {
+      font: var(--mat-sys-body-small);
+    }
   `,
 })
 export class CategorySelect extends SelectControl {
@@ -120,6 +157,8 @@ export class CategorySelect extends SelectControl {
   readonly excludeId = input<string | null>(null);
   /** Text of the "none" choice; without it, no such choice. */
   readonly noneLabel = input<string>();
+  /** Categories that are shown but cannot be chosen, with the reason under their name. */
+  readonly disabledReason = input<CategoryDisabledReason>();
 
   private readonly selected = computed(() => this.categories.byId(this.value()));
   protected readonly selectedLabel = computed(() => {
@@ -140,7 +179,7 @@ export class CategorySelect extends SelectControl {
       return {
         kind: k,
         label: kind ? null : KIND_LABELS[k],
-        options: missing ? [...options, { category: selected, sub: false }] : options,
+        options: missing ? [...options, { category: selected, sub: false, reason: null }] : options,
       };
     });
   });
@@ -151,16 +190,22 @@ export class CategorySelect extends SelectControl {
   });
 
   private optionsOf(kind: CategoryKind): CategoryOption[] {
+    const reasonOf = this.disabledReason() ?? (() => null);
+    const option = (category: CategoryResponse, sub: boolean): CategoryOption => ({
+      category,
+      sub,
+      reason: reasonOf(category),
+    });
     return this.categories
       .groups(kind, { includeArchived: this.includeArchived() })
       .filter((group) => group.parent.id !== this.excludeId())
       .flatMap((group) => [
-        { category: group.parent, sub: false },
+        option(group.parent, false),
         ...(this.topLevelOnly()
           ? []
           : group.children
               .filter((child) => child.id !== this.excludeId())
-              .map((category) => ({ category, sub: true }))),
+              .map((category) => option(category, true))),
       ]);
   }
 }

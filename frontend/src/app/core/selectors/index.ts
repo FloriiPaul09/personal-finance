@@ -3,5 +3,5 @@
 // exported from `core` would enter the initial bundle with Material's select
 // (docs/frontend/app-structure.md#boundaries).
 export { AccountSelect } from './account-select';
-export { CategorySelect } from './category-select';
+export { CategorySelect, type CategoryDisabledReason } from './category-select';
 export { type MovementKind, MovementKindSwitch } from './movement-kind-switch';
