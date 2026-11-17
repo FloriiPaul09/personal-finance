@@ -1,0 +1,107 @@
+<section class="pf-page">
+  <div class="heading">
+    <a
+      matIconButton
+      [routerLink]="transactionsPath"
+      aria-label="Torna ai movimenti"
+      i18n-aria-label="Back button of the transfer form"
+    >
+      <mat-icon svgIcon="arrow_back" />
+    </a>
+    @if (isNew()) {
+      <h1 class="pf-page-title" i18n="Title of the new transfer form">Nuovo trasferimento</h1>
+    } @else {
+      <h1 class="pf-page-title" i18n="Title of the transfer form">Modifica trasferimento</h1>
+    }
+  </div>
+
+  @if (!isNew() && existing.error(); as error) {
+    @if ($any(error).status === 404) {
+      <app-empty-state
+        icon="swap_horiz"
+        title="Trasferimento non trovato"
+        i18n-title="Transfer form for a transfer that does not exist"
+        message="Potrebbe essere stato eliminato."
+        i18n-message="Transfer form for a transfer that does not exist"
+      >
+        <a matButton="filled" [routerLink]="transactionsPath" i18n="Button back to the movements"
+          >Torna ai movimenti</a
+        >
+      </app-empty-state>
+    } @else {
+      <app-error-state [error]="error" (retry)="existing.reload()" />
+    }
+  } @else if (!ready()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (isNew()) {
+    <app-movement-kind-switch current="transfer">
+      <ng-container *ngTemplateOutlet="transferFormTemplate" />
+    </app-movement-kind-switch>
+  } @else {
+    <ng-container *ngTemplateOutlet="transferFormTemplate" />
+  }
+</section>
+
+<ng-template #transferFormTemplate>
+  <form class="form" novalidate (submit)="save($event)">
+    @if (changedElsewhere()) {
+      <p class="form-error" role="alert" i18n="Transfer form after a version conflict">
+        Il trasferimento è stato modificato altrove: ora vedi i dati aggiornati. Rifai le modifiche
+        e salva di nuovo.
+      </p>
+    }
+
+    <app-amount-input
+      label="Importo"
+      i18n-label="Transfer form field"
+      [currency]="currency()"
+      [formField]="transferForm.amount"
+    />
+    <app-account-select
+      label="Dal conto"
+      i18n-label="Transfer form field"
+      [formField]="transferForm.fromAccountId"
+    />
+    <app-account-select
+      label="Al conto"
+      i18n-label="Transfer form field"
+      [excludeId]="model().fromAccountId"
+      [formField]="transferForm.toAccountId"
+    />
+    <app-date-input label="Data" i18n-label="Transfer form field" [formField]="transferForm.date" />
+    <mat-form-field>
+      <mat-label i18n="Transfer form field">Descrizione</mat-label>
+      <input matInput autocomplete="off" [formField]="transferForm.description" />
+      @if (
+        transferForm.description().touched() && transferForm.description().errors()[0];
+        as error
+      ) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="actions">
+      @if (!isNew()) {
+        <button
+          matButton
+          type="button"
+          class="delete"
+          data-testid="delete-transfer"
+          (click)="delete()"
+          i18n="Button that deletes a transfer"
+        >
+          Elimina
+        </button>
+      }
+      <button
+        matButton="filled"
+        type="submit"
+        data-testid="save-transfer"
+        [disabled]="transferForm().submitting()"
+        i18n="Button that saves a transfer"
+      >
+        Salva
+      </button>
+    </div>
+  </form>
+</ng-template>

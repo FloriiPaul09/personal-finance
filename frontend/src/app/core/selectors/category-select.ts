@@ -9,6 +9,18 @@ interface CategoryOption {
   readonly sub: boolean;
 }
 
+/** The options of one kind; `label` names the kind when both kinds are shown. */
+interface CategorySection {
+  readonly kind: CategoryKind;
+  readonly label: string | null;
+  readonly options: readonly CategoryOption[];
+}
+
+const KIND_LABELS: Record<CategoryKind, string> = {
+  expense: $localize`:Group of expense categories in a selector:Uscite`,
+  income: $localize`:Group of income categories in a selector:Entrate`,
+};
+
 /**
  * A category of one kind:
  * `<app-category-select label="Categoria" kind="expense" [formField]="form.categoryId" />`.
@@ -17,6 +29,8 @@ interface CategoryOption {
  * followed by its subcategories, indented; every one can be chosen. An archived category appears
  * only when it is the current value. `topLevelOnly` offers only top-level categories (the parent
  * of a category), `excludeId` leaves one out, `noneLabel` adds a choice for "none" (`null`).
+ * `kind` `null` offers both kinds under "Uscite" and "Entrate", and `includeArchived` archived
+ * categories too (filters of the movement list).
  */
 @Component({
   selector: 'app-category-select',
@@ -38,15 +52,32 @@ interface CategoryOption {
         @if (noneLabel(); as none) {
           <mat-option [value]="null">{{ none }}</mat-option>
         }
-        @for (option of options(); track option.category.id) {
-          <mat-option [value]="option.category.id" [class.sub]="option.sub">
-            {{ option.category.name }}
-            @if (option.category.isArchived) {
-              <span class="archived" i18n="Label of an archived category in a selector"
-                >(archiviata)</span
-              >
+        @for (section of sections(); track section.kind) {
+          @if (section.label) {
+            <mat-optgroup [label]="section.label">
+              @for (option of section.options; track option.category.id) {
+                <mat-option [value]="option.category.id" [class.sub]="option.sub">
+                  {{ option.category.name }}
+                  @if (option.category.isArchived) {
+                    <span class="archived" i18n="Label of an archived category in a selector"
+                      >(archiviata)</span
+                    >
+                  }
+                </mat-option>
+              }
+            </mat-optgroup>
+          } @else {
+            @for (option of section.options; track option.category.id) {
+              <mat-option [value]="option.category.id" [class.sub]="option.sub">
+                {{ option.category.name }}
+                @if (option.category.isArchived) {
+                  <span class="archived" i18n="Label of an archived category in a selector"
+                    >(archiviata)</span
+                  >
+                }
+              </mat-option>
             }
-          </mat-option>
+          }
         }
       </mat-select>
       @if (error(); as error) {
@@ -79,7 +110,10 @@ interface CategoryOption {
 export class CategorySelect extends SelectControl {
   private readonly categories = inject(CategoriesDirectory);
 
-  readonly kind = input.required<CategoryKind>();
+  /** The kind to offer; `null` offers both. */
+  readonly kind = input.required<CategoryKind | null>();
+  /** Offer archived categories too (filters). */
+  readonly includeArchived = input(false, { transform: booleanAttribute });
   /** Offer only top-level categories (choosing the parent of a category). */
   readonly topLevelOnly = input(false, { transform: booleanAttribute });
   /** A category not to offer, e.g. the one being edited when choosing its parent. */
@@ -93,9 +127,32 @@ export class CategorySelect extends SelectControl {
     return selected ? this.categories.label(selected) : '';
   });
 
-  protected readonly options = computed<CategoryOption[]>(() => {
-    const options = this.categories
-      .groups(this.kind())
+  protected readonly sections = computed<CategorySection[]>(() => {
+    const kind = this.kind();
+    const kinds: CategoryKind[] = kind ? [kind] : ['expense', 'income'];
+    const selected = this.selected();
+    return kinds.map((k) => {
+      const options = this.optionsOf(k);
+      const missing =
+        selected?.kind === k &&
+        selected.isArchived &&
+        !options.some((o) => o.category.id === selected.id);
+      return {
+        kind: k,
+        label: kind ? null : KIND_LABELS[k],
+        options: missing ? [...options, { category: selected, sub: false }] : options,
+      };
+    });
+  });
+
+  protected readonly loadError = computed(() => {
+    const error = this.categories.error();
+    return error ? messageOf(error) : null;
+  });
+
+  private optionsOf(kind: CategoryKind): CategoryOption[] {
+    return this.categories
+      .groups(kind, { includeArchived: this.includeArchived() })
       .filter((group) => group.parent.id !== this.excludeId())
       .flatMap((group) => [
         { category: group.parent, sub: false },
@@ -105,12 +162,5 @@ export class CategorySelect extends SelectControl {
               .filter((child) => child.id !== this.excludeId())
               .map((category) => ({ category, sub: true }))),
       ]);
-    const selected = this.selected();
-    return selected?.isArchived ? [...options, { category: selected, sub: false }] : options;
-  });
-
-  protected readonly loadError = computed(() => {
-    const error = this.categories.error();
-    return error ? messageOf(error) : null;
-  });
+  }
 }

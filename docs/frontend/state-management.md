@@ -6,7 +6,7 @@ Where the state of the application lives: data read from the API (server state),
 
 ## Current state
 
-Decided in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)); the HTTP pieces the stores use (errors, versions, paging, ids) are in `core` since block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)). The first store is the session (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) added the reference data of accounts and categories in `core/data`, the refresh across features (`DataChanges`) and the first feature stores. No state library is used.
+Decided in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)); the HTTP pieces the stores use (errors, versions, paging, ids) are in `core` since block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)). The first store is the session (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) added the reference data of accounts and categories in `core/data`, the refresh across features (`DataChanges`) and the first feature stores; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the stores of movements and transfers, the movement list with its filters in the URL and the recent choices of the quick entry. No state library is used.
 
 ### Kinds of state
 
@@ -15,8 +15,9 @@ Decided in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md))
 | Server state of a feature | Store service of the feature (`features/<f>/data/<f>-store.ts`) | Accounts list, budget progress of a month |
 | Reference data used by several features | Directory in `core/data` | `AccountsDirectory`, `CategoriesDirectory`: pages, selectors, later movements, budgets, dashboard |
 | Session | `SessionStore` in `core/auth` | Current user from `GET /api/auth/me` |
-| Page and form state | Signals in the component, Signal Forms | Open dialog, filter values, form fields |
-| URL state | Query string, read as inputs | `?month=2026-11`, list filters |
+| Page and form state | Signals in the component, Signal Forms | Open filter panel, form fields, "Descrizione e tag" shown |
+| URL state | Query string, read as inputs | `?month=2026-11`, movement list filters |
+| Device state | Browser storage, per user | Recent categories and last account of the quick entry (`RecentChoices`) |
 
 ### The store pattern
 
@@ -115,6 +116,25 @@ httpResource(() => {
 - The **writer** names only what it wrote; the **reader** lists what its data is computed from. A new reader (the dashboard) adds its own list without touching the writers.
 - Root stores (the directories) read again right away; page stores are created with their page, so they read fresh data anyway and, while shown, follow the changes.
 
+| Writer (block 6) | Notifies | Readers that follow |
+|---|---|---|
+| `TransactionsStore` (create, update, delete, and the delete of "Annulla") | `transactions` | Accounts (balances, `hasMovements`), categories (`isInUse`), the movement list, the tag suggestions |
+| `TransfersStore` | `transfers` | Accounts, the movement list (legs) |
+
+### Movements
+
+Block 6, `features/transactions/data` and `features/transfers/data`:
+
+- **The list** (`transactions-page`) is page state: its period and filters come from the URL as inputs, `movementView(query)` turns them into the filters of the API, and a `cursorPager` loads 50 movements at a time. An effect resets the pager when the view changes or when `TransactionsStore.listVersion()` (`version('transactions', 'transfers')`) changes, so a movement saved, undone or deleted elsewhere shows at once. Movements are grouped by day in the order of the API; no totals are computed.
+- **The forms** read the item with `resource()` around the API service (`GET /api/transactions/:id`, `/api/transfers/:id`), not from a list: a movement may be far from the pages loaded. The form model is a `linkedSignal` of a start value compared by id and version, so a `412` followed by a new read shows the current data, and "Salva e aggiungi un'altra" starts again from a new start value (new id, same account and date).
+- **Ids** are chosen when the form opens (`newId()`), and kept until the save succeeds: a save that times out and is sent again creates one movement.
+- **Undo** after a create is a delete of the movement just saved, through the store, so it notifies like any delete.
+- **Tag suggestions**: `TransactionsStore.tagNames` reads `/api/tags` (read again after `transactions` writes), the most used first.
+
+### Recent choices
+
+`RecentChoices` (`core/data`, block 6) keeps the last categories used per kind (6 each) and the last account, for the quick entry. They live in the browser's `localStorage` under `pf:<userId>:recent`: per user, so two people on one device do not mix, and per device. A broken or missing storage (private mode) only means starting from nothing. Ids that no longer exist or are archived are skipped by the pages, not removed from the storage. `RECENT_STORAGE` is the token tests replace.
+
 ### Errors
 
 Every failed `/api` request fails with an `ApiError` ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)):
@@ -160,10 +180,12 @@ It passes `nextCursor` back unchanged, ignores `loadMore()` while loading or aft
 | Session asked on the first protected page; logout with a full reload | Startup never waits for the network; no data of a user left in memory | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | Accounts and categories read once in `core`, archived included; writes counted by resource in `DataChanges`, readers list their sources | One request per list for the whole app; features refresh each other without imports | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | After a `412` the form shows the current data | The person decides again on what is really there | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| Movement list as page state from the URL with `cursorPager`; recent choices in the browser storage per user; undo as a delete | A view that survives reloads; a convenience that needs no API; nothing new on the server | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 
 ## Tests
 
 - Each store with logic (reload after a write, refresh across features) gets Vitest tests with `provideHttpClientTesting`: the request sent (URL, headers, body) and the signals after the response.
+- Block 6: `transactions-store.spec.ts` and `transfers-store.spec.ts` (requests, filters without empty values, `If-Match`, notify after failed writes too, tag names by usage), `recent-choices.spec.ts` (per user, most recent first, at most 6, broken or missing storage), `movement-query.spec.ts`, the list page (reset after a write elsewhere, more pages on scroll).
 - Block 5: `data-changes.spec.ts`, `accounts-directory.spec.ts` (one read with archived items, read again after writes to its sources and not others, list kept while reading, running read cancelled, error and reload), `categories-directory.spec.ts` (groups by kind and parent, archived on request, labels), `accounts-store.spec.ts` and `categories-store.spec.ts` (requests, `If-Match`, refresh after failed writes too, subcategories restored one by one). Test data in `core/testing` (`anAccount`, `aCategory`, `someCategories`, `provideApiHttpTesting`, `problem`).
 - Block 3: `session-store.spec.ts` (one shared `me` request, `401` → anonymous, no answer → unavailable then asked again, login, password change, logout with reload also when the session already expired), `session-interceptor.spec.ts`, `auth-guards.spec.ts`, `api-form-errors.spec.ts`.
 - Block 2: `cursor-pager.spec.ts` (pages in order with the cursor unchanged, `loadMore` ignored while loading and at the end, `reset` never shows a late page of old filters, retry after an error, cancel on destroy); `versions.spec.ts`; `api-error.spec.ts` and `error-messages.spec.ts` (every documented code has an Italian message); `app-error-handler.spec.ts`, `error-notifier.spec.ts` ([testing.md](testing.md)).
@@ -183,7 +205,9 @@ It passes `nextCursor` back unchanged, ignores `loadMore()` while loading or aft
 - ✅ Block 2: typed errors, versions, paging, client ids ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)).
 - ✅ Block 3: session store, logout with reload ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
 - ✅ Block 5: reference data and `DataChanges` for refresh across features ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
-- Block 6: movement and transfer stores notify `transactions` / `transfers`, so balances and categories in use follow.
+- ✅ Block 6: movement and transfer stores notify `transactions` / `transfers`, so balances and categories in use follow ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
+- Block 7: the budget store notifies `budgets`; the categories in use follow.
+- Recent choices kept by the API, if people use more devices.
 
 ---
 _Last updated: 2026-11-17_

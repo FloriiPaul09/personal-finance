@@ -14,12 +14,16 @@ import { AccountSelect } from './account-select';
   template: `<app-account-select
     label="Conto"
     [excludeId]="excludeId()"
+    [noneLabel]="noneLabel()"
+    [includeArchived]="includeArchived()"
     [formField]="entryForm.accountId"
   />`,
 })
 class Host {
   readonly model = signal<{ accountId: string | null }>({ accountId: null });
   readonly excludeId = signal<string | null>(null);
+  readonly noneLabel = signal<string | undefined>(undefined);
+  readonly includeArchived = signal(false);
   readonly entryForm = form(this.model, (path) => {
     required(path.accountId, { message: 'Scegli il conto.' });
   });
@@ -129,5 +133,22 @@ describe('AccountSelect', () => {
     await fixture.whenStable();
 
     expect(text('mat-hint')).not.toBeNull();
+  });
+
+  it('offers "none" and archived accounts for a filter', async () => {
+    host.noneLabel.set('Tutti i conti');
+    host.includeArchived.set(true);
+    const select = await load();
+    await select.open();
+
+    const texts = plain(await Promise.all((await select.getOptions()).map((o) => o.getText())));
+    expect(texts).toEqual([
+      'Tutti i conti',
+      'Conto corrente 1.234,50 €',
+      'Contanti -20,00 CHF',
+      'Vecchio conto (archiviato)1.339,85 €',
+    ]);
+    await (await select.getOptions({ text: /Vecchio/ }))[0].click();
+    expect(host.model().accountId).toBe(old.id);
   });
 });

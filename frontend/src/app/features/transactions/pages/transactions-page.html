@@ -1,0 +1,213 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Movimenti</h1>
+
+  <div class="toolbar">
+    @if (!view().customPeriod) {
+      <app-month-selector [month]="view().month" (monthChange)="setMonth($event)" />
+    }
+    <button
+      matButton="tonal"
+      type="button"
+      data-testid="toggle-filters"
+      [attr.aria-expanded]="showFilters()"
+      aria-controls="movement-filters"
+      (click)="showFilters.set(!showFilters())"
+    >
+      <mat-icon svgIcon="filter_list" />
+      <ng-container i18n="Button that shows the filters of the movement list">Filtri</ng-container>
+      @if (view().narrowed > 0) {
+        <span class="count">({{ view().narrowed }})</span>
+      }
+    </button>
+  </div>
+
+  @if (chips().length > 0) {
+    <mat-chip-set class="chips" aria-label="Filtri attivi" i18n-aria-label="Active filters">
+      @for (chip of chips(); track chip.key) {
+        <mat-chip (removed)="remove(chip)">
+          {{ chip.label }}
+          <button matChipRemove [attr.aria-label]="removeLabel(chip)">
+            <mat-icon svgIcon="close" />
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
+
+  @if (showFilters()) {
+    <section
+      id="movement-filters"
+      class="filters"
+      aria-label="Filtri"
+      i18n-aria-label="Panel of the filters of the movement list"
+    >
+      <mat-button-toggle-group
+        class="kind"
+        aria-label="Tipo di movimento"
+        i18n-aria-label="Kind filter of the movement list"
+        hideSingleSelectionIndicator
+        [value]="view().filters.kind ?? ''"
+        (change)="setFilter('kind', $event.value)"
+      >
+        <mat-button-toggle value="" i18n="Kind filter of the movement list"
+          >Tutti</mat-button-toggle
+        >
+        @for (kind of kinds; track kind.value) {
+          <mat-button-toggle [value]="kind.value">{{ kind.label }}</mat-button-toggle>
+        }
+      </mat-button-toggle-group>
+
+      <app-account-select
+        label="Conto"
+        i18n-label="Account filter of the movement list"
+        noneLabel="Tutti i conti"
+        i18n-noneLabel="Account filter without a choice"
+        includeArchived
+        [value]="view().filters.accountId ?? null"
+        (valueChange)="setFilter('accountId', $event)"
+      />
+
+      @if (view().filters.kind !== 'transfer') {
+        <app-category-select
+          label="Categoria"
+          i18n-label="Category filter of the movement list"
+          noneLabel="Tutte le categorie"
+          i18n-noneLabel="Category filter without a choice"
+          includeArchived
+          [kind]="categoryKind()"
+          [value]="view().filters.categoryId ?? null"
+          (valueChange)="setFilter('categoryId', $event)"
+        />
+      }
+
+      <mat-form-field>
+        <mat-label i18n="Text filter of the movement list">Cerca nella descrizione</mat-label>
+        <input
+          matInput
+          type="search"
+          maxlength="100"
+          data-testid="search"
+          [value]="view().filters.q ?? ''"
+          (change)="setFilter('q', $any($event.target).value)"
+        />
+        <mat-icon matSuffix svgIcon="search" />
+      </mat-form-field>
+
+      <div class="period">
+        <app-date-input
+          label="Dal"
+          i18n-label="Start of a custom period"
+          [value]="view().filters.from"
+          (valueChange)="setPeriod($event, null)"
+        />
+        <app-date-input
+          label="Al"
+          i18n-label="End of a custom period"
+          [value]="view().filters.to"
+          (valueChange)="setPeriod(null, $event)"
+        />
+      </div>
+
+      @if (view().narrowed > 0) {
+        <button
+          matButton
+          type="button"
+          (click)="clearFilters()"
+          i18n="Button that removes every filter"
+        >
+          Togli i filtri
+        </button>
+      }
+    </section>
+  }
+
+  @if (page.error() && !page.loaded()) {
+    <app-error-state [error]="page.error()" (retry)="retry()" />
+  } @else if (page.loading() && !page.loaded()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (page.loaded() && days().length === 0) {
+    @if (view().narrowed > 0) {
+      <app-empty-state
+        icon="filter_list_off"
+        title="Nessun movimento con questi filtri"
+        i18n-title="Empty movement list with filters"
+      >
+        <button
+          matButton="tonal"
+          type="button"
+          (click)="clearFilters()"
+          i18n="Button that removes every filter"
+        >
+          Togli i filtri
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="receipt_long"
+        title="Nessun movimento in questo periodo"
+        i18n-title="Empty movement list"
+        message="Le spese e le entrate che registri compaiono qui, dalla più recente."
+        i18n-message="Empty movement list"
+      >
+        <a
+          matButton="filled"
+          routerLink="/transactions/new"
+          i18n="Button of the empty movement list"
+          >Aggiungi una spesa</a
+        >
+      </app-empty-state>
+    }
+  } @else {
+    @for (day of days(); track day.date) {
+      <section class="day" [attr.aria-labelledby]="'day-' + day.date">
+        <h2 class="day-title" [id]="'day-' + day.date">{{ dayLabel(day.date) }}</h2>
+        <ul class="list">
+          @for (movement of day.movements; track movement.id) {
+            @let account = accounts.byId(movement.accountId);
+            <li class="row" data-testid="movement-row">
+              <a class="main" [routerLink]="link(movement)">
+                <span class="text">
+                  <span class="name">{{ title(movement) }}</span>
+                  <span class="meta">
+                    @if (movement.description) {
+                      {{ movement.description }} ·
+                    }
+                    {{ account?.name ?? '…' }}
+                  </span>
+                </span>
+                <span
+                  class="pf-amount amount"
+                  [class.pf-income]="movement.kind === 'income'"
+                  [class.pf-expense]="movement.kind === 'expense'"
+                  >{{
+                    movement.signedAmount | amount: account?.currency ?? 'EUR' : { signed: true }
+                  }}</span
+                >
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (page.error(); as error) {
+      <app-error-state [error]="error" (retry)="retry()" />
+    } @else if (page.hasMore()) {
+      <div class="more" (appScrollEnd)="loadMore()">
+        @if (page.loading()) {
+          <mat-progress-bar mode="indeterminate" />
+        } @else {
+          <button
+            matButton
+            type="button"
+            (click)="loadMore()"
+            data-testid="load-more"
+            i18n="Button that loads more movements"
+          >
+            Carica altri movimenti
+          </button>
+        }
+      </div>
+    }
+  }
+</section>

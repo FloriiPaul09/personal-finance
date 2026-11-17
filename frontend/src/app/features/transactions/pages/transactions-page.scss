@@ -1,0 +1,88 @@
+@use '../../../../list-rows' as rows;
+
+@include rows.list;
+
+.toolbar {
+  max-width: rows.$max-width;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.count {
+  margin-inline-start: 4px;
+}
+
+.chips {
+  display: block;
+  max-width: rows.$max-width;
+  margin-bottom: 8px;
+}
+
+.filters {
+  max-width: rows.$max-width;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: var(--mat-sys-corner-large);
+  background: var(--mat-sys-surface-container-low);
+
+  .kind {
+    align-self: flex-start;
+    margin-bottom: 16px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  mat-form-field,
+  app-account-select,
+  app-category-select {
+    width: 100%;
+  }
+
+  button {
+    align-self: flex-start;
+  }
+}
+
+.period {
+  display: grid;
+  gap: 0 8px;
+
+  // Side by side only where both dates fit: on a phone the second one ran off the screen.
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.day {
+  max-width: rows.$max-width;
+  margin-bottom: 16px;
+}
+
+.day-title {
+  margin: 0 0 8px 4px;
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.amount {
+  flex: none;
+  font: var(--mat-sys-body-large);
+}
+
+.more {
+  max-width: rows.$max-width;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px;
+
+  mat-progress-bar {
+    width: 100%;
+  }
+}

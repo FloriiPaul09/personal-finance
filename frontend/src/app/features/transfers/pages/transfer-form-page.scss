@@ -1,0 +1,14 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+.delete {
+  margin-inline-end: auto;
+  // A token, not `color`: Material's text button sets its label color through it.
+  --mat-button-text-label-text-color: var(--mat-sys-error);
+}
+
+app-account-select,
+app-date-input {
+  width: 100%;
+}

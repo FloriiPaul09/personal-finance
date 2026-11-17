@@ -29,3 +29,6 @@ export const SETTINGS_PATH = '/settings';
 
 /** Route of the quick-entry form, reachable from every page through the floating button. */
 export const NEW_EXPENSE_PATH = '/transactions/new';
+
+/** Route data of a form page: on phones the shell hides the floating button there. */
+export const FORM_PAGE = { form: true } as const;

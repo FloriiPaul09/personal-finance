@@ -1,0 +1,25 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+.details {
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+
+.actions {
+  flex-wrap: wrap;
+}
+
+.delete {
+  margin-inline-end: auto;
+  // A token, not `color`: Material's text button sets its label color through it.
+  --mat-button-text-label-text-color: var(--mat-sys-error);
+}
+
+app-category-select,
+app-account-select,
+app-date-input,
+app-tags-input {
+  width: 100%;
+}
