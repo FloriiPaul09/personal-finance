@@ -1,0 +1,12 @@
+:host {
+  display: block;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.currency {
+  padding-inline-start: 4px;
+  color: var(--mat-sys-on-surface-variant);
+}

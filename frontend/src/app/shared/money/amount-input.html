@@ -1,0 +1,26 @@
+<mat-form-field>
+  <mat-label>{{ label() }}</mat-label>
+  <input
+    #input
+    matInput
+    type="text"
+    inputmode="decimal"
+    autocomplete="off"
+    class="pf-amount"
+    [name]="name()"
+    [value]="raw()"
+    [disabled]="disabled()"
+    [readonly]="readonly()"
+    [required]="required()"
+    [errorStateMatcher]="errorStateMatcher"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  <span matTextSuffix class="currency">{{ symbol() }}</span>
+  @if (hint(); as hint) {
+    <mat-hint>{{ hint }}</mat-hint>
+  }
+  @if (error(); as error) {
+    <mat-error>{{ error.message }}</mat-error>
+  }
+</mat-form-field>
