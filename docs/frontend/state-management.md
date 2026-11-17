@@ -6,7 +6,7 @@ Where the state of the application lives: data read from the API (server state),
 
 ## Current state
 
-Decided in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)); the HTTP pieces the stores use (errors, versions, paging, ids) are in `core` since block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)). The first store is the session (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) added the reference data of accounts and categories in `core/data`, the refresh across features (`DataChanges`) and the first feature stores; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the stores of movements and transfers, the movement list with its filters in the URL and the recent choices of the quick entry; block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)) the budgets store (entries and progress of a month). No state library is used.
+Decided in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)); the HTTP pieces the stores use (errors, versions, paging, ids) are in `core` since block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)). The first store is the session (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) added the reference data of accounts and categories in `core/data`, the refresh across features (`DataChanges`) and the first feature stores; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the stores of movements and transfers, the movement list with its filters in the URL and the recent choices of the quick entry; block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)) the budgets store (entries and progress of a month); block 8 ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)) the dashboard store. No state library is used.
 
 ### Kinds of state
 
@@ -143,6 +143,14 @@ Block 7, `features/budgets/data` ([ADR-0027](../architecture/adr/0027-frontend-b
 - **Setting a budget from a month**: `setFrom(categoryId, month, amount)` first reads the category's entries from the API, then changes that month's entry (`PUT` with its current version) or adds one (`POST`); `amount` `null` stops the budget. It returns the entry and an `undo()` for "Annulla": delete the entry it added, or put back the amount of the entry it changed.
 - No client id and no offline queue for budgets: a duplicate month is refused by the API (`budget.month_taken`).
 
+### Dashboard
+
+Block 8, `features/dashboard/data` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)):
+
+- `DashboardStore.of(month)`, called by the page in its injection context: one `httpResource` on `/api/dashboard?month=…` (always sent: without it the API would use its own UTC month) with every section of the page.
+- It is read again after any write the dashboard is computed from: `version('accounts', 'transactions', 'transfers', 'budgets', 'categories')`. After a write the same month is read again and its numbers stay on screen; another month shows the loading state until it arrives (a `linkedSignal` keyed on the month, as for the budget progress).
+- The page only picks and orders what the API sent (the three budgets with the highest `ratio`, the first five categories); it never adds amounts up.
+
 ### Recent choices
 
 `RecentChoices` (`core/data`, block 6) keeps the last categories used per kind (6 each) and the last account, for the quick entry. They live in the browser's `localStorage` under `pf:<userId>:recent`: per user, so two people on one device do not mix, and per device. A broken or missing storage (private mode) only means starting from nothing. Ids that no longer exist or are archived are skipped by the pages, not removed from the storage. `RECENT_STORAGE` is the token tests replace.
@@ -194,10 +202,12 @@ It passes `nextCursor` back unchanged, ignores `loadMore()` while loading or aft
 | After a `412` the form shows the current data | The person decides again on what is really there | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | Movement list as page state from the URL with `cursorPager`; recent choices in the browser storage per user; undo as a delete | A view that survives reloads; a convenience that needs no API; nothing new on the server | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 | Budget entries read whole; progress per month in the page; entries read again before each save; "Annulla" as the inverse write | Few entries; the version sent is always the current one; nothing new on the server | [ADR-0027](../architecture/adr/0027-frontend-budgets.md) |
+| Dashboard as one request per month, read again after writes to its five sources, numbers kept while reading the same month | Every section consistent with the others; the home page follows every change without a reload | [ADR-0028](../architecture/adr/0028-frontend-dashboard.md) |
 
 ## Tests
 
 - Each store with logic (reload after a write, refresh across features) gets Vitest tests with `provideHttpClientTesting`: the request sent (URL, headers, body) and the signals after the response.
+- Block 8: `dashboard-store.spec.ts` (the month sent, read again after writes to each of its five sources, nothing of the previous month while another loads, error and retry).
 - Block 7: `budgets-store.spec.ts` (entries read once and again after budget writes only, budgeted categories, progress of the month sent and read again after writes to budgets, movements and categories, rows kept for the same month and not for another, error and retry, change or add the month's entry with the current version, "Annulla" of each, refresh after a refused write).
 - Block 6: `transactions-store.spec.ts` and `transfers-store.spec.ts` (requests, filters without empty values, `If-Match`, notify after failed writes too, tag names by usage), `recent-choices.spec.ts` (per user, most recent first, at most 6, broken or missing storage), `movement-query.spec.ts`, the list page (reset after a write elsewhere, more pages on scroll).
 - Block 5: `data-changes.spec.ts`, `accounts-directory.spec.ts` (one read with archived items, read again after writes to its sources and not others, list kept while reading, running read cancelled, error and reload), `categories-directory.spec.ts` (groups by kind and parent, archived on request, labels), `accounts-store.spec.ts` and `categories-store.spec.ts` (requests, `If-Match`, refresh after failed writes too, subcategories restored one by one). Test data in `core/testing` (`anAccount`, `aCategory`, `someCategories`, `provideApiHttpTesting`, `problem`).
@@ -221,7 +231,7 @@ It passes `nextCursor` back unchanged, ignores `loadMore()` while loading or aft
 - ✅ Block 5: reference data and `DataChanges` for refresh across features ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
 - ✅ Block 6: movement and transfer stores notify `transactions` / `transfers`, so balances and categories in use follow ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
 - ✅ Block 7: the budget store notifies `budgets`; the categories in use follow ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)).
-- Block 8: the dashboard reads `version('accounts', 'transactions', 'transfers', 'budgets', 'categories')`.
+- ✅ Block 8: the dashboard reads `version('accounts', 'transactions', 'transfers', 'budgets', 'categories')` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 - Recent choices kept by the API, if people use more devices.
 
 ---

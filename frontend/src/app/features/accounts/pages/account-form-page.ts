@@ -25,6 +25,7 @@ import {
   Notifier,
 } from '../../../core';
 import { apiFormErrors, focusFirstError } from '../../../core/forms';
+import { ACCOUNT_TYPES } from '../../../core/selectors';
 import {
   AmountInput,
   isCurrencyCode,
@@ -32,7 +33,6 @@ import {
   searchCurrencies,
 } from '../../../shared/money';
 import { EmptyState } from '../../../shared/ui';
-import { ACCOUNT_TYPES } from '../data/account-types';
 import { AccountsStore } from '../data/accounts-store';
 
 /** Longest name the API accepts. */

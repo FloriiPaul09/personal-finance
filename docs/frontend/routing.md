@@ -6,14 +6,14 @@ Routes of the application, lazy loading, the shell layout and its navigation, pa
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) added the login page, the settings page, the guards and the handling of an expired session (`core/auth/`); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) the form pages of accounts and categories; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the movement and transfer routes, the list filters in the URL and `PageExit`; block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)) the budget routes.
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)) in `app.routes.ts`, `core/layout/` and each feature's `<feature>.routes.ts`. Block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) added the login page, the settings page, the guards and the handling of an expired session (`core/auth/`); block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) the form pages of accounts and categories; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the movement and transfer routes, the list filters in the URL and `PageExit`; block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)) the budget routes; block 8 ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)) the month of the dashboard.
 
 ### Routes
 
 | Path | Page | Feature |
 |---|---|---|
 | `/` | Redirect to `/dashboard` | — |
-| `/dashboard` | Home | `dashboard` |
+| `/dashboard?month=…` | Home: the month (the current one without `month`, or when it is not valid or in the future) | `dashboard` |
 | `/transactions?month=…` or `?from=…&to=…`, plus `kind`, `accountId`, `categoryId`, `q` | Movements of a month (the current one without `month`) or of a custom period, with the filters | `transactions` |
 | `/transactions/new`, `/transactions/new?kind=income` | New expense or income (quick entry) | `transactions` |
 | `/transactions/:id` | Edit an expense or income; a transfer leg redirects to its transfer | `transactions` |
@@ -70,6 +70,8 @@ Form routes carry `data: FORM_PAGE` (`core/layout/nav-items.ts`): the shell read
 
 Block 6: the list reads its period and filters from the query string (inputs through `withComponentInputBinding()`), and every change writes them back with `queryParamsHandling: 'merge'` and `replaceUrl`, so back leaves the list instead of undoing filters one by one. A valid `from`–`to` pair is a custom period, otherwise `month` (the current month when missing); values that are not valid are ignored, and `categoryId` is dropped with `kind=transfer`. A reload, a bookmark or a link from the dashboard (block 8) open the same view.
 
+Block 8: the dashboard keeps its month in the query string the same way (`replaceUrl`), never in the future: a later month in the URL shows the current one. Its rows open `/transactions?categoryId=…&month=…` (a category), `/transactions?accountId=…&month=…` (an account), `/transactions?month=…` (the totals) and `/budgets?month=…`, so back returns to the same month of the dashboard.
+
 ### Page titles
 
 Each route has a `title` (translated with `$localize`). `PageTitleStrategy` sets the browser title to `"<title> · Personal Finance"`, or `"Personal Finance"` when a route has none.
@@ -105,6 +107,7 @@ Block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md), code i
 | Forms as pages with their own address; category kind in the query string | Back button and links work; the list reopens on the right tab | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | Transfers as their own routes; kind tabs with `replaceUrl`; list filters in the URL; FAB hidden on phone form pages; `PageExit` back only to a page of the app | Saved and shared views; back behaves as expected; "Salva" never covered | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 | Budgets: month in the URL (`replaceUrl`), form pages by category id, a row linking to `/transactions?categoryId=…&month=…` | The month is always the one sent to the API; budget and expenses one tap apart | [ADR-0027](../architecture/adr/0027-frontend-budgets.md) |
+| Dashboard: month in the URL, never in the future; every number links to the movements of that month | Bookmarks and back keep the month; each figure can be checked | [ADR-0028](../architecture/adr/0028-frontend-dashboard.md) |
 
 ## Tests
 
@@ -121,7 +124,7 @@ Block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md), code i
 
 `core/layout/page-title-strategy.spec.ts`: title with and without a page title. Block 6: `core/layout/page-exit.spec.ts` (back from a page of the app, fallback for a first page and for a replaced first page, back past a replaced form, counts kept through back), `movement-query.spec.ts` (URL to filters), the list page writing filters to the URL. Block 3: `core/auth/*.spec.ts` (return URL, session store, guards, interceptor), `core/layout/unavailable-page.spec.ts`.
 
-End-to-end ([testing.md](testing.md#end-to-end-playwright)): protected page → login → back to the page; signed-in user sent away from the login; logout; expired session → login with `returnUrl`; accounts and categories from list to form and back (block 5); expense from the FAB and back, transfer from the tab ending on `/transactions`, a text filter in the URL, the FAB hidden on phone form pages (block 6); a budget from the page to its form and back to the month, its row opening the movements of the category (block 7).
+End-to-end ([testing.md](testing.md#end-to-end-playwright)): protected page → login → back to the page; signed-in user sent away from the login; logout; expired session → login with `returnUrl`; accounts and categories from list to form and back (block 5); expense from the FAB and back, transfer from the tab ending on `/transactions`, a text filter in the URL, the FAB hidden on phone form pages (block 6); a budget from the page to its form and back to the month, its row opening the movements of the category (block 7); the dashboard's category row opening its movements, then another month in the URL (block 8).
 
 The layout (bar vs rail) is checked in the browser: block 1 was verified with screenshots at 390×844 (light and dark) and 1280×720, and by measuring that the page is never taller than the window from 390px to 3840px (a 16px overflow on the rail was found and fixed in review). Since block 3 Playwright repeats the check on every page on a phone (Pixel 7, 412×839) and a 1280×720 desktop, together with reachable navigation buttons and a page title clear of the account button ([testing.md](testing.md)).
 
@@ -138,7 +141,7 @@ The layout (bar vs rail) is checked in the browser: block 1 was verified with sc
 - ✅ Block 3: login page, guards, expired session, logout, settings; end-to-end tests ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
 - ✅ Block 6: access to transfers (from the new expense form and from the movement list); filters in the query string for the movement list ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
 - ✅ Block 7: `/budgets?month=…`, budget form pages ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)).
-- Block 8: `/dashboard?month=…`, links from its sections to the filtered movement list and to the budgets of the month.
+- ✅ Block 8: `/dashboard?month=…` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 
 ---
 _Last updated: 2026-11-17_

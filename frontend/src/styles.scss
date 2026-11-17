@@ -41,6 +41,17 @@ html {
     #{map.get(warning.$primary-palette, 90)},
     #{map.get(warning.$primary-palette, 30)}
   );
+
+  // Colors of charts (shared/charts). A chart of one series, like the spending bars of the home
+  // page, uses --pf-chart-1. Charts of several series take them in this fixed order: blue, orange,
+  // aqua, yellow, magenta. Each mode has its own steps, checked together on the card surface for
+  // color blindness (adjacent pairs ΔE ≥ 8) and normal vision (ΔE ≥ 15). In light mode four of
+  // them are below 3:1 on the surface, so a chart always comes with its figures in text.
+  --pf-chart-1: light-dark(#2a78d6, #3987e5);
+  --pf-chart-2: light-dark(#eb6834, #d95926);
+  --pf-chart-3: light-dark(#1baf7a, #199e70);
+  --pf-chart-4: light-dark(#eda100, #c98500);
+  --pf-chart-5: light-dark(#e87ba4, #d55181);
 }
 
 body {

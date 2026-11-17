@@ -4,6 +4,7 @@ import {
   BudgetProgressResponse,
   BudgetResponse,
   CategoryResponse,
+  DashboardResponse,
   TransactionResponse,
   TransferResponse,
 } from '..';
@@ -115,6 +116,20 @@ export function aBudgetProgress(
     remaining: 229.75,
     ratio: 0.3435714285714286,
     isOverBudget: false,
+    ...overrides,
+  };
+}
+
+/** A dashboard with one euro account and nothing else; sections are filled by the test. */
+export function aDashboard(overrides: Partial<DashboardResponse> = {}): DashboardResponse {
+  const account = anAccount();
+  return {
+    month: '2026-11',
+    accounts: [account],
+    balances: [{ currency: 'EUR', balance: account.balance, archivedBalance: 0 }],
+    totals: [],
+    spending: [],
+    budgets: [],
     ...overrides,
   };
 }

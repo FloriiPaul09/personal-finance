@@ -1,0 +1,48 @@
+// The bars above the list of the same categories, on a phone as on a desktop.
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.more {
+  justify-self: start;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding-inline: 8px 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mat-sys-corner-small);
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font: var(--mat-sys-body-large);
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex: none;
+  color: var(--mat-sys-on-surface-variant);
+}

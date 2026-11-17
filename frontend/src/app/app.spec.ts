@@ -84,7 +84,6 @@ describe('App routes and shell', () => {
   });
 
   it('offers the new expense form from every page', async () => {
-    // A page without data to load: whenStable() would wait for the unanswered requests.
     await harness.navigateByUrl('/dashboard');
 
     const button = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
@@ -110,6 +109,8 @@ describe('App routes and shell', () => {
   });
 
   it('opens the catalog of the shared components in development, outside the navigation', async () => {
+    // jsdom has no canvas: the sample chart is configured but never drawn.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     await harness.navigateByUrl('/dev/components');
 
     expect(heading()).toBe('Componenti');
@@ -132,8 +133,11 @@ describe('App routes and shell', () => {
     expect(account.getAttribute('aria-label')).toBe('Impostazioni');
 
     account.click();
-    await harness.fixture.whenStable();
-    expect(heading()).toBe('Impostazioni');
+    // The dashboard's request is left unanswered: wait for the heading, not for stability.
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(heading()).toBe('Impostazioni');
+    });
     expect(TestBed.inject(Title).getTitle()).toBe('Impostazioni · Personal Finance');
   });
 });

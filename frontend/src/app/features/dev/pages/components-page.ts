@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ApiError, CategoryKind, ErrorState } from '../../../core';
 import { focusFirstError } from '../../../core/forms';
 import { AccountSelect, CategorySelect } from '../../../core/selectors';
+import { BarChart, BarItem } from '../../../shared/charts';
 import { DateInput, MonthSelector } from '../../../shared/date-pickers';
 import { currentMonth, formatIsoDate, IsoMonth, monthRange, todayIso } from '../../../shared/dates';
 import { AmountInput, AmountPipe } from '../../../shared/money';
@@ -26,6 +27,7 @@ import { BudgetFigures, BudgetProgress, EmptyState } from '../../../shared/ui';
     AmountInput,
     CategorySelect,
     AmountPipe,
+    BarChart,
     BudgetProgress,
     DateInput,
     EmptyState,
@@ -73,6 +75,19 @@ export class ComponentsPage {
       isOverBudget: true,
     },
   ];
+
+  /** Seven bars, largest first, one with a name longer than the axis shows. */
+  protected readonly bars: BarItem[] = [
+    { label: 'Spesa', value: 412.3 },
+    { label: 'Casa', value: 350 },
+    { label: 'Abbigliamento e accessori', value: 120.5 },
+    { label: 'Svago', value: 86 },
+    { label: 'Salute', value: 45.9 },
+    { label: 'Regali', value: 30 },
+    { label: 'Altro', value: 12 },
+  ];
+  protected readonly formatBar = (value: number) => `${value} ${this.currency()}`;
+  protected readonly barClicked = signal<string | null>(null);
 
   protected readonly entry = signal<{
     amount: number | null;

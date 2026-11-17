@@ -105,6 +105,19 @@
     </div>
   </section>
 
+  <section class="block" aria-labelledby="chart-title">
+    <h2 id="chart-title" class="block-title">Grafico a barre</h2>
+    <p>Un nome lungo è tagliato sull'asse: il tooltip lo mostra intero.</p>
+    <app-bar-chart
+      class="chart"
+      [items]="bars"
+      label="Barre di esempio"
+      [format]="formatBar"
+      (itemClick)="barClicked.set(bars[$event].label)"
+    />
+    <p>Ultima barra toccata: {{ barClicked() ?? 'nessuna' }}</p>
+  </section>
+
   <section class="block" aria-labelledby="dates-title">
     <h2 id="dates-title" class="block-title">Date e mesi</h2>
     <p>

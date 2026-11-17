@@ -7,9 +7,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { RouterLink } from '@angular/router';
 import { AccountResponse, ErrorState, Notifier } from '../../../core';
+import { accountTypeInfo } from '../../../core/selectors';
 import { AmountPipe } from '../../../shared/money';
 import { confirmAction, EmptyState } from '../../../shared/ui';
-import { accountTypeInfo } from '../data/account-types';
 import { AccountsStore } from '../data/accounts-store';
 
 /**

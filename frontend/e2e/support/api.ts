@@ -2,7 +2,7 @@ import { APIRequestContext, Page } from '@playwright/test';
 
 /**
  * Calls of the API with the session of the page, to prepare and clean up the data of a test
- * (accounts to spend from, categories, expenses) without going through screens another test
+ * (accounts to spend from, categories, movements, budgets) without going through screens another test
  * already covers. Writes
  * carry the antiforgery header like the app does; open a page of the app first, which sets the
  * cookie.
@@ -93,12 +93,43 @@ export class TestApi {
     amount: number,
     date: string,
   ): Promise<void> {
-    const response = await this.request.post('/api/transactions', {
+    await this.createTransaction('expense', accountId, categoryId, amount, date);
+  }
+
+  /** An income: `categoryId` is a category of kind `income`. */
+  async createIncome(
+    accountId: string,
+    categoryId: string,
+    amount: number,
+    date: string,
+  ): Promise<void> {
+    await this.createTransaction('income', accountId, categoryId, amount, date);
+  }
+
+  /** A budget entry: the limit of the category from `from` (`yyyy-MM`) on. */
+  async createBudget(categoryId: string, from: string, amount: number): Promise<void> {
+    const response = await this.request.post('/api/budgets', {
       headers: { 'X-XSRF-TOKEN': this.xsrf },
-      data: { kind: 'expense', accountId, categoryId, amount, date },
+      data: { categoryId, from, amount },
     });
     if (!response.ok()) {
-      throw new Error(`Expense not created: ${response.status()} ${await response.text()}`);
+      throw new Error(`Budget not created: ${response.status()} ${await response.text()}`);
+    }
+  }
+
+  private async createTransaction(
+    kind: 'expense' | 'income',
+    accountId: string,
+    categoryId: string,
+    amount: number,
+    date: string,
+  ): Promise<void> {
+    const response = await this.request.post('/api/transactions', {
+      headers: { 'X-XSRF-TOKEN': this.xsrf },
+      data: { kind, accountId, categoryId, amount, date },
+    });
+    if (!response.ok()) {
+      throw new Error(`Transaction not created: ${response.status()} ${await response.text()}`);
     }
   }
 
