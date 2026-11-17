@@ -6,13 +6,13 @@ The UI component library, theming, typography and icons, the shared components b
 
 ## Current state
 
-Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)); account and category selectors, confirmation dialog, messages (`Notifier`), lists with actions and the archive / delete rules since block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)); the quick entry, the movement list with its filters, the kind switch and the tags input since block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)); the budget progress, the budgets pages and the warning color since block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)). Charts arrive with block 8.
+Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)); account and category selectors, confirmation dialog, messages (`Notifier`), lists with actions and the archive / delete rules since block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)); the quick entry, the movement list with its filters, the kind switch and the tags input since block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)); the budget progress, the budgets pages and the warning color since block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)); the chart library, the chart colors and the home page since block 8 ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 
 ### Foundation
 
 - **Angular Material 22** for components, **Angular CDK** for lower-level behavior (overlays, accessibility, layout breakpoints).
 - No other component library alongside Material: mixing libraries leads to inconsistent look, double theming and double upgrade effort.
-- **Charts**: a dedicated library, chosen with the dashboard (block 8).
+- **Charts**: **Chart.js 4** through **ng2-charts**, only in `shared/charts` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 
 ### Theme
 
@@ -30,6 +30,7 @@ html {
   --pf-expense: var(--mat-sys-error);
   --pf-warning: light-dark(<warning 40>, <warning 80>);           // _warning-palette.scss
   --pf-warning-container: light-dark(<warning 90>, <warning 30>);
+  --pf-chart-1 … --pf-chart-5: light-dark(<light step>, <dark step>);
 }
 ```
 
@@ -42,6 +43,7 @@ html {
 | `--pf-income`, `.pf-income` | Income amounts: tone 40 on light (`#1b6d24`), 80 on dark (`#88d982`) of a palette generated from `#2E7D32` (`src/_income-palette.scss`, Material `theme-color` schematic); same contrast as the error role |
 | `--pf-expense`, `.pf-expense` | Expense amounts (the `error` role) |
 | `--pf-warning`, `--pf-warning-container` | A budget past 90% of its limit: tone 40 on light (`#835400`), 80 on dark (`#ffb957`) of an amber palette generated from `#F9A825` (`src/_warning-palette.scss`); the container tones (90 / 30) for the track of the bar. The theme's tertiary role is the same blue as primary, and orange tone 80 was too close to the error red on dark surfaces |
+| `--pf-chart-1` … `--pf-chart-5` | Chart colors: one series uses `--pf-chart-1` (blue, `#2a78d6` / `#3987e5`); several series take them in order (blue, orange, aqua, yellow, magenta), each mode with its own steps, checked on the card surface for color blindness (adjacent pairs ΔE ≥ 8) and normal vision (ΔE ≥ 15). Some light steps are below 3:1 on the surface, so a chart always comes with its figures in text |
 | `.pf-amount` | Every amount: tabular figures, so digits line up in columns |
 | `.pf-page`, `.pf-page-title` | Page container (padding, max width 1200px) and its `h1`; on phones the title leaves 40px on the right for the account button |
 | `.pf-centered` | Centered column for pages outside the shell (login, "unavailable") |
@@ -81,6 +83,7 @@ Block 4, [ADR-0024](../architecture/adr/0024-frontend-shared-components.md). Eve
 | `<app-account-select>` | `core/selectors` | Account of a Signal Form: `<app-account-select label="Conto" [formField]="form.accountId" />`; active accounts with balance, `excludeId`, `noneLabel`, `includeArchived` (filters) |
 | `<app-category-select>` | `core/selectors` | Category of a kind: `<app-category-select label="Categoria" kind="expense" [formField]="form.categoryId" />`; parents and indented subcategories, `topLevelOnly`, `excludeId`, `noneLabel`, `includeArchived`; `[kind]="null"` shows both kinds in groups "Uscite" / "Entrate"; `disabledReason` shows a category that cannot be chosen, disabled, with the reason under its name (budgets) |
 | `<app-movement-kind-switch [current]>` | `core/selectors` | Tabs "Uscita / Entrata / Trasferimento" above a new-movement form, which is projected inside; links with `replaceUrl` |
+| `<app-bar-chart [items] [label] [format] (itemClick)>` | `shared/charts` | Horizontal bars of one series in the order given, each as long as its value compared with the largest (Chart.js); names cut at 16 characters on the axis and whole in the tooltip with `format(value)`; `itemClick` emits the index of a bar; `role="img"` with `label`; colors read again when the system switches light / dark, no animation with reduced motion. Always beside the same figures in text |
 | `<app-budget-progress [figures] [currency] [label]>` | `shared/ui` | Progress of a budget in a month from the API's figures: "120,00 € di 350,00 €", a bar, "Restano …" / "Superato di …"; `budgetState()` and `BUDGET_WARNING_RATIO` (0.9) |
 | `confirmAction(dialog, texts)` | `shared/ui` | Asks before an action that cannot be undone; resolves `true` only on the confirm button (`role="alertdialog"`, red confirm button) |
 | `Notifier` | `core/feedback` | Every snackbar: `show(message)`, `undoable(message, undo)` with "Annulla"; loads the snackbar on first use |
@@ -161,6 +164,18 @@ Block 7 ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)):
 - **Category selector** of a new budget: categories that cannot get one are shown disabled, with the reason: "Ha già un budget: cambialo dalla pagina Budget", "Il budget è su «Casa»", "Il budget è sulle sue sottocategorie".
 - **Stop and delete**: "Ferma" without a question, "Budget di Spesa fermato da novembre 2026." with "Annulla"; deleting an entry asks first ("Serve a correggere un errore…").
 - Amounts in euros (`BUDGET_CURRENCY`): budgets have no currency in the API yet.
+
+#### Dashboard
+
+Block 8, `/dashboard` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)). One column on phones; from 905px two columns: income and expenses across the top, then budgets beside the spending, then the accounts. Each section is a card (`surface-container-low`).
+
+1. **Month selector** (`max` = the current month).
+2. **"Entrate e uscite"**: one row per currency with "Entrate" (green), "Uscite" (red) and "Saldo netto" (signed, red below zero), and "Movimenti" to the movements of the month. Empty: "Nessun movimento in questo mese." with "Aggiungi una spesa".
+3. **"Budget"**: the three budgets with the highest `ratio`, each with `<app-budget-progress>` and opening the expenses of its category; "Vedi tutti (N)" when there are more, otherwise "Vai ai budget". Empty: "Nessun budget in questo mese." with "Imposta un budget" (`/budgets/new?month=…`).
+4. **"Spesa per categoria"**: per currency (a heading with the code when there are several), `<app-bar-chart>` then the list of the same categories with their amounts, five of them, "Mostra tutte (N)" / "Mostra meno" for the bars and the list together. A row or a bar opens `/transactions?categoryId=…&month=…`. No "Altre" row: it would be a sum made by the app. Empty: "Nessuna spesa in questo mese." with "Aggiungi una spesa".
+5. **"Saldi attuali"**: the active accounts with their icon, current balance (red below zero) and a link to their movements of the month; "Totale" ("Totale in EUR" per currency when there are several), with "di cui … su conti archiviati" when archived accounts hold money; "Conti" to the accounts page. The title says "attuali" because the balances are today's whatever the month shown.
+
+Without any account (archived included) the page shows only "Aggiungi il tuo primo conto" with "Aggiungi un conto". The numbers of the month stay on screen while they are read again after a write.
 
 #### Lists
 
@@ -272,6 +287,8 @@ protected async signIn(event: Event): Promise<void> {
 | Snackbar through `Notifier`, date adapter in the date field | Nothing of Material's overlays at startup | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | Quick entry as one short page with recent chips; kind tabs; list by day with infinite scroll and filters as chips; delete only from the edit page; "Annulla" after saving; tags as chips; FAB hidden on phone forms | An expense in a few taps; mistakes undone in one tap; nothing destructive on a scrolling list | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 | Budget progress with three states and an amber warning token; budget form with the history; "Ferma" with "Annulla", delete an entry with confirmation; disabled categories with the reason | How much is left at a glance; the same rules as archive and delete; nothing the API would refuse | [ADR-0027](../architecture/adr/0027-frontend-budgets.md) |
+| Chart.js through ng2-charts in `shared/charts`; chart colors as tokens; every chart beside its figures in text | The lightest maintained library for bars and lines; colors that stay apart for color vision deficiencies in light and dark; a canvas is not accessible by itself | [ADR-0028](../architecture/adr/0028-frontend-dashboard.md) |
+| Home page: the month first, top 3 budgets, spending as ranked bars with their list, current balances last; first-use invitation | "How is the month going" answered first; short on a phone; every number one tap from its movements | [ADR-0028](../architecture/adr/0028-frontend-dashboard.md) |
 
 ## Tests
 
@@ -279,6 +296,7 @@ protected async signIn(event: Event): Promise<void> {
 - `app-locale.spec.ts`: Italian number and date formats.
 - Forms: `login-page.spec.ts`, `settings-page.spec.ts` (client validation, server errors on the right field or the form, nothing shown before a field is touched, `mat-error` below the field), `api-form-errors.spec.ts`.
 - Theme and layout: checked with screenshots on a phone (390×844, light and dark) and a desktop (1280×720) when block 1 was built; Playwright covers the critical flows on a phone viewport from block 3.
+- Block 8: `bar-chart.spec.ts` (bars in order from zero in one color, height following the bars, names cut on the axis and whole in the tooltip, formatted value, click on a bar and beside it, pointer, colors read again on a scheme change, reduced motion), the dashboard page (first use, totals and negative net, empty sections with their invitation, top 3 budgets and their link, the spending list and bars together with "Mostra tutte", a bar opening its expenses, accounts and total with the archived part, currencies apart, month from and to the URL, error with retry). Drawing on the canvas is checked by Playwright and in the browser: jsdom has no canvas.
 - Block 7: `budget-progress.spec.ts` (figures, the three states and their threshold, bar full above the limit, real percentage for screen readers), `category-select.spec.ts` with disabled categories and their reason, the budgets page (rows, link to the expenses, current month for a missing or invalid one, empty state, month in the URL, "Ferma" and "Annulla") and the budget form (month of the page, focus, reasons in the selector, validation, add or change the month's entry, category refusal on its field, limit in force, history, `412`, delete an entry after the confirmation, unknown category). The warning color is checked by Playwright: jsdom computes no colors.
 - Block 6: `movement-kind-switch.spec.ts`, `tags-input.spec.ts` (Enter, comma typed or split, duplicates, limits, suggestions without the chosen ones), `category-select.spec.ts` with both kinds, `account-select.spec.ts` with "Tutti i conti" and archived accounts; the list page (groups, labels, chips and their removal, filters to the URL, empty states, legs, more pages) and the two forms (focus on the amount, defaults, recent chips, validation, server errors on their field, `412`, "Annulla", "Salva e aggiungi un'altra", delete with confirmation, a leg redirected to its transfer).
 - Block 5: `account-select.spec.ts`, `category-select.spec.ts` (options, archived current value, exclusions, "none", errors after closing, disabled), `confirm-dialog.spec.ts`, `notifier.spec.ts`, `currencies.spec.ts`; pages and forms of accounts and categories (rows, toggle, empty and error states, archive with "Annulla", restore order, disabled delete with the reason, confirmation, create and edit with `If-Match`, server errors on their field, `412`, focus on the first error, not found).
@@ -304,7 +322,8 @@ protected async signIn(event: Event): Promise<void> {
 - ✅ Block 7: budget progress and pages ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)).
 - Warning threshold as a per-user preference, with multi-user.
 - `Temporal.PlainDate` instead of strings in the adapter, once Safari supports `Temporal`.
-- Block 8: chart library (bar/pie for categories, line for trends, good mobile rendering, active maintenance, theme tokens in light and dark).
+- ✅ Block 8: chart library, chart colors, home page ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
+- Trend charts (lines and bars over months) with the same library and tokens, once the API has an endpoint over a range of months (`[Feature] Grafici`).
 - Manual light/dark switch, if wanted after the MVP (per-user preference on the server with multi-user).
 
 ---
