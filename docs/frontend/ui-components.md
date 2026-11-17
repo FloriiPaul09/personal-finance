@@ -292,7 +292,7 @@ protected async signIn(event: Event): Promise<void> {
 
 ## Tests
 
-- `core/icons/app-icons.spec.ts`: names resolve to `icons/<name>.svg` and `-fill`; paths, URLs, upper case and namespaces are refused.
+- `core/icons/app-icons.spec.ts`: names resolve to `icons/<name>.svg` and `-fill`; paths, URLs, upper case and namespaces are refused. `core/icons/icons-in-use.spec.ts` (block 8): every icon named in the sources exists among the SVGs of Material Symbols, whose names differ from the icon font in places (`keyboard_arrow_down`, not `expand_more`).
 - `app-locale.spec.ts`: Italian number and date formats.
 - Forms: `login-page.spec.ts`, `settings-page.spec.ts` (client validation, server errors on the right field or the form, nothing shown before a field is touched, `mat-error` below the field), `api-form-errors.spec.ts`.
 - Theme and layout: checked with screenshots on a phone (390×844, light and dark) and a desktop (1280×720) when block 1 was built; Playwright covers the critical flows on a phone viewport from block 3.

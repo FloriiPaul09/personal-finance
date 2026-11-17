@@ -76,7 +76,7 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 519 tests after block 8, 97% of lines covered. Conventions in [testing.md](testing.md).
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 522 tests after block 8, 97% of lines covered. Conventions in [testing.md](testing.md).
 - End-to-end: Playwright in `e2e/` (`pnpm e2e`) on the real stack, phone and desktop; 54 tests after block 8, 5 more skipped on purpose ([testing.md](testing.md#end-to-end-playwright)).
 - Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
 - What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
