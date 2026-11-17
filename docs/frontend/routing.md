@@ -142,7 +142,6 @@ The layout (bar vs rail) is checked in the browser: block 1 was verified with sc
 - ✅ Block 6: access to transfers (from the new expense form and from the movement list); filters in the query string for the movement list ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
 - ✅ Block 7: `/budgets?month=…`, budget form pages ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)).
 - ✅ Block 8: `/dashboard?month=…` ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
-- Block 8: `/dashboard?month=…`, links from its sections to the filtered movement list and to the budgets of the month.
 
 ---
 _Last updated: 2026-11-17_
