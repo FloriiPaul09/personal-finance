@@ -16,6 +16,22 @@ export async function expectNoPageScroll(page: Page): Promise<void> {
   expect(overflow).toEqual({ vertical: 0, horizontal: 0 });
 }
 
+/**
+ * The text of the page title never runs under the account button (block 3: on phones the
+ * button is fixed at the top right, over the title's line).
+ */
+export async function expectTitleClearOfAccountButton(page: Page): Promise<void> {
+  const overlap = await page.evaluate(() => {
+    const title = document.querySelector('h1')!;
+    const button = document.querySelector('[data-testid="settings"]')!.getBoundingClientRect();
+    const box = title.getBoundingClientRect();
+    const textRight = box.right - parseFloat(getComputedStyle(title).paddingRight);
+    const sameLine = box.top < button.bottom && box.bottom > button.top;
+    return sameLine ? Math.max(0, textRight - button.left) : 0;
+  });
+  expect(overlap).toBe(0);
+}
+
 /** Nothing covers the center of the element (block 1: the button's touch target covered the rail). */
 export async function expectClickable(page: Page, selector: string): Promise<void> {
   const covered = await page.evaluate((s) => {

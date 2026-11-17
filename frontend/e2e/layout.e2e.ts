@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { expectClickable, expectNoPageScroll } from './support/pages';
+import {
+  expectClickable,
+  expectNoPageScroll,
+  expectTitleClearOfAccountButton,
+} from './support/pages';
 
 const PAGES = [
   '/dashboard',
@@ -25,6 +29,7 @@ test.describe('layout', () => {
         page,
         '.nav-item, [data-testid="new-expense"], [data-testid="settings"]',
       );
+      await expectTitleClearOfAccountButton(page);
     });
   }
 
