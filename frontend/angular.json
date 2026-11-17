@@ -3,7 +3,9 @@
   "version": 1,
   "cli": {
     "packageManager": "pnpm",
-    "schematicCollections": ["angular-eslint"]
+    "schematicCollections": [
+      "angular-eslint"
+    ]
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -41,7 +43,9 @@
               "@fontsource/roboto/700.css",
               "src/styles.scss"
             ],
-            "polyfills": ["@angular/localize/init"]
+            "polyfills": [
+              "@angular/localize/init"
+            ]
           },
           "configurations": {
             "production": {
@@ -85,14 +89,25 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "coverageReporters": ["text-summary", "html", "lcov"],
-            "coverageExclude": ["src/app/core/api/schema.ts"]
+            "coverageReporters": [
+              "text-summary",
+              "html",
+              "lcov"
+            ],
+            "coverageExclude": [
+              "src/app/core/api/schema.ts"
+            ]
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html",
+              "e2e/**/*.ts",
+              "playwright.config.ts"
+            ]
           }
         }
       },
