@@ -22,7 +22,7 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 **Block 3 (authentication) done** ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)): login page, session asked on the first protected page with `canMatch` guards, "server unavailable" page, expired session back to the login and then to the same page, logout with a full reload, settings page (email, logout, password change) behind an account button, forms with Signal Forms and server errors on their fields, Playwright on the real stack (phone and desktop) with login, session and layout tests.
 
-**Block 4 (shared components) done** ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)): amount input and display the Italian way with `number` values, `YYYY-MM-DD` date adapter tested in three time zones, month selector, empty / error / loading states, a softer income green, and a development-only catalog at `/dev/components`.
+**Block 4 (shared components) done** ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)): amount input and display the Italian way with `number` values, `YYYY-MM-DD` date adapter and date field tested in three time zones, month selector, empty / error / loading states, a softer income green, and a development-only catalog at `/dev/components`.
 
 - Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
@@ -64,8 +64,8 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 274 tests after block 4, 99% of lines covered. Conventions in [testing.md](testing.md).
-- End-to-end: Playwright in `e2e/` (`pnpm e2e`) on the real stack, phone and desktop; 29 tests after block 3 ([testing.md](testing.md#end-to-end-playwright)).
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 296 tests after block 4, 99% of lines covered. Conventions in [testing.md](testing.md).
+- End-to-end: Playwright in `e2e/` (`pnpm e2e`) on the real stack, phone and desktop; 31 tests after block 4 ([testing.md](testing.md#end-to-end-playwright)).
 - Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
 - What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
 

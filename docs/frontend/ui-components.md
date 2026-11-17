@@ -58,7 +58,7 @@ html {
 ### Layout
 
 - **Shell** with M3 navigation bar on phones and navigation rail from 600px, floating "Nuova spesa" button ([routing.md](routing.md#shell-and-navigation)).
-- Account button (settings) at the top right on phones, at the bottom of the rail from 600px ([routing.md](routing.md#shell-and-navigation)).
+- Account button (settings) at the top right on phones, on its own `surface-container-high` circle so the page can scroll under it, and at the bottom of the rail from 600px ([routing.md](routing.md#shell-and-navigation)).
 - Phone first: the main content leaves room at the bottom for the bar and the floating button; safe areas (`env(safe-area-inset-bottom)`) are respected for phones with a gesture bar.
 
 ### Shared components
@@ -70,9 +70,10 @@ Block 4, [ADR-0024](../architecture/adr/0024-frontend-shared-components.md). Eve
 | `<app-amount-input>` | `shared/money` | Money field of a Signal Form: `<app-amount-input label="Importo" [currency]="account.currency" [formField]="form.amount" />` |
 | `AmountPipe` (`amount`) | `shared/money` | Amounts to read: `{{ balance \| amount: 'EUR' }}` → `1.234,56 €`; `{ signed: true }` → `+50,00 €` |
 | `IsoDateAdapter` | `shared/dates` | Every Material date picker holds a `YYYY-MM-DD` string (provided once in `app.config`) |
-| `<app-month-selector [(month)]>` | `shared/dates` | ‹ Novembre 2026 › for budgets and the dashboard, "Mese corrente" when another month is shown, optional `max` |
+| `<app-date-input>` | `shared/date-pickers` | Date field of a Signal Form: `<app-date-input label="Data" [formField]="form.date" />`; calendar full screen on phones, Italian texts |
+| `<app-month-selector [(month)]>` | `shared/date-pickers` | ‹ Novembre 2026 › for budgets and the dashboard, "Mese corrente" when another month is shown, optional `max` |
 | `<app-empty-state>` | `shared/ui` | Nothing to show yet: icon, title, message, projected action |
-| `<app-error-state [error] (retry)>` | `core/feedback` | Data that could not be loaded: Italian message of the `code`, "Riprova", copyable reference |
+| `<app-error-state [error] (retry)>` | `core/feedback` | Data that could not be loaded: Italian message of the `code`, "Riprova", the reference (`traceId`) on its own line with a copy button |
 | Loading | Material | `<mat-progress-bar mode="indeterminate">` above the content while a resource loads |
 | Account and category selectors | `core` (block 5) | Fed by the reference data of `core`; category menu grouped by parent from the flat list (`parentId`) |
 | List filter bar | transactions (block 6) | Period, account, category, text for the movement list, in the query string |
@@ -101,6 +102,8 @@ Pages show the state of a read with `@if`:
 
 - `shared/dates` works on `YYYY-MM-DD` (`IsoDate`) and `YYYY-MM` (`IsoMonth`) strings: `todayIso()` (the date on the person's clock, not in UTC), `addDays`, `addMonths` (31 January + 1 month = end of February), `monthOf`, `currentMonth`, `addMonthsToMonth`, `monthRange` (first and last day, for a period filter), `formatIsoDate` (`17 nov 2026`), `formatMonth` (`novembre 2026`).
 - `IsoDateAdapter`: the date picker reads typed dates day first (`17/11/2026`, `17/11/26`, `17-11-2026`, `17.11.2026`, `2026-11-17`), shows `17/11/2026` in the field, starts the week on Monday (from the locale) and never builds a `Date` at local midnight.
+- `<app-date-input>`: holds `YYYY-MM-DD` or `null`, like the API. Text that is not a day ("31/02/2026") is a Signal Forms parse error with an Italian message; with a plain `matDatepicker` input the field turned red without any message (block 4 review). The value is written into the field only when the page changes it, so typing `1/2/2` is not rewritten to `01/02/2002` halfway. The calendar opens full screen on phones (`touchUi` below 600px) and speaks Italian (`ItalianDatepickerIntl`, provided by the component). `min` / `max` limit the calendar; the form validates the range.
+- **Libraries**: `shared/dates` (helpers and adapter, no components) is imported by `app.config` at startup; the fields live in `shared/date-pickers`, imported only by pages. Exporting the date field from `shared/dates` put the whole date picker in the initial bundle (779 kB instead of 481 kB): a component in a barrel imported at startup is not removed by tree shaking.
 
 ### Forms
 
@@ -176,7 +179,7 @@ protected async signIn(event: Event): Promise<void> {
 | `@angular/localize` with Italian as the source | Built-in, no runtime cost | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Signal Forms with Material, server errors through `apiFormErrors()` | Forms on signals like the rest of the app; one way to show client and server errors | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | Amounts as `number` with an own Italian parser, `<app-amount-input>` as a Signal Forms control | Forms hold what the API takes; no conversion in services, the offline queue or the CSV import | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
-| Own `DateAdapter<string>` on `YYYY-MM-DD` | No `Date` in date fields, so no day shift; `Temporal` once Safari supports it | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
+| Own `DateAdapter<string>` on `YYYY-MM-DD`, `<app-date-input>` as a Signal Forms control | No `Date` in date fields, so no day shift; Italian messages and texts; `Temporal` once Safari supports it | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | Small state components chosen with `@if`; error state in `core` | Explicit templates; the error state reads `ApiError` | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | Income green from a generated palette (`#2E7D32`) | Material's green palette is neon on dark surfaces | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | Selectors in block 5, filter bar in block 6 | Built with their real data and first page | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
@@ -187,7 +190,7 @@ protected async signIn(event: Event): Promise<void> {
 - `app-locale.spec.ts`: Italian number and date formats.
 - Forms: `login-page.spec.ts`, `settings-page.spec.ts` (client validation, server errors on the right field or the form, nothing shown before a field is touched, `mat-error` below the field), `api-form-errors.spec.ts`.
 - Theme and layout: checked with screenshots on a phone (390×844, light and dark) and a desktop (1280×720) when block 1 was built; Playwright covers the critical flows on a phone viewport from block 3.
-- Block 4: `amount.spec.ts` (every accepted and refused text, round trip, JSON value without floating point noise), `amount-input.spec.ts` (number in the model, text kept while typing, canonical text on leaving, parse errors block the form, messages after touch, reset), `amount.pipe.spec.ts`, `iso-date.spec.ts` and `iso-date-adapter.spec.ts` (in three time zones, the date picker with a Signal Form included), `month-selector.spec.ts`, `empty-state.spec.ts`, `error-state.spec.ts` ([testing.md](testing.md)).
+- Block 4: `amount.spec.ts` (every accepted and refused text, round trip, JSON value without floating point noise), `amount-input.spec.ts` (number in the model, text kept while typing, canonical text on leaving, parse errors block the form, messages after touch, reset), `amount.pipe.spec.ts`, `iso-date.spec.ts` and `iso-date-adapter.spec.ts` (in three time zones, the date picker with a Signal Form included), `date-input.spec.ts` (in three time zones: typed and picked days, parse error with message, reset, Italian labels), `month-selector.spec.ts`, `empty-state.spec.ts`, `error-state.spec.ts` ([testing.md](testing.md)).
 
 ## Scalability
 
