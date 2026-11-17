@@ -79,11 +79,15 @@ describe('provideApiHttp', () => {
       (e: unknown) => e,
     );
 
+    // Not a 401 auth.required: that one also sends the user to the login page
+    // (session-interceptor.spec.ts), and this test has no routes.
     backend
       .expectOne('/api/dashboard')
-      .flush({ code: 'auth.required' }, { status: 401, statusText: 'Unauthorized' });
+      .flush({ code: 'account.archived' }, { status: 409, statusText: 'Conflict' });
 
-    expect(await result).toBeInstanceOf(ApiError);
+    const error = await result;
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('account.archived');
   });
 });
 
