@@ -28,7 +28,7 @@ import { INVALID_DATE, IsoDate } from '../dates';
 /** Kind of the error reported when the typed text is not a day. */
 export const DATE_PARSE_ERROR_KIND = 'date';
 
-/** Phones: the calendar opens full screen instead of a popup under the field. */
+/** Phones: the calendar opens in a centered dialog (Material `touchUi`) instead of a popup under the field. */
 const PHONE = '(max-width: 599.98px)';
 
 /** Italian texts of the date picker (Material ships them in English). */
@@ -62,7 +62,7 @@ export class ItalianDatepickerIntl extends MatDatepickerIntl {
  * A date field: `<app-date-input label="Data" [formField]="form.date" />`.
  *
  * The field holds a `YYYY-MM-DD` string or `null`, like the API (`IsoDateAdapter`). The person
- * picks a day in the calendar (full screen on phones) or types it day first (`17/11/2026`,
+ * picks a day in the calendar (a dialog on phones) or types it day first (`17/11/2026`,
  * `17/11/26`); text that is not a day is a Signal Forms parse error with an Italian message, so
  * the form cannot be submitted. Like `<app-amount-input>`, it holds the whole Material form field
  * and shows the first error once touched (docs/frontend/ui-components.md#forms).
