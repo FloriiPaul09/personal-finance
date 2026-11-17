@@ -4,7 +4,8 @@
 
 .delete {
   margin-inline-end: auto;
-  color: var(--mat-sys-error);
+  // A token, not `color`: Material's text button sets its label color through it.
+  --mat-button-text-label-text-color: var(--mat-sys-error);
 }
 
 app-account-select,
