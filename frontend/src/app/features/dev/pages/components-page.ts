@@ -12,7 +12,7 @@ import { AccountSelect, CategorySelect } from '../../../core/selectors';
 import { DateInput, MonthSelector } from '../../../shared/date-pickers';
 import { currentMonth, formatIsoDate, IsoMonth, monthRange, todayIso } from '../../../shared/dates';
 import { AmountInput, AmountPipe } from '../../../shared/money';
-import { EmptyState } from '../../../shared/ui';
+import { BudgetFigures, BudgetProgress, EmptyState } from '../../../shared/ui';
 
 /**
  * Catalog of the shared components, to try them on a phone and a desktop with real data shapes
@@ -26,6 +26,7 @@ import { EmptyState } from '../../../shared/ui';
     AmountInput,
     CategorySelect,
     AmountPipe,
+    BudgetProgress,
     DateInput,
     EmptyState,
     ErrorState,
@@ -44,6 +45,34 @@ import { EmptyState } from '../../../shared/ui';
 export class ComponentsPage {
   protected readonly currencies = ['EUR', 'USD', 'CHF'];
   protected readonly currency = signal('EUR');
+
+  /** The three states of a budget: normal, from 90% ("attenzione"), over the limit. */
+  protected readonly budgets: (BudgetFigures & { label: string })[] = [
+    {
+      label: 'Normale',
+      limit: 350,
+      spent: 120.25,
+      remaining: 229.75,
+      ratio: 0.3436,
+      isOverBudget: false,
+    },
+    {
+      label: 'Attenzione',
+      limit: 200,
+      spent: 186,
+      remaining: 14,
+      ratio: 0.93,
+      isOverBudget: false,
+    },
+    {
+      label: 'Superato',
+      limit: 100,
+      spent: 130.5,
+      remaining: -30.5,
+      ratio: 1.305,
+      isOverBudget: true,
+    },
+  ];
 
   protected readonly entry = signal<{
     amount: number | null;

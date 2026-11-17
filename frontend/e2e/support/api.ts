@@ -2,7 +2,8 @@ import { APIRequestContext, Page } from '@playwright/test';
 
 /**
  * Calls of the API with the session of the page, to prepare and clean up the data of a test
- * (accounts to spend from) without going through screens another test already covers. Writes
+ * (accounts to spend from, categories, expenses) without going through screens another test
+ * already covers. Writes
  * carry the antiforgery header like the app does; open a page of the app first, which sets the
  * cookie.
  */
@@ -59,6 +60,48 @@ export class TestApi {
     });
   }
 
+  async createCategory(name: string, kind: 'expense' | 'income' = 'expense'): Promise<Category> {
+    const response = await this.request.post('/api/categories', {
+      headers: { 'X-XSRF-TOKEN': this.xsrf },
+      data: { name, kind, parentId: null },
+    });
+    if (!response.ok()) {
+      throw new Error(`Category not created: ${response.status()} ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  /** Deletes the category and, first, its budget entries. Delete its movements before. */
+  async deleteCategory(id: string): Promise<void> {
+    const entries = await (await this.request.get(`/api/budgets?categoryId=${id}`)).json();
+    for (const entry of entries.items as { id: string; version: number }[]) {
+      await this.request.delete(`/api/budgets/${entry.id}`, {
+        headers: { 'X-XSRF-TOKEN': this.xsrf, 'If-Match': `"${entry.version}"` },
+      });
+    }
+    const version = await this.version(`/api/categories/${id}`);
+    if (version !== null) {
+      await this.request.delete(`/api/categories/${id}`, {
+        headers: { 'X-XSRF-TOKEN': this.xsrf, 'If-Match': `"${version}"` },
+      });
+    }
+  }
+
+  async createExpense(
+    accountId: string,
+    categoryId: string,
+    amount: number,
+    date: string,
+  ): Promise<void> {
+    const response = await this.request.post('/api/transactions', {
+      headers: { 'X-XSRF-TOKEN': this.xsrf },
+      data: { kind: 'expense', accountId, categoryId, amount, date },
+    });
+    if (!response.ok()) {
+      throw new Error(`Expense not created: ${response.status()} ${await response.text()}`);
+    }
+  }
+
   private async version(url: string): Promise<number | null> {
     const response = await this.request.get(url);
     return response.ok() ? (await response.json()).version : null;
@@ -69,6 +112,12 @@ export interface Account {
   id: string;
   name: string;
   balance: number;
+  version: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
   version: number;
 }
 

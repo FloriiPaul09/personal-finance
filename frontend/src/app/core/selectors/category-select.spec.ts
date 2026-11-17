@@ -6,7 +6,7 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { disabled, form, FormField } from '@angular/forms/signals';
 import { MatSelectHarness } from '@angular/material/select/testing';
-import { CategoryKind } from '..';
+import { CategoryKind, CategoryResponse } from '..';
 import { aCategory, flushCategories, someCategories } from '../testing';
 import { CategorySelect } from './category-select';
 
@@ -19,6 +19,7 @@ import { CategorySelect } from './category-select';
     [excludeId]="excludeId()"
     [noneLabel]="noneLabel()"
     [includeArchived]="includeArchived()"
+    [disabledReason]="disabledReason()"
     [formField]="entryForm.categoryId"
   />`,
 })
@@ -30,6 +31,7 @@ class Host {
   readonly excludeId = signal<string | null>(null);
   readonly noneLabel = signal<string | undefined>(undefined);
   readonly locked = signal(false);
+  readonly disabledReason = signal<((c: CategoryResponse) => string | null) | undefined>(undefined);
   readonly entryForm = form(this.model, (path) => {
     disabled(path.categoryId, () => this.locked());
   });
@@ -125,6 +127,21 @@ describe('CategorySelect', () => {
       g.querySelector('.mat-mdc-optgroup-label')?.textContent?.trim(),
     );
     expect(groups).toEqual(['Uscite', 'Entrate']);
+  });
+
+  it('shows the categories that cannot be chosen with their reason, disabled', async () => {
+    host.disabledReason.set((c) => (c.id === trasporti.id ? 'Ha già un budget' : null));
+    flushCategories(backend, categories);
+    await fixture.whenStable();
+    const select = await loader.getHarness(MatSelectHarness);
+    await select.open();
+
+    const [option] = await select.getOptions({ text: /Trasporti/ });
+    expect(await option.isDisabled()).toBe(true);
+    expect(await option.getText()).toContain('Ha già un budget');
+    expect(await (await select.getOptions({ text: 'Spesa' }))[0].isDisabled()).toBe(false);
+    await option.click();
+    expect(host.model().categoryId).toBeNull();
   });
 
   it('follows the disabled state of its field', async () => {

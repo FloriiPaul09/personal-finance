@@ -71,3 +71,9 @@ pre {
     background: var(--mat-sys-surface-container-low);
   }
 }
+
+.budgets {
+  display: grid;
+  gap: 16px;
+  max-width: 480px;
+}

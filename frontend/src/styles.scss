@@ -4,6 +4,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use './income-palette' as income;
+@use './warning-palette' as warning;
 
 html {
   // Light and dark mode follow the operating system: every color token is
@@ -29,6 +30,17 @@ html {
     #{map.get(income.$primary-palette, 80)}
   );
   --pf-expense: var(--mat-sys-error);
+
+  // Warning (a budget past 90% of its limit): an amber palette generated the same way
+  // (_warning-palette.scss), tones of the primary roles: 40 / 80, containers 90 / 30.
+  --pf-warning: light-dark(
+    #{map.get(warning.$primary-palette, 40)},
+    #{map.get(warning.$primary-palette, 80)}
+  );
+  --pf-warning-container: light-dark(
+    #{map.get(warning.$primary-palette, 90)},
+    #{map.get(warning.$primary-palette, 30)}
+  );
 }
 
 body {

@@ -10,6 +10,7 @@ const FORM_PAGES = new Set([
   '/transactions/new',
   '/transactions/new?kind=income',
   '/transfers/new',
+  '/budgets/new',
   '/accounts/new',
   '/categories/new',
 ]);
@@ -21,6 +22,7 @@ const PAGES = [
   '/transactions/new?kind=income',
   '/transfers/new',
   '/budgets',
+  '/budgets/new',
   '/accounts',
   '/accounts/new',
   '/categories',

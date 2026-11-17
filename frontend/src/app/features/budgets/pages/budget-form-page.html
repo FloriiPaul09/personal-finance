@@ -1,0 +1,127 @@
+<section class="pf-page">
+  <div class="heading">
+    <a
+      matIconButton
+      routerLink="/budgets"
+      [queryParams]="backParams()"
+      aria-label="Torna ai budget"
+      i18n-aria-label="Back button of the budget form"
+    >
+      <mat-icon svgIcon="arrow_back" />
+    </a>
+    @if (isNew()) {
+      <h1 class="pf-page-title" i18n="Title of the new budget form">Nuovo budget</h1>
+    } @else {
+      <h1 class="pf-page-title" i18n="Title of the budget form">Budget di {{ categoryName() }}</h1>
+    }
+  </div>
+
+  @if (loadError(); as error) {
+    <app-error-state [error]="error" (retry)="store.reloadEntries()" />
+  } @else if (!ready()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (notFound()) {
+    <app-empty-state
+      icon="savings"
+      title="Categoria non trovata"
+      i18n-title="Budget form for a category that does not exist"
+      message="Potrebbe essere stata eliminata."
+      i18n-message="Budget form for a category that does not exist"
+    >
+      <a
+        matButton="filled"
+        routerLink="/budgets"
+        [queryParams]="backParams()"
+        i18n="Button back to the budgets"
+        >Torna ai budget</a
+      >
+    </app-empty-state>
+  } @else {
+    <form class="form" novalidate (submit)="save($event)">
+      @for (error of budgetForm().errors(); track $index) {
+        <p class="form-error" role="alert">{{ error.message }}</p>
+      }
+      @if (changedElsewhere()) {
+        <p class="form-error" role="alert" i18n="Budget form after a version conflict">
+          Il budget è stato modificato altrove: ora vedi i dati aggiornati. Rifai le modifiche e
+          salva di nuovo.
+        </p>
+      }
+
+      @if (isNew()) {
+        <app-category-select
+          label="Categoria"
+          i18n-label="Budget form field"
+          kind="expense"
+          [disabledReason]="disabledReason"
+          [formField]="budgetForm.categoryId"
+        />
+      }
+      <app-amount-input
+        label="Limite mensile"
+        i18n-label="Budget form field"
+        [currency]="currency"
+        [formField]="budgetForm.amount"
+      />
+      <div class="month" role="group" aria-labelledby="budget-from-label">
+        <span id="budget-from-label" class="month-label" i18n="Budget form field">Dal mese</span>
+        <app-month-selector [month]="model().from" (monthChange)="setFrom($event)" />
+        <span class="month-hint" i18n="Hint of the month of a budget"
+          >Il limite vale da questo mese finché non lo cambi o lo fermi.</span
+        >
+      </div>
+
+      <div class="actions">
+        <a
+          matButton
+          routerLink="/budgets"
+          [queryParams]="backParams()"
+          i18n="Button that leaves the budget form"
+          >Annulla</a
+        >
+        <button
+          matButton="filled"
+          type="submit"
+          data-testid="save-budget"
+          [disabled]="budgetForm().submitting()"
+          i18n="Button that saves a budget"
+        >
+          Salva
+        </button>
+      </div>
+    </form>
+
+    @if (history().length > 0) {
+      <section class="history" aria-labelledby="budget-history-title">
+        <h2 id="budget-history-title" class="history-title" i18n="Title of the budget history">
+          Storico
+        </h2>
+        <ul class="entries">
+          @for (entry of history(); track entry.id) {
+            <li class="entry" data-testid="budget-entry">
+              <span class="entry-text">
+                <span class="entry-month" i18n="Month an entry of a budget applies from"
+                  >Da {{ monthLabel(entry.from) }}</span
+                >
+                @if (entry.amount === null) {
+                  <span class="entry-value" i18n="Budget entry that stops the budget">Fermato</span>
+                } @else {
+                  <span class="entry-value pf-amount">{{ entry.amount | amount: currency }}</span>
+                }
+              </span>
+              <button
+                matIconButton
+                type="button"
+                data-testid="delete-entry"
+                [attr.aria-label]="deleteLabel(entry)"
+                (click)="deleteEntry(entry)"
+              >
+                <mat-icon svgIcon="delete" />
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</section>

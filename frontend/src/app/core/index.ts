@@ -9,6 +9,8 @@ export type * from './api/models';
 export { AccountsDirectory } from './data/accounts-directory';
 export { CategoriesDirectory, type CategoryGroup } from './data/categories-directory';
 export { DataChanges, type DataResource } from './data/data-changes';
+export { referenceList, type ReferenceList } from './data/reference-list';
+export { BUDGET_CURRENCY } from './data/budget-currency';
 export { RECENT_CATEGORIES, RECENT_STORAGE, RecentChoices } from './data/recent-choices';
 export { provideAppErrorHandler } from './errors/app-error-handler';
 export { ErrorNotifier } from './errors/error-notifier';
