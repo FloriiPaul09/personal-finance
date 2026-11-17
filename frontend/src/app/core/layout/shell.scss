@@ -30,11 +30,14 @@
   bottom: calc(80px + 16px + env(safe-area-inset-bottom));
 }
 
-// Phone: top right of the page, away from the thumb's path.
+// Phone: top right of the page, away from the thumb's path. The page scrolls under it, so it
+// has its own surface: without one, text passing underneath mixed with the icon.
 .account {
   position: fixed;
+  z-index: 1;
   top: 8px;
   right: 8px;
+  background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
 
   &.active {
@@ -109,6 +112,7 @@
     position: relative;
     top: auto;
     right: auto;
+    background: none;
     margin: auto 0 16px;
   }
 

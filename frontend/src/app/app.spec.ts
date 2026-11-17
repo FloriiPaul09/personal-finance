@@ -7,6 +7,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
 import { provideAppIcons, providePageTitles, SessionStatus, SessionStore } from './core';
+import { provideIsoDateAdapter } from './shared/dates';
 
 // Routing and shell together, as the app runs them (icon requests are left unanswered).
 // The session is a stub: its own behavior is tested in core/auth.
@@ -18,6 +19,7 @@ async function startApp(status: SessionStatus): Promise<RouterTestingHarness> {
       provideHttpClientTesting(),
       providePageTitles(),
       provideAppIcons(),
+      provideIsoDateAdapter(),
       {
         provide: SessionStore,
         useValue: {
@@ -97,6 +99,19 @@ describe('App routes and shell', () => {
     await harness.navigateByUrl('/does-not-exist');
 
     expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('opens the catalog of the shared components in development, outside the navigation', async () => {
+    await harness.navigateByUrl('/dev/components');
+
+    expect(heading()).toBe('Componenti');
+    expect(navLinks().some((a) => a.getAttribute('aria-current') === 'page')).toBe(false);
+  });
+
+  it('has no developer pages in the production build', async () => {
+    const production = await import('./dev-routes.prod');
+
+    expect(production.DEV_ROUTES).toEqual([]);
   });
 
   it('opens the settings from the account button', async () => {

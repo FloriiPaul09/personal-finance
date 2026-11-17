@@ -49,11 +49,17 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/dev-routes.ts",
+                  "with": "src/app/dev-routes.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumError": "600kB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -95,7 +101,9 @@
               "lcov"
             ],
             "coverageExclude": [
-              "src/app/core/api/schema.ts"
+              "src/app/core/api/schema.ts",
+              "src/**/testing/**",
+              "src/app/features/dev/**"
             ]
           }
         },

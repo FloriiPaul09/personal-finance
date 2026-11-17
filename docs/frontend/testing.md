@@ -6,7 +6,7 @@ How the Angular application is tested: unit tests with Vitest, coverage, end-to-
 
 ## Current state
 
-Vitest and coverage set up (blocks 0–1), HTTP layer tested (block 2), Playwright set up with the login, session and layout tests (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
+Vitest and coverage set up (blocks 0–1), HTTP layer tested (block 2), Playwright set up with the login, session and layout tests (block 3, [ADR-0023](../architecture/adr/0023-frontend-authentication.md)), shared components tested in three time zones and tried in a development-only catalog (block 4, [ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 
 ### Unit tests (Vitest)
 
@@ -30,12 +30,15 @@ Vitest and coverage set up (blocks 0–1), HTTP layer tested (block 2), Playwrig
 - **Session**: tests of pages inside the shell provide a stub `SessionStore` (`app.spec.ts` → `startApp(status)`), otherwise the guard waits for `GET /api/auth/me`. A test that flushes a `401 auth.required` also starts the redirect to the login: give it routes, or use another error when the redirect is not what is tested.
 - **Forms** (Signal Forms): fill the inputs, dispatch `input` / `blur`, submit the `<form>`; check that a message is **not** shown before the field is touched and that `mat-error` ends up in `.mat-mdc-form-field-subscript-wrapper` (block 3 regression: errors showed on load, inside the field).
 - `<mat-icon svgIcon>` requests its SVG through `HttpClient`: tests that render icons provide `provideHttpClientTesting()` and leave those requests unanswered.
-- **Dates** (block 4): the date adapter is tested under time zones far from UTC (e.g. `Pacific/Kiritimati`, `America/Los_Angeles`), to prove a date never moves by a day.
+- **Dates**: `useTimeZone(zone)` / `setTimeZone(zone)` from `shared/testing` switch `process.env.TZ`, which Node reads again at each change; `describe.each(TIME_ZONES)` runs a test in `Pacific/Kiritimati` (UTC+14), `America/Los_Angeles` (UTC−8/−7) and `Europe/Rome`. "Today" is tested with `vi.useFakeTimers({ now })` at instants where the date differs between zones (23:30 UTC).
+- **Custom form controls**: a host component with a real Signal Form and `[formField]`; type with `input.value = …` + `input` event, leave with `blur`, then check the model, the text and the message (`amount-input.spec.ts`). Material controls through their harnesses (`MatDatepickerInputHarness`, `getCalendar().selectCell(...)`).
+- **Icons in component tests**: `MatIconTestingModule` (no SVG requests); read the icon name from the `MatIcon` instance (`By.directive(MatIcon)`), not from an attribute.
+- **Test helpers** live in `shared/testing` (or a `testing/` folder of a module): excluded from the app build (`tsconfig.app.json`) and from coverage, included in `tsconfig.spec.json`.
 
 ### Coverage
 
 - `pnpm test:coverage`: Vitest's `v8` provider through the builder (`coverage` option), reports `text-summary` in the terminal, `html` and `lcov` in `coverage/` (ignored by git).
-- `coverageExclude`: the generated `core/api/schema.ts`.
+- `coverageExclude`: the generated `core/api/schema.ts`, test helpers (`**/testing/**`) and the development-only catalog (`features/dev`).
 - **No threshold** ([ADR-0006](../architecture/adr/0006-testing-strategy.md)): coverage points at untested areas, it is not a goal.
 
 ### End-to-end (Playwright)
@@ -75,6 +78,12 @@ pnpm e2e                                # pnpm e2e:report opens the last HTML re
 - **Layout regressions** (`support/pages.ts`), on every page in both projects: `expectNoPageScroll` (block 1: the rail made the page 16px taller than the window), `expectClickable` on the navigation, the new expense and the account buttons (block 1: the button's touch target covered the rail), `expectTitleClearOfAccountButton` (block 3: on phones a long title ran under the account button); on phones, the error snackbar ends above the navigation bar and the new expense button (block 2).
 - Failures keep a trace and a screenshot (`test-results/`, git-ignored); `pnpm exec playwright show-trace <file>` replays them.
 
+### Component catalog
+
+`/dev/components` (feature `dev`) shows every shared component with live values: amount inputs in a Signal Form with the value the API would receive, amounts to read in each currency, today and the month selector, empty, error and loading states. It opens with `pnpm start` after the login, outside the navigation. The production build replaces `src/app/dev-routes.ts` with `dev-routes.prod.ts` (an empty list, `fileReplacements` in `angular.json`), so its code never reaches the production bundles; a unit test checks the replacement is empty.
+
+Use it to check a component in the built-in browser on a phone (390×844) and a desktop, in light and dark, before a page uses it; add each new shared component to it.
+
 ## Decisions
 
 | Decision | Reason | Reference |
@@ -95,6 +104,9 @@ pnpm e2e                                # pnpm e2e:report opens the last HTML re
 - Block 3 (60 Vitest tests): `core/auth/*.spec.ts` (safe return URL, one shared `me` request, `401` vs unreachable, login, logout with reload and an already expired session, guards, interceptor that skips `me` and `login`), `core/forms/api-form-errors.spec.ts`, `features/auth` and `features/settings` pages (validation, server errors on the right field or on the form, nothing shown before a field is touched), `core/layout/unavailable-page.spec.ts`, `app.spec.ts` with the session stub.
 - Coverage after block 3: 137 tests, 99% of statements and lines, 98% of functions, 94% of branches.
 - Block 3 E2E: 29 tests (setup, then 14 per project): login, session and layout ([End-to-end](#end-to-end-playwright)).
+- Block 4 (159 Vitest tests): `shared/money` (parser with every accepted and refused text, JSON value without floating point noise, round trip with the formatter, the input in a Signal Form, the pipe), `shared/dates` and `shared/date-pickers` (helpers, adapter, a real date picker and the date field in three time zones, month selector), `shared/ui` and `core/feedback` states, the catalog route. Coverage after block 4: 296 tests, 99% of statements and lines, 97% of functions, 94% of branches (the catalog page is excluded).
+- Block 4 E2E: on phones the account button has its own surface (`layout.e2e.ts`).
+- Block 4 checked in the built-in browser on `/dev/components`, phone (390×844, light and dark) and desktop (1280×720), with real keystrokes: amounts with comma and with the dot of a phone keyboard, a third decimal refused, a negative only where allowed, submit blocked by a parse error and the value sent once corrected; Monday-first Italian calendar, days picked and typed reaching the form as `YYYY-MM-DD` (`2028-02-29`), reset; month selector, amounts to read, states, the softer green in dark mode. Found and fixed: a date that does not exist showed a red field without a message and the calendar spoke English (now `<app-date-input>`); the date field exported from the startup barrel raised the initial bundle to 779 kB (now `shared/date-pickers`, and the build fails above 600 kB); on phones the page scrolled under a transparent account button; long error references broke after `00-`.
 - Block 3 checked in the built-in browser on the running app: form errors, wrong credentials (unknown address), login back to the requested page, settings, password change errors without changing the password, expired session simulated with a `401` back to `/login?returnUrl=%2Fsettings` and back again after the login, logout, layout on phone and desktop. Found and fixed: form errors showed on load and inside the fields (now after the field is touched, below it, with a regression test); a long page title ran under the account button on phones (now wraps, checked by Playwright); an expired session was logged as an error in the console (now silent, unit test); a Vitest test left an unhandled rejection that failed `pnpm test` intermittently (`provide-api-http.spec.ts`).
 
 ## Scalability
@@ -108,7 +120,7 @@ pnpm e2e                                # pnpm e2e:report opens the last HTML re
 
 - ✅ Block 3: Playwright location, devices, how the stack runs; login, session and layout tests, including the regression of the block 1 scrollbar ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
 - Blocks 6 and 8: E2E of an expense on a phone, a transfer, the dashboard; a way to give each run its own data (a user per run needs registration, off by default).
-- Block 4: time-zone tests of the date adapter; amount input tests.
+- ✅ Block 4: time-zone tests of the date adapter; amount input tests ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - `[DevOps]`: frontend jobs in CI, E2E included (when they run, how the stack starts).
 
 ---

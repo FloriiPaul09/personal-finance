@@ -61,7 +61,7 @@ export class AccountsStore {
 Rules:
 
 - **Components never inject `HttpClient`** or an API service: they read signals of a store and call its methods.
-- **Reads** use `httpResource()` (or `resource()` around an API service) so loading, error and value are signals; a template shows them with the shared empty and error states (block 4).
+- **Reads** use `httpResource()` (or `resource()` around an API service) so loading, error and value are signals; a template shows them with `<app-empty-state>`, `<app-error-state>` and Material's progress bar ([ui-components.md](ui-components.md#shared-components)).
 - **Writes** go through the API service, which sends `If-Match` with `ifMatch(version)`; the store then **reloads** the affected resources. No optimistic update in the MVP: the server computes balances and totals.
 - **Errors** are always `ApiError` (see below): the page shows the codes it expects next to the right field and lets the rest go to the global handler.
 - **Creates that may be sent again** (expenses, income, transfers) carry `id: newId()` (UUIDv7) from the moment the form opens: sending the same request twice returns the same resource.
@@ -105,7 +105,7 @@ Every failed `/api` request fails with an `ApiError` ([ADR-0022](../architecture
 - A page handles what it expects, e.g. `account.name_taken` on the name field, `concurrency.version_mismatch` with a reload.
 - Anything not handled reaches `AppErrorHandler`, which logs it and shows it with `ErrorNotifier` (snackbar with the message and "Copia riferimento" for the `traceId`). `auth.required` is neither shown nor logged: `sessionInterceptor` has already opened the login page ([routing.md](routing.md#authentication)).
 - Snackbars: `provideSnackBars()` gives every snackbar the `pf-snackbar` class; on phones `styles.scss` lifts it above the navigation bar and the new expense button.
-- A failed `httpResource` exposes the `ApiError` in `error()`; the page shows it with the shared error state (block 4).
+- A failed `httpResource` exposes the `ApiError` in `error()`; the page shows it with `<app-error-state [error]="…" (retry)="resource.reload()">` from `core` ([ui-components.md](ui-components.md#shared-components)).
 
 ### Versions
 

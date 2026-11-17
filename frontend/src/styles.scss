@@ -3,6 +3,7 @@
 // (docs/frontend/ui-components.md#theme).
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use './income-palette' as income;
 
 html {
   // Light and dark mode follow the operating system: every color token is
@@ -20,10 +21,13 @@ html {
     )
   );
 
-  // Semantic colors for money. Income uses the M3 green palette with the same
-  // tones as the primary roles (40 on light, 80 on dark); expenses use the
-  // error role.
-  --pf-income: light-dark(#{map.get(mat.$green-palette, 40)}, #{map.get(mat.$green-palette, 80)});
+  // Semantic colors for money. Income uses a green palette generated from a calm seed
+  // (_income-palette.scss), with the same tones as the primary roles (40 on light, 80 on dark);
+  // expenses use the error role.
+  --pf-income: light-dark(
+    #{map.get(income.$primary-palette, 40)},
+    #{map.get(income.$primary-palette, 80)}
+  );
   --pf-expense: var(--mat-sys-error);
 }
 

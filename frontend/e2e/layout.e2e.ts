@@ -33,6 +33,20 @@ test.describe('layout', () => {
     });
   }
 
+  test('keeps the account button readable when the page scrolls under it', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'The button floats over the page only on phones');
+    await page.goto('/settings');
+
+    // Block 4: without its own surface, text scrolling under the button mixed with the icon.
+    const background = await page
+      .getByTestId('settings')
+      .evaluate((button) => getComputedStyle(button).backgroundColor);
+    expect(background).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
   test('shows an error snackbar above the navigation bar and the new expense button', async ({
     page,
     isMobile,

@@ -6,7 +6,7 @@ Folders of the Angular application, what goes where, the module boundaries and h
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`; block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) the session (`core/auth`), form helpers (`core/forms`), the `auth` and `settings` features and the Playwright tests (`e2e/`).
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`; block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) the session (`core/auth`), form helpers (`core/forms`), the `auth` and `settings` features and the Playwright tests (`e2e/`); block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)) the first shared libraries (`shared/money`, `shared/dates`, `shared/ui`), `core/feedback` and the development-only `dev` feature.
 
 ### Folders
 
@@ -24,19 +24,27 @@ frontend/
     ├── index.html
     ├── main.ts
     ├── styles.scss         # theme and global tokens (ui-components.md#theme)
+    ├── _income-palette.scss # generated tonal palette of the income green
     └── app/
         ├── app.ts / app.config.ts / app.routes.ts   # root: wires everything (tag "root")
+        ├── dev-routes.ts / dev-routes.prod.ts     # development-only pages; the production build uses the empty one
         ├── core/           # one module (tag "core")
         │   ├── index.ts    # public API of core
         │   ├── auth/       # SessionStore, authGuard / guestGuard, sessionInterceptor, safeReturnUrl
         │   ├── forms/      # apiFormErrors — own barrel, keeps @angular/forms out of the initial bundle
         │   ├── api/        # openapi.json (snapshot), schema.ts (generated), models.ts (aliases), ApiError, messages
         │   ├── errors/     # global ErrorHandler, ErrorNotifier (snackbar)
+        │   ├── feedback/   # ErrorState (data that could not be loaded)
         │   ├── http/       # provideApiHttp (XSRF, interceptor, antiforgery), ifMatch, cursorPager
         │   ├── ids/        # newId() — UUIDv7 for client-created resources
         │   ├── icons/      # Material Symbols resolver
         │   └── layout/     # Shell, navigation items, page titles, snackbar options, "unavailable" page
-        ├── shared/         # one module per library (tag "shared"), e.g. shared/ui, shared/util (block 4)
+        ├── shared/         # one module per library (tag "shared")
+        │   ├── money/      # parseAmount, formatAmount, AmountPipe, <app-amount-input>
+        │   ├── dates/      # ISO dates and months, IsoDateAdapter (no components: imported at startup)
+        │   ├── date-pickers/ # <app-date-input>, <app-month-selector>
+        │   ├── ui/         # <app-empty-state>
+        │   └── testing/    # helpers for unit tests only (time zones)
         └── features/       # one module per feature (tag "feature")
             ├── dashboard/
             ├── transactions/
@@ -44,7 +52,8 @@ frontend/
             ├── accounts/
             ├── categories/
             ├── auth/       # login page
-            └── settings/   # account settings: logout, password change
+            ├── settings/   # account settings: logout, password change
+            └── dev/        # catalog of the shared components (development only)
 ```
 
 Inside a feature:
@@ -61,7 +70,7 @@ features/accounts/
 | Folder | Contains | Never contains |
 |---|---|---|
 | `core` | Singletons used by the whole app: layout, HTTP setup and interceptors (block 2), session and guard (block 3), API types, reference data shared by several features (accounts and categories lists) | Pages of a feature |
-| `shared/<library>` | Reusable UI and utilities that know nothing about the app: amount input, date adapter, filter bar, empty and error states (block 4). They take data through inputs | Calls to the API, imports from `core` or features |
+| `shared/<library>` | Reusable UI and utilities that know nothing about the app, one library per topic: `money`, `dates`, `date-pickers`, `ui`, `testing`. They take data and translated texts through inputs | Calls to the API, imports from `core` or features |
 | `features/<feature>` | Pages, components and stores of one area, named after the backend module | Imports from another feature |
 
 ### Naming
@@ -86,6 +95,9 @@ features/accounts/
 - A module is a folder with an `index.ts`; other modules import only that file (**no deep imports**).
 - A barrel that matches no tag gets `noTag`, which may import nothing: a new top-level folder cannot slip past the rules.
 - `core/forms` is a second barrel of `core` (same tag): importing `core` must not pull `@angular/forms` into the initial bundle, which has a 500 kB budget (block 3 reached 548 kB before the split, 473 kB after).
+- Something generic that needs an app type goes to `core` (e.g. `ErrorState` reads `ApiError`, so it is in `core/feedback`, not `shared/ui`).
+- A barrel imported at startup (by `app.config` or `core`) exports no component: tree shaking does not remove an unused component, so its whole library would enter the initial bundle (`shared/dates` vs `shared/date-pickers`).
+- Test helpers go in `shared/testing` or a `testing/` folder: excluded from the app build and from coverage.
 - When two features need the same thing, it moves to `core` (app-specific: e.g. the accounts list for selectors) or `shared` (generic: e.g. an amount input).
 
 ### API types
@@ -135,10 +147,11 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 | Types generated from OpenAPI, services by hand | Types follow the backend; versions and error codes stay under our control | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | `@angular/localize`, source locale `it` in `angular.json` | Built into Angular, no runtime cost; locale, locale data and `lang` from one setting | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Session in `core/auth`, form helpers in a separate `core/forms` barrel, Playwright in `frontend/e2e` | Every feature needs the session; forms only where there is a form; E2E share the workspace's dependencies | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
+| `shared/money`, `shared/dates`, `shared/date-pickers`, `shared/ui`, `shared/testing`; development pages replaced by an empty list in production; initial budget error at 600 kB | One library per topic, imported only where used; nothing heavy at startup; developer tools cost nothing in production | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 
 ## Tests
 
-- `pnpm build` checks the bundle budgets (initial bundle under 500 kB).
+- `pnpm build` checks the bundle budgets: a warning above 500 kB for the initial bundle, an error above 600 kB (481 kB after block 4). Adding the catalog as a normal lazy route raised it to 530 kB, because code shared between a lazy chunk and the app is loaded at startup: that is why the production build drops the development routes with `fileReplacements`; `app.spec.ts` checks the production list is empty.
 - `pnpm lint` also lints `e2e/` and `playwright.config.ts`; `e2e/tsconfig.json` type-checks the Playwright tests.
 - `pnpm lint` runs Sheriff: when block 1 was set up, an import from `features/accounts` into `features/transactions` and a deep import into `core/layout` were both reported, then removed.
 - `app-locale.spec.ts`: `LOCALE_ID` is `it` without providers; numbers and dates are formatted the Italian way (`1.234,50`, `13 novembre 2026`).

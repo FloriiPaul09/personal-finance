@@ -1,0 +1,104 @@
+<section class="pf-page">
+  <h1 class="pf-page-title">Componenti</h1>
+  <p class="intro">Pagina di prova dei componenti condivisi, visibile solo in sviluppo.</p>
+
+  <section class="block" aria-labelledby="form-title">
+    <h2 id="form-title" class="block-title">Importo e data in un form</h2>
+
+    <mat-button-toggle-group
+      class="currency"
+      aria-label="Valuta"
+      [value]="currency()"
+      (change)="currency.set($event.value)"
+    >
+      @for (code of currencies; track code) {
+        <mat-button-toggle [value]="code">{{ code }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+
+    <form class="form" novalidate (submit)="send($event)">
+      <app-amount-input
+        label="Importo"
+        hint="Maggiore di zero, al massimo due decimali"
+        [currency]="currency()"
+        [formField]="entryForm.amount"
+      />
+      <app-amount-input
+        label="Saldo iniziale"
+        hint="Può essere negativo (carta di credito)"
+        allowNegative
+        [currency]="currency()"
+        [formField]="entryForm.balance"
+      />
+      <app-date-input
+        label="Data"
+        hint="Scrivila (17/11/2026) o sceglila dal calendario"
+        [formField]="entryForm.date"
+      />
+
+      <div class="actions">
+        <button matButton="filled" type="submit">Invia</button>
+        <button matButton type="button" (click)="reset()">Svuota</button>
+      </div>
+    </form>
+
+    <p class="label">Valore del form (quello che riceve l'API):</p>
+    <pre data-testid="form-value">{{ entry() | json }}</pre>
+    @if (sent(); as sent) {
+      <p class="label">Inviato:</p>
+      <pre data-testid="sent-value">{{ sent | json }}</pre>
+    }
+  </section>
+
+  <section class="block" aria-labelledby="amounts-title">
+    <h2 id="amounts-title" class="block-title">Importi in lettura</h2>
+    <ul class="amounts">
+      @for (value of samples; track value) {
+        <li>
+          <span class="pf-amount">{{ value | amount: currency() }}</span>
+          <span class="pf-amount" [class.pf-income]="value > 0" [class.pf-expense]="value < 0">
+            {{ value | amount: currency() : { signed: true } }}
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="block" aria-labelledby="dates-title">
+    <h2 id="dates-title" class="block-title">Date e mesi</h2>
+    <p>
+      Oggi: <code>{{ today }}</code> · {{ formatIsoDate(today, 'it') }} ·
+      {{ formatIsoDate(today, 'it', { weekday: 'long', day: 'numeric', month: 'long' }) }}
+    </p>
+    <app-month-selector [(month)]="month" [max]="max" />
+    <p>
+      <code>?month={{ month() }}</code> · dal <code>{{ monthRange(month()).from }}</code> al
+      <code>{{ monthRange(month()).to }}</code>
+    </p>
+  </section>
+
+  <section class="block" aria-labelledby="states-title">
+    <h2 id="states-title" class="block-title">Stati</h2>
+
+    <div class="loading">
+      <button matButton="outlined" type="button" (click)="loading.set(!loading())">
+        {{ loading() ? 'Ferma caricamento' : 'Avvia caricamento' }}
+      </button>
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Caricamento" />
+      }
+    </div>
+
+    <div class="states">
+      <app-empty-state
+        icon="account_balance_wallet"
+        title="Nessun conto"
+        message="Aggiungi il primo conto per registrare le spese."
+      >
+        <button matButton="filled" type="button">Aggiungi conto</button>
+      </app-empty-state>
+      <app-error-state [error]="offline" />
+      <app-error-state [error]="serverError" />
+    </div>
+  </section>
+</section>

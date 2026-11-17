@@ -8,6 +8,7 @@ export { SessionStore, type SessionStatus } from './auth/session-store';
 export type * from './api/models';
 export { provideAppErrorHandler } from './errors/app-error-handler';
 export { ErrorNotifier } from './errors/error-notifier';
+export { ErrorState } from './feedback/error-state';
 export { cursorPager, type CursorPager } from './http/cursor-pager';
 export { provideApiHttp } from './http/provide-api-http';
 export { ifMatch } from './http/versions';

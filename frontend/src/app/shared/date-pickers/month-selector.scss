@@ -1,0 +1,18 @@
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.label {
+  min-width: 9em;
+  font: var(--mat-sys-title-medium);
+  text-align: center;
+}
