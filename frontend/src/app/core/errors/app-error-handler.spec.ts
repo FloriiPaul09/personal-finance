@@ -36,5 +36,6 @@ describe('AppErrorHandler', () => {
     TestBed.inject(ErrorHandler).handleError(new ApiError(401, 'auth.required'));
 
     expect(show).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
   });
 });

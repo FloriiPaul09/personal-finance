@@ -13,11 +13,12 @@ export class AppErrorHandler implements ErrorHandler {
   private readonly injector = inject(Injector);
 
   handleError(error: unknown): void {
-    console.error(error);
     if (error instanceof ApiError && error.hasCode('auth.required')) {
-      // The session ended: the 401 handling of block 3 sends the user to the login page.
+      // The session ended, an expected event: the session interceptor already sent the user
+      // to the login page, so there is nothing to show or log.
       return;
     }
+    console.error(error);
     this.injector.get(ErrorNotifier).show(error);
   }
 }
