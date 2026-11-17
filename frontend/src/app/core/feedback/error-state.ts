@@ -22,18 +22,20 @@ import { messageOf } from '../api/error-messages';
       <button matButton="filled" type="button" (click)="retry.emit()" i18n="Button">Riprova</button>
     }
     @if (traceId(); as traceId) {
-      <p class="reference">
-        <span i18n="Error reference label">Riferimento:</span>
-        <code>{{ traceId }}</code>
-        <button
-          matIconButton
-          type="button"
-          [attr.aria-label]="copied() ? copiedLabel : copyLabel"
-          (click)="copy(traceId)"
-        >
-          <mat-icon [svgIcon]="copied() ? 'check' : 'content_copy'" />
-        </button>
-      </p>
+      <div class="reference">
+        <span i18n="Error reference label">Riferimento</span>
+        <span class="trace">
+          <code>{{ traceId }}</code>
+          <button
+            matIconButton
+            type="button"
+            [attr.aria-label]="copied() ? copiedLabel : copyLabel"
+            (click)="copy(traceId)"
+          >
+            <mat-icon [svgIcon]="copied() ? 'check' : 'content_copy'" />
+          </button>
+        </span>
+      </div>
     }
   `,
   styles: `
@@ -60,14 +62,23 @@ import { messageOf } from '../api/error-messages';
 
     .reference {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 4px;
-      margin: 0;
+      margin: 8px 0 0;
       color: var(--mat-sys-on-surface-variant);
       font: var(--mat-sys-body-small);
+    }
 
+    .trace {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 100%;
+
+      // A trace id has no spaces: break it anywhere, in full lines, instead of after "00-".
       code {
-        overflow-wrap: anywhere;
+        min-width: 0;
+        word-break: break-all;
       }
     }
   `,
