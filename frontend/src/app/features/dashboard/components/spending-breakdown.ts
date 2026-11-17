@@ -57,7 +57,7 @@ interface SpendingRow {
         (click)="showAll.set(!showAll())"
         data-testid="spending-more"
       >
-        <mat-icon [svgIcon]="showAll() ? 'expand_less' : 'expand_more'" />
+        <mat-icon [svgIcon]="showAll() ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" />
         @if (showAll()) {
           <ng-container i18n="Button that shows only the first categories of the spending"
             >Mostra meno</ng-container
