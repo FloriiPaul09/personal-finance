@@ -43,6 +43,7 @@ export async function expectTitleClearOfAccountButton(page: Page): Promise<void>
 export async function expectClickable(page: Page, selector: string): Promise<void> {
   const covered = await page.evaluate((s) => {
     return Array.from(document.querySelectorAll(s))
+      .filter((element) => element.getClientRects().length > 0) // hidden on purpose
       .filter((element) => {
         const box = element.getBoundingClientRect();
         const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);

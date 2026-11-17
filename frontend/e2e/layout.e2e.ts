@@ -5,6 +5,15 @@ import {
   expectTitleClearOfAccountButton,
 } from './support/pages';
 
+/** Pages with a form: on phones the floating button hides there (it covered "Salva"). */
+const FORM_PAGES = new Set([
+  '/transactions/new',
+  '/transactions/new?kind=income',
+  '/transfers/new',
+  '/accounts/new',
+  '/categories/new',
+]);
+
 const PAGES = [
   '/dashboard',
   '/transactions',
@@ -24,6 +33,7 @@ test.describe('layout', () => {
   for (const url of PAGES) {
     test(`${url} never scrolls the whole page and every navigation item can be tapped`, async ({
       page,
+      isMobile,
     }) => {
       await page.goto(url);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -31,9 +41,14 @@ test.describe('layout', () => {
       await expectNoPageScroll(page);
       await expectClickable(
         page,
-        '.nav-item, [data-testid="new-expense"], [data-testid="settings"]',
+        '.nav-item, [data-testid="new-expense"], [data-testid="settings"], button[type="submit"]',
       );
       await expectTitleClearOfAccountButton(page);
+      // Block 6: on a phone the floating button covered the form's "Salva".
+      const fab = page.getByTestId('new-expense');
+      await (isMobile && FORM_PAGES.has(url)
+        ? expect(fab).toBeHidden()
+        : expect(fab).toBeVisible());
     });
   }
 

@@ -98,6 +98,8 @@ describe('App routes and shell', () => {
       harness.detectChanges();
       expect(heading()).toBe('Nuova spesa');
     });
+    // On the form itself the button is marked for hiding on phones (it covered "Salva").
+    expect(button.classList).toContain('form-page');
   });
 
   it('sends unknown addresses to the dashboard', async () => {

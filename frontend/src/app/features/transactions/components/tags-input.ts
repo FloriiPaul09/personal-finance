@@ -14,7 +14,7 @@ export const MAX_TAGS = 20;
 export const MAX_TAG_LENGTH = 50;
 
 /**
- * The tags of a movement as chips: type a name and press Enter or a comma, or pick one of the
+ * The tags of a movement as chips: type a name and press Enter or type a comma, or pick one of the
  * `suggestions` (existing tags, the most used first). Names are trimmed, cut at 50 characters and
  * never repeated regardless of case, so "Vacanza" and "vacanza" stay one tag. A Signal Forms
  * control holding `string[]`, like the API.
@@ -43,7 +43,7 @@ export const MAX_TAG_LENGTH = 50;
           [matChipInputSeparatorKeyCodes]="separators"
           [matAutocomplete]="list"
           (matChipInputTokenEnd)="addTyped($event)"
-          (input)="query.set(text.value)"
+          (input)="onInput(text)"
           (blur)="touch.emit()"
         />
       </mat-chip-grid>
@@ -94,6 +94,20 @@ export class TagsInput implements FormValueControl<string[]> {
       .filter((name) => name.toLocaleLowerCase().includes(query))
       .slice(0, 8);
   });
+
+  /**
+   * A comma typed on a phone keyboard often comes without the key code the chip input listens
+   * to (Android sends 229 while composing): the text is split here too (block 6 review).
+   */
+  protected onInput(text: HTMLInputElement): void {
+    if (text.value.includes(',')) {
+      const parts = text.value.split(',');
+      const rest = parts.pop() ?? '';
+      parts.forEach((part) => this.add(part));
+      text.value = rest;
+    }
+    this.query.set(text.value);
+  }
 
   protected addTyped(event: MatChipInputEvent): void {
     this.add(event.value);

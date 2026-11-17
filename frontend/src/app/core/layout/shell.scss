@@ -28,6 +28,11 @@
   position: fixed;
   right: 16px;
   bottom: calc(80px + 16px + env(safe-area-inset-bottom));
+
+  // On a phone it would cover the form's own buttons (block 6 review).
+  &.form-page {
+    display: none;
+  }
 }
 
 // Phone: top right of the page, away from the thumb's path. The page scrolls under it, so it
@@ -119,6 +124,11 @@
   .new-expense {
     // Relative, not static: the button's touch target is positioned against it.
     position: relative;
+
+    &.form-page {
+      display: inline-flex;
+    }
+
     right: auto;
     bottom: auto;
     margin-bottom: 28px;

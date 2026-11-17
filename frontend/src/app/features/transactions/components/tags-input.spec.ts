@@ -45,6 +45,17 @@ describe('TagsInput', () => {
     expect(tags()).toEqual(['Vacanza']);
   });
 
+  it('splits the text at each comma, as phone keyboards type it', async () => {
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    input.value = 'Amici, cena,';
+    input.dispatchEvent(new Event('input'));
+    input.value += 'amici,lav';
+    input.dispatchEvent(new Event('input'));
+
+    expect(tags()).toEqual(['Amici', 'cena']);
+    expect(input.value).toBe('lav');
+  });
+
   it('suggests existing tags that are not chosen yet, filtered by the text', async () => {
     fixture.componentInstance.model.set({ tags: ['casa'] });
     const autocomplete = await loader.getHarness(MatAutocompleteHarness);
