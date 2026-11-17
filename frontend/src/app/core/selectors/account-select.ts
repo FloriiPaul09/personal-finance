@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { booleanAttribute, Component, computed, inject, input } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { AmountPipe } from '../../shared/money';
@@ -17,18 +17,22 @@ import { SelectControl } from './select-control';
   selector: 'app-account-select',
   imports: [AmountPipe, MatFormFieldModule, MatSelectModule],
   template: `
-    <mat-form-field>
+    <mat-form-field [floatLabel]="noneLabel() ? 'always' : 'auto'">
       <mat-label>{{ label() }}</mat-label>
       <mat-select
         panelClass="pf-select-panel"
         [value]="value()"
         [disabled]="disabled()"
         [required]="required()"
+        [placeholder]="noneLabel() ?? ''"
         [errorStateMatcher]="errorStateMatcher"
         (selectionChange)="choose($event.value)"
         (openedChange)="onOpenedChange($event)"
       >
         <mat-select-trigger>{{ selected()?.name }}</mat-select-trigger>
+        @if (noneLabel(); as none) {
+          <mat-option [value]="null">{{ none }}</mat-option>
+        }
         @for (account of options(); track account.id) {
           <mat-option [value]="account.id">
             <span class="option">
@@ -86,14 +90,18 @@ export class AccountSelect extends SelectControl {
 
   /** An account not to offer, e.g. the source account when choosing the destination. */
   readonly excludeId = input<string | null>(null);
+  /** Text of the "none" choice (`null`), e.g. "Tutti i conti" in a filter; without it, none. */
+  readonly noneLabel = input<string>();
+  /** Offer archived accounts too, after the active ones (filters). */
+  readonly includeArchived = input(false, { transform: booleanAttribute });
 
   protected readonly selected = computed(() => this.accounts.byId(this.value()));
   protected readonly options = computed(() => {
-    const active = (this.accounts.active() ?? []).filter(
-      (account) => account.id !== this.excludeId(),
-    );
+    const active = (
+      (this.includeArchived() ? this.accounts.all() : this.accounts.active()) ?? []
+    ).filter((account) => account.id !== this.excludeId());
     const selected = this.selected();
-    return selected?.isArchived ? [...active, selected] : active;
+    return selected?.isArchived && !active.includes(selected) ? [...active, selected] : active;
   });
   protected readonly empty = computed(
     () => this.accounts.active() !== undefined && this.options().length === 0,

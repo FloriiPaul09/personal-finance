@@ -1,0 +1,143 @@
+<section class="pf-page">
+  <div class="heading">
+    <a
+      matIconButton
+      [routerLink]="transactionsPath"
+      aria-label="Torna ai movimenti"
+      i18n-aria-label="Back button of the movement form"
+    >
+      <mat-icon svgIcon="arrow_back" />
+    </a>
+    <h1 class="pf-page-title">{{ isNew() ? texts().new : texts().edit }}</h1>
+  </div>
+
+  @if (!isNew() && existing.error(); as error) {
+    @if ($any(error).status === 404) {
+      <app-empty-state
+        icon="receipt_long"
+        title="Movimento non trovato"
+        i18n-title="Movement form for a movement that does not exist"
+        message="Potrebbe essere stato eliminato."
+        i18n-message="Movement form for a movement that does not exist"
+      >
+        <a matButton="filled" [routerLink]="transactionsPath" i18n="Button back to the movements"
+          >Torna ai movimenti</a
+        >
+      </app-empty-state>
+    } @else {
+      <app-error-state [error]="error" (retry)="existing.reload()" />
+    }
+  } @else if (!ready()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (isNew()) {
+    <app-movement-kind-switch [current]="movementKind()">
+      <ng-container *ngTemplateOutlet="movementFormTemplate" />
+    </app-movement-kind-switch>
+  } @else {
+    <ng-container *ngTemplateOutlet="movementFormTemplate" />
+  }
+</section>
+
+<ng-template #movementFormTemplate>
+  <form class="form" novalidate (submit)="save(false, $event)">
+    @if (changedElsewhere()) {
+      <p class="form-error" role="alert" i18n="Movement form after a version conflict">
+        Il movimento è stato modificato altrove: ora vedi i dati aggiornati. Rifai le modifiche e
+        salva di nuovo.
+      </p>
+    }
+
+    <app-amount-input
+      label="Importo"
+      i18n-label="Movement form field"
+      data-testid="amount"
+      [currency]="currency()"
+      [formField]="movementForm.amount"
+    />
+
+    <app-recent-categories
+      [categories]="recentCategories()"
+      [selectedId]="model().categoryId"
+      (choose)="chooseCategory($event)"
+    />
+    <app-category-select
+      label="Categoria"
+      i18n-label="Movement form field"
+      [kind]="movementKind()"
+      [formField]="movementForm.categoryId"
+    />
+
+    <app-account-select
+      label="Conto"
+      i18n-label="Movement form field"
+      [formField]="movementForm.accountId"
+    />
+
+    <app-date-input label="Data" i18n-label="Movement form field" [formField]="movementForm.date" />
+
+    @if (showDetails()) {
+      <mat-form-field>
+        <mat-label i18n="Movement form field">Descrizione</mat-label>
+        <input matInput autocomplete="off" [formField]="movementForm.description" />
+        @if (
+          movementForm.description().touched() && movementForm.description().errors()[0];
+          as error
+        ) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+      <app-tags-input
+        label="Tag"
+        i18n-label="Movement form field"
+        [suggestions]="store.tagNames()"
+        [formField]="movementForm.tags"
+      />
+    } @else {
+      <button
+        matButton
+        type="button"
+        class="details"
+        data-testid="show-details"
+        (click)="showDetails.set(true)"
+      >
+        <mat-icon svgIcon="add" />
+        <ng-container i18n="Button that shows description and tags">Descrizione e tag</ng-container>
+      </button>
+    }
+
+    <div class="actions">
+      @if (isNew()) {
+        <button
+          matButton
+          type="button"
+          data-testid="save-another"
+          [disabled]="movementForm().submitting()"
+          (click)="save(true)"
+          i18n="Button that saves and starts another movement"
+        >
+          Salva e aggiungi un'altra
+        </button>
+      } @else {
+        <button
+          matButton
+          type="button"
+          class="delete"
+          data-testid="delete-movement"
+          (click)="delete()"
+          i18n="Button that deletes a movement"
+        >
+          Elimina
+        </button>
+      }
+      <button
+        matButton="filled"
+        type="submit"
+        data-testid="save-movement"
+        [disabled]="movementForm().submitting()"
+        i18n="Button that saves a movement"
+      >
+        Salva
+      </button>
+    </div>
+  </form>
+</ng-template>

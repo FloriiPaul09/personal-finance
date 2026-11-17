@@ -1,0 +1,13 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+.delete {
+  margin-inline-end: auto;
+  color: var(--mat-sys-error);
+}
+
+app-account-select,
+app-date-input {
+  width: 100%;
+}

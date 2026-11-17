@@ -93,8 +93,11 @@ describe('App routes and shell', () => {
     expect(button.getAttribute('aria-label')).toBe('Nuova spesa');
 
     button.click();
-    await harness.fixture.whenStable();
-    expect(heading()).toBe('Nuova spesa');
+    // The form reads accounts and categories (left unanswered): wait for the heading instead.
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(heading()).toBe('Nuova spesa');
+    });
   });
 
   it('sends unknown addresses to the dashboard', async () => {

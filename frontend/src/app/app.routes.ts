@@ -31,6 +31,11 @@ export const routes: Routes = [
         loadChildren: () => import('./features/transactions').then((m) => m.TRANSACTIONS_ROUTES),
       },
       {
+        // Not in the navigation: reached from the movement forms and the movement list.
+        path: 'transfers',
+        loadChildren: () => import('./features/transfers').then((m) => m.TRANSFERS_ROUTES),
+      },
+      {
         path: 'budgets',
         loadChildren: () => import('./features/budgets').then((m) => m.BUDGETS_ROUTES),
       },
