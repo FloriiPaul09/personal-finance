@@ -8,11 +8,11 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 | Document | Covers | Status |
 |---|---|---|
-| [app-structure.md](app-structure.md) | Folders, module boundaries (Sheriff), what stays out of the initial bundle, API types and their generation, locale and i18n, scripts | Implemented — ADR-0021, ADR-0022, ADR-0025 |
-| [routing.md](routing.md) | Routes, lazy loading, shell and navigation, page titles, form pages, login, guards, expired session, logout | Implemented — ADR-0021, ADR-0023, ADR-0025 |
-| [state-management.md](state-management.md) | Stores with signals and `httpResource`, session, reference data (accounts, categories), refresh after writes (`DataChanges`), errors (`ApiError`), versions, cursor paging, client ids | Implemented — ADR-0021, ADR-0022, ADR-0023, ADR-0025 |
-| [ui-components.md](ui-components.md) | Component library, theme and dark mode, typography, icons, forms, shared components (amounts, dates, month selector, page states, selectors, confirmation, messages), lists, archive and delete, mobile | Implemented up to block 5 — ADR-0004, ADR-0021, ADR-0023, ADR-0024, ADR-0025 |
-| [testing.md](testing.md) | Vitest conventions, test data, time zones, coverage, Playwright (devices, stack, login limits, data created by tests), layout regressions, component catalog | Vitest, coverage, Playwright and catalog set up — ADR-0021, ADR-0023, ADR-0024, ADR-0025 |
+| [app-structure.md](app-structure.md) | Folders, module boundaries (Sheriff), what stays out of the initial bundle, API types and their generation, locale and i18n, scripts | Implemented — ADR-0021, ADR-0022, ADR-0025, ADR-0026 |
+| [routing.md](routing.md) | Routes, lazy loading, shell and navigation, page titles, form pages and leaving them, movement and transfer routes, list filters in the URL, login, guards, expired session, logout | Implemented — ADR-0021, ADR-0023, ADR-0025, ADR-0026 |
+| [state-management.md](state-management.md) | Stores with signals and `httpResource`, session, reference data (accounts, categories), refresh after writes (`DataChanges`), recent choices, movement list, errors (`ApiError`), versions, cursor paging, client ids | Implemented — ADR-0021, ADR-0022, ADR-0023, ADR-0025, ADR-0026 |
+| [ui-components.md](ui-components.md) | Component library, theme and dark mode, typography, icons, forms, shared components (amounts, dates, month selector, page states, selectors, kind switch, tags, confirmation, messages), quick entry, movement list and filters, lists, archive and delete, mobile | Implemented up to block 6 — ADR-0004, ADR-0021, ADR-0023, ADR-0024, ADR-0025, ADR-0026 |
+| [testing.md](testing.md) | Vitest conventions, test data, time zones, coverage, Playwright (devices, stack, login limits, data created by tests), layout regressions, component catalog | Vitest, coverage, Playwright and catalog set up — ADR-0021, ADR-0023, ADR-0024, ADR-0025, ADR-0026 |
 
 ## Current state
 
@@ -24,7 +24,9 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 **Block 4 (shared components) done** ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)): amount input and display the Italian way with `number` values, `YYYY-MM-DD` date adapter and date field tested in three time zones, month selector, empty / error / loading states, a softer income green, and a development-only catalog at `/dev/components`.
 
-**Block 5 (accounts and categories) in review** ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)): accounts page with balances and categories page with a tab per kind, forms as pages, archive with "Annulla" and delete only when the API allows it (with the reason otherwise), one list of accounts and categories in `core` read again after writes (`DataChanges`), account and category selectors for blocks 6–8, currency suggestions, `412` showing the current data, focus on the first error; snackbar and date adapter out of the initial bundle (479 kB).
+**Block 5 (accounts and categories) done** ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)): accounts page with balances and categories page with a tab per kind, forms as pages, archive with "Annulla" and delete only when the API allows it (with the reason otherwise), one list of accounts and categories in `core` read again after writes (`DataChanges`), account and category selectors for blocks 6–8, currency suggestions, `412` showing the current data, focus on the first error; snackbar and date adapter out of the initial bundle (479 kB).
+
+**Block 6 (transactions and transfers) in review** ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)): quick entry as one short page with the amount focused, the 6 recent categories as chips and the last account (kept on the device per user), tabs "Uscita / Entrata / Trasferimento" with transfers as their own feature, movement list grouped by day with infinite scroll, month and filters (kind, account, category, text, custom period) in the URL with chips, delete after a confirmation, "Annulla" after saving and "Salva e aggiungi un'altra", tags with suggestions, no FAB on phone form pages, `PageExit` going back only to a page of the app; initial bundle 491.5 kB.
 
 - Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
@@ -43,9 +45,9 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 | 2 | Backend integration | Antiforgery at startup, errors by `code` with Italian messages, `ETag` / `If-Match`, `{ items }` lists and cursor paging, UUIDv7 ids, first `schema.ts` | — | Done (PR #28) |
 | 3 | Authentication | Login page, guards, expired session, logout, settings, Signal Forms; Playwright setup | Login (+ session, layout) | Done (PR #29) |
 | 4 | Shared components | Amount input, date adapter, month selector, empty / error / loading states, income green, component catalog | — | Done (PR #30) |
-| 5 | Accounts and categories | Pages and forms; archive vs delete from `hasMovements`, `isInUse`, `hasSubcategories`; reference data in `core` with account and category selectors | Accounts, categories | In review |
-| 6 | Transactions and transfers | List with filter bar and cursor, quick entry from the phone, transfers | Expense on phone, transfer | Next |
-| 7 | Budgets | Progress of the month; "stop from this month" vs "delete" | — | |
+| 5 | Accounts and categories | Pages and forms; archive vs delete from `hasMovements`, `isInUse`, `hasSubcategories`; reference data in `core` with account and category selectors | Accounts, categories | Done (PR #31) |
+| 6 | Transactions and transfers | List with filter bar and cursor, quick entry from the phone, transfers | Expense on phone, transfer, list filter | In review |
+| 7 | Budgets | Progress of the month; "stop from this month" vs "delete" | — | Next |
 | 8 | Dashboard | One row per currency; chart library | Dashboard | |
 
 ## Decisions
@@ -64,11 +66,12 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 | 2026-11-17 | `SessionStore` asked on the first protected page, `canMatch` guards, `/unavailable` when the API is down; one interceptor for expired sessions; logout with a full reload; settings behind an account button; Signal Forms with `apiFormErrors()`; Playwright in `frontend/e2e` on the real stack, phone and desktop, one login per run | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | 2026-11-17 | Amounts as `number` with an Italian parser and `<app-amount-input>`; own `DateAdapter<string>` on `YYYY-MM-DD`; month selector; small state components; income green from a generated palette; selectors moved to block 5, filter bar to block 6; catalog of components in development only | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | 2026-11-17 | Forms as pages; accounts and categories read once in `core` and read again through `DataChanges`; archive with "Annulla", delete with confirmation only when allowed; categories in a tab per kind; selectors as Material selects; currency with suggestions from `Intl`; `412` shows the current data; `Notifier` and date adapter out of the initial bundle | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| 2026-11-17 | Quick entry as one page with recent categories and last account on the device; kind tabs with transfers as their own feature; list by day with infinite scroll, filters in the URL as chips; delete with confirmation; "Annulla" after saving; tags as chips with suggestions; no FAB on phone form pages; `PageExit` counts the entries of the app | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 
 ## Tests
 
-- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 380 tests after block 5, 98% of lines covered. Conventions in [testing.md](testing.md).
-- End-to-end: Playwright in `e2e/` (`pnpm e2e`) on the real stack, phone and desktop; 41 tests after block 5 ([testing.md](testing.md#end-to-end-playwright)).
+- Unit tests: `*.spec.ts` next to the code, run by Vitest (`pnpm test --watch=false`); 446 tests after block 6, 97% of lines covered. Conventions in [testing.md](testing.md).
+- End-to-end: Playwright in `e2e/` (`pnpm e2e`) on the real stack, phone and desktop; 48 tests after block 6, 5 more skipped on purpose ([testing.md](testing.md#end-to-end-playwright)).
 - Lint (`pnpm lint`) checks the module boundaries ([app-structure.md](app-structure.md#boundaries)).
 - What must be tested is listed in [testing-strategy.md](../architecture/testing-strategy.md#minimum-required).
 
@@ -81,7 +84,9 @@ The app is organized in feature areas that mirror the backend modules (accounts,
 - ✅ Block 3: Playwright location, devices, how the full stack runs for E2E ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)).
 - ✅ Block 4: date adapter and its time-zone tests; a softer income green in dark mode ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - ✅ Block 5: account and category selectors with the reference data in `core` ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
-- Block 6: the list filter bar; refresh of accounts and categories after movements (`DataChanges.notify('transactions')`).
+- ✅ Block 6: the list filters (a panel with chips, in the URL); refresh of accounts and categories after movements (`DataChanges.notify('transactions')`) ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
+- Block 7: budget page and form, "stop from this month" vs "delete".
+- Recent choices are per device; kept by the API if people use more devices.
 - Block 8: chart library.
 - `[DevOps]`: lint and coverage in CI; OpenAPI document exported at build time to check `openapi.json` / `schema.ts`; E2E in CI (PostgreSQL, .NET and Node, when they run).
 - `[Backend]`: numbers and `YearMonth` described precisely in the OpenAPI document; field names of validation errors in camelCase (today `Email`, mapped by the app).

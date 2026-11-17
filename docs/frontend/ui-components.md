@@ -6,7 +6,7 @@ The UI component library, theming, typography and icons, the shared components b
 
 ## Current state
 
-Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)); account and category selectors, confirmation dialog, messages (`Notifier`), lists with actions and the archive / delete rules since block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)). The list filter bar arrives with block 6, charts with block 8.
+Library decided in [ADR-0004](../architecture/adr/0004-angular-ui-library.md); theme, typography, icons and layout implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)). Forms (Signal Forms with Material) since block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)); amount input, dates, month selector and page states since block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)); account and category selectors, confirmation dialog, messages (`Notifier`), lists with actions and the archive / delete rules since block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)); the quick entry, the movement list with its filters, the kind switch and the tags input since block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)). Charts arrive with block 8.
 
 ### Foundation
 
@@ -75,12 +75,15 @@ Block 4, [ADR-0024](../architecture/adr/0024-frontend-shared-components.md). Eve
 | `<app-empty-state>` | `shared/ui` | Nothing to show yet: icon, title, message, projected action |
 | `<app-error-state [error] (retry)>` | `core/feedback` | Data that could not be loaded: Italian message of the `code`, "Riprova", the reference (`traceId`) on its own line with a copy button |
 | Loading | Material | `<mat-progress-bar mode="indeterminate">` above the content while a resource loads |
-| `<app-account-select>` | `core/selectors` | Account of a Signal Form: `<app-account-select label="Conto" [formField]="form.accountId" />`; active accounts with balance, `excludeId` |
-| `<app-category-select>` | `core/selectors` | Category of a kind: `<app-category-select label="Categoria" kind="expense" [formField]="form.categoryId" />`; parents and indented subcategories, `topLevelOnly`, `excludeId`, `noneLabel` |
+| `<app-account-select>` | `core/selectors` | Account of a Signal Form: `<app-account-select label="Conto" [formField]="form.accountId" />`; active accounts with balance, `excludeId`, `noneLabel`, `includeArchived` (filters) |
+| `<app-category-select>` | `core/selectors` | Category of a kind: `<app-category-select label="Categoria" kind="expense" [formField]="form.categoryId" />`; parents and indented subcategories, `topLevelOnly`, `excludeId`, `noneLabel`, `includeArchived`; `[kind]="null"` shows both kinds in groups "Uscite" / "Entrate" |
+| `<app-movement-kind-switch [current]>` | `core/selectors` | Tabs "Uscita / Entrata / Trasferimento" above a new-movement form, which is projected inside; links with `replaceUrl` |
 | `confirmAction(dialog, texts)` | `shared/ui` | Asks before an action that cannot be undone; resolves `true` only on the confirm button (`role="alertdialog"`, red confirm button) |
 | `Notifier` | `core/feedback` | Every snackbar: `show(message)`, `undoable(message, undo)` with "Annulla"; loads the snackbar on first use |
 | `searchCurrencies()`, `normalizeCurrency()` | `shared/money` | Currency suggestions from `Intl` named in Italian, common ones first; `eur` → `EUR` |
-| List filter bar | transactions (block 6) | Period, account, category, text for the movement list, in the query string |
+| `<app-tags-input>` | `features/transactions` | Tags of a movement as chips with suggestions (`[formField]` holding `string[]`) |
+| `appScrollEnd` | `features/transactions` | Emits when an element enters the viewport (`IntersectionObserver`): infinite scroll |
+| Recent categories | `features/transactions` | The last categories used, as a one-tap chip list above the category selector |
 
 Pages show the state of a read with `@if`:
 
@@ -111,6 +114,38 @@ Block 5, `core/selectors` (a barrel of its own: components with Material's selec
 - `<app-account-select>`: active accounts by name with the balance on the right; an archived account only when it is the current value ("(archiviato)"); a hint when there is no active account or the list could not be read.
 - `<app-category-select>`: active categories of `kind`, each top-level category followed by its subcategories indented, all selectable; a subcategory shows as "Trasporti › Carburante" once chosen. `topLevelOnly` (parent of a category), `excludeId`, `noneLabel` (a "none" choice holding `null`, with the label always floating).
 - No search field: a tap opens the list without the keyboard on a phone. With many categories, an autocomplete would replace the select behind the same inputs.
+
+#### Quick entry
+
+Block 6, `/transactions/new` ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)). Built for one hand on a phone: FAB, amount, a chip, "Salva".
+
+| Order | Field | Default |
+|---|---|---|
+| 1 | Importo, with the focus (numeric keyboard on phones) | Empty |
+| 2 | Categoria: the 6 recent ones as chips, then the selector | None |
+| 3 | Conto | The last account used, else the first active one |
+| 4 | Data | Today (kept by "Salva e aggiungi un'altra") |
+| 5 | Descrizione e tag, behind a button | Folded; open when the movement already has them |
+
+- Tabs "Uscita / Entrata / Trasferimento" above a new movement; the title follows ("Nuova spesa", "Nuova entrata", "Nuovo trasferimento"). An edit shows no tabs: a movement does not change kind.
+- Buttons at the end: "Salva e aggiungi un'altra" (new expenses and incomes) and "Salva"; "Elimina" in the error color on an edit, after a confirmation.
+- After saving: back to the previous page of the app with "Spesa salvata." / "Entrata salvata." / "Trasferimento salvato." and "Annulla" (8 s), which deletes it; after an edit "Movimento salvato." (or "Trasferimento salvato.") comes without "Annulla".
+- Validation: amount above zero, category, account and date required, description up to 200 characters; for a transfer two different accounts with the same currency ("I due conti devono avere la stessa valuta.").
+- **On phones the FAB is hidden on form pages**: above the bar it covered "Salva".
+
+#### Movement list
+
+Block 6, `/transactions`:
+
+- A toolbar with the month selector (hidden with a custom period) and "Filtri" with the number of active filters. The panel holds the kind (Tutti / Uscite / Entrate / Trasferimenti), the account ("Tutti i conti", archived ones too), the category ("Tutte le categorie", hidden for transfers), "Cerca nella descrizione" (applied on Enter or leaving the field), "Dal" / "Al" (stacked on phones, side by side from 600px) and "Togli i filtri".
+- **Active filters as chips** under the toolbar ("Uscite ×", the account name, the period), each removed with its button ("Togli il filtro …").
+- Movements grouped by day under "Oggi", "Ieri", "Domenica 15 novembre" (the year when it is not the current one). A row is a link: the category (or "Trasferimento in uscita" / "in entrata"), the description and the account, the signed amount in the account's currency (green income, red expense, neutral transfer).
+- Infinite scroll: the next 50 load when the end of the list comes into view; a "Carica altri movimenti" button does the same without scrolling (keyboard, screen readers). No totals.
+- Empty states: "Nessun movimento in questo periodo" with "Aggiungi una spesa", or "Nessun movimento con questi filtri" with "Togli i filtri".
+
+#### Tags input
+
+`<app-tags-input>` (block 6): a `mat-chip-grid` with an autocomplete of the tags in use (most used first, those already chosen left out). Enter or a comma adds the text as a tag; **the text is also split at commas while typing**, because Android keyboards send the comma as a composition (`keyCode` 229), not as a key. Duplicates are ignored without regard to case; at most 20 tags of 50 characters. Each chip has a remove button with its name.
 
 #### Lists
 
@@ -220,6 +255,7 @@ protected async signIn(event: Event): Promise<void> {
 | Archive without asking but with "Annulla", delete with confirmation and only when allowed, disabled actions with the reason | Only the irreversible action asks; nothing the API would refuse is offered | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | Forms as pages; categories in a tab per kind | Back button and addresses work on phones; one screen per kind | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
 | Snackbar through `Notifier`, date adapter in the date field | Nothing of Material's overlays at startup | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| Quick entry as one short page with recent chips; kind tabs; list by day with infinite scroll and filters as chips; delete only from the edit page; "Annulla" after saving; tags as chips; FAB hidden on phone forms | An expense in a few taps; mistakes undone in one tap; nothing destructive on a scrolling list | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 
 ## Tests
 
@@ -227,6 +263,7 @@ protected async signIn(event: Event): Promise<void> {
 - `app-locale.spec.ts`: Italian number and date formats.
 - Forms: `login-page.spec.ts`, `settings-page.spec.ts` (client validation, server errors on the right field or the form, nothing shown before a field is touched, `mat-error` below the field), `api-form-errors.spec.ts`.
 - Theme and layout: checked with screenshots on a phone (390×844, light and dark) and a desktop (1280×720) when block 1 was built; Playwright covers the critical flows on a phone viewport from block 3.
+- Block 6: `movement-kind-switch.spec.ts`, `tags-input.spec.ts` (Enter, comma typed or split, duplicates, limits, suggestions without the chosen ones), `category-select.spec.ts` with both kinds, `account-select.spec.ts` with "Tutti i conti" and archived accounts; the list page (groups, labels, chips and their removal, filters to the URL, empty states, legs, more pages) and the two forms (focus on the amount, defaults, recent chips, validation, server errors on their field, `412`, "Annulla", "Salva e aggiungi un'altra", delete with confirmation, a leg redirected to its transfer).
 - Block 5: `account-select.spec.ts`, `category-select.spec.ts` (options, archived current value, exclusions, "none", errors after closing, disabled), `confirm-dialog.spec.ts`, `notifier.spec.ts`, `currencies.spec.ts`; pages and forms of accounts and categories (rows, toggle, empty and error states, archive with "Annulla", restore order, disabled delete with the reason, confirmation, create and edit with `If-Match`, server errors on their field, `412`, focus on the first error, not found).
 - Block 4: `amount.spec.ts` (every accepted and refused text, round trip, JSON value without floating point noise), `amount-input.spec.ts` (number in the model, text kept while typing, canonical text on leaving, parse errors block the form, messages after touch, reset), `amount.pipe.spec.ts`, `iso-date.spec.ts` and `iso-date-adapter.spec.ts` (in three time zones, the date picker with a Signal Form included), `date-input.spec.ts` (in three time zones: typed and picked days, parse error with message, reset, Italian labels), `month-selector.spec.ts`, `empty-state.spec.ts`, `error-state.spec.ts` ([testing.md](testing.md)).
 
@@ -245,7 +282,8 @@ protected async signIn(event: Event): Promise<void> {
 - ✅ Block 4: amount input, date adapter, month selector, page states, softer income green ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - ✅ Block 5: account and category selectors with the reference data of `core` ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
 - Search in the category selector, if categories grow past a few tens.
-- Block 6: list filter bar for the movements.
+- ✅ Block 6: filters of the movement list, quick entry, tags input ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
+- Filter by tag in the movement list (the API has `tag`; no control yet).
 - `Temporal.PlainDate` instead of strings in the adapter, once Safari supports `Temporal`.
 - Block 8: chart library (bar/pie for categories, line for trends, good mobile rendering, active maintenance, theme tokens in light and dark).
 - Manual light/dark switch, if wanted after the MVP (per-user preference on the server with multi-user).

@@ -6,7 +6,7 @@ Folders of the Angular application, what goes where, the module boundaries and h
 
 ## Current state
 
-Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`; block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) the session (`core/auth`), form helpers (`core/forms`), the `auth` and `settings` features and the Playwright tests (`e2e/`); block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)) the first shared libraries (`shared/money`, `shared/dates`, `shared/ui`), `core/feedback` and the development-only `dev` feature; block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) `core/data`, `core/selectors`, `core/testing` and the `accounts` and `categories` features.
+Implemented in block 1 ([ADR-0021](../architecture/adr/0021-frontend-foundation.md)): the shell, five placeholder features and the boundaries. Block 2 ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)) added the API types and the HTTP layer in `core`; block 3 ([ADR-0023](../architecture/adr/0023-frontend-authentication.md)) the session (`core/auth`), form helpers (`core/forms`), the `auth` and `settings` features and the Playwright tests (`e2e/`); block 4 ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)) the first shared libraries (`shared/money`, `shared/dates`, `shared/ui`), `core/feedback` and the development-only `dev` feature; block 5 ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)) `core/data`, `core/selectors`, `core/testing` and the `accounts` and `categories` features; block 6 ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)) the `transactions` pages, the `transfers` feature, `RecentChoices`, `PageExit` and the kind switch.
 
 ### Folders
 
@@ -34,16 +34,16 @@ frontend/
         │   ├── index.ts    # public API of core
         │   ├── auth/       # SessionStore, authGuard / guestGuard, sessionInterceptor, safeReturnUrl
         │   ├── forms/      # apiFormErrors, focusFirstError — own barrel, keeps @angular/forms out of the initial bundle
-        │   ├── selectors/  # <app-account-select>, <app-category-select> — own barrel (components)
+        │   ├── selectors/  # <app-account-select>, <app-category-select>, <app-movement-kind-switch> — own barrel (components)
         │   ├── testing/    # test data and HTTP helpers for unit tests — own barrel, not in the build
-        │   ├── data/       # DataChanges, AccountsDirectory, CategoriesDirectory (reference data)
+        │   ├── data/       # DataChanges, AccountsDirectory, CategoriesDirectory (reference data), RecentChoices
         │   ├── api/        # openapi.json (snapshot), schema.ts (generated), models.ts (aliases), ApiError, messages
         │   ├── errors/     # global ErrorHandler, ErrorNotifier (snackbar)
         │   ├── feedback/   # ErrorState (data that could not be loaded), Notifier (snackbars)
         │   ├── http/       # provideApiHttp (XSRF, interceptor, antiforgery), ifMatch, cursorPager
         │   ├── ids/        # newId() — UUIDv7 for client-created resources
         │   ├── icons/      # Material Symbols resolver
-        │   └── layout/     # Shell, navigation items, page titles, snackbar options, "unavailable" page
+        │   └── layout/     # Shell, navigation items, FORM_PAGE, PageExit, page titles, snackbar options, "unavailable" page
         ├── shared/         # one module per library (tag "shared")
         │   ├── money/      # parseAmount, formatAmount, AmountPipe, <app-amount-input>, currencies
         │   ├── dates/      # ISO dates and months, IsoDateAdapter (no components: imported at startup)
@@ -52,7 +52,8 @@ frontend/
         │   └── testing/    # helpers for unit tests only (time zones)
         └── features/       # one module per feature (tag "feature")
             ├── dashboard/
-            ├── transactions/
+            ├── transactions/ # movement list, expense and income form, tags input
+            ├── transfers/  # transfer form (no page in the navigation)
             ├── budgets/
             ├── accounts/
             ├── categories/
@@ -101,6 +102,7 @@ features/accounts/
 - A barrel that matches no tag gets `noTag`, which may import nothing: a new top-level folder cannot slip past the rules.
 - `core/forms`, `core/selectors` and `core/testing` are further barrels of `core` (same tag): importing `core` must not pull `@angular/forms` or Material's select into the initial bundle, which has a 500 kB budget (block 3 reached 548 kB before the split, 473 kB after); test helpers are never built into the app.
 - **Nothing loaded at startup may use Material's overlays** (snackbar, dialog, menu, select, date picker): the build splits code by file, so when the startup code reaches a file, every part of that file that a page uses is loaded at startup too. With the snackbar and the date adapter provided in `app.config`, the menus, selects and dialogs of the block 5 pages raised the initial bundle from 479 kB to 571 kB. Messages go through `Notifier`, which imports the snackbar on first use; the date adapter is provided by `<app-date-input>`.
+- **A component used by two features goes to `core`** even when it is small: the kind switch of the new-movement form links the `transactions` and `transfers` forms, so it lives in `core/selectors`.
 - Something generic that needs an app type goes to `core` (e.g. `ErrorState` reads `ApiError`, so it is in `core/feedback`, not `shared/ui`).
 - A barrel imported at startup (by `app.config` or `core`) exports no component: tree shaking does not remove an unused component, so its whole library would enter the initial bundle (`shared/dates` vs `shared/date-pickers`).
 - Test helpers go in `shared/testing` or a `testing/` folder: excluded from the app build and from coverage.
@@ -155,10 +157,11 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 | Session in `core/auth`, form helpers in a separate `core/forms` barrel, Playwright in `frontend/e2e` | Every feature needs the session; forms only where there is a form; E2E share the workspace's dependencies | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | `shared/money`, `shared/dates`, `shared/date-pickers`, `shared/ui`, `shared/testing`; development pages replaced by an empty list in production; initial budget error at 600 kB | One library per topic, imported only where used; nothing heavy at startup; developer tools cost nothing in production | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
 | `core/data` for reference data, `core/selectors` and `core/testing` as own barrels; snackbar and date adapter out of the startup code | Shared lists without feature imports; the initial bundle stays at 479 kB as pages add menus and dialogs | [ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md) |
+| `transfers` as its own feature; kind switch, `RecentChoices` and `PageExit` in `core` | Transfers have their own resource and rules; what both movement forms use cannot live in one of them | [ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md) |
 
 ## Tests
 
-- `pnpm build` checks the bundle budgets: a warning above 500 kB for the initial bundle, an error above 600 kB (481 kB after block 4, 479 kB after block 5; 571 kB in block 5 before the snackbar and the date adapter left the startup code). Adding the catalog as a normal lazy route raised it to 530 kB, because code shared between a lazy chunk and the app is loaded at startup: that is why the production build drops the development routes with `fileReplacements`; `app.spec.ts` checks the production list is empty.
+- `pnpm build` checks the bundle budgets: a warning above 500 kB for the initial bundle, an error above 600 kB (481 kB after block 4, 479 kB after block 5, 491.5 kB after block 6; 571 kB in block 5 before the snackbar and the date adapter left the startup code). Block 6 added 12 kB because code that lazy pages share with the startup code loads at startup: `uuid` (through `newId()`), `cursorPager`, `RecentChoices`, `PageExit`. Adding the catalog as a normal lazy route raised it to 530 kB, because code shared between a lazy chunk and the app is loaded at startup: that is why the production build drops the development routes with `fileReplacements`; `app.spec.ts` checks the production list is empty.
 - `pnpm lint` also lints `e2e/` and `playwright.config.ts`; `e2e/tsconfig.json` type-checks the Playwright tests.
 - `pnpm lint` runs Sheriff: when block 1 was set up, an import from `features/accounts` into `features/transactions` and a deep import into `core/layout` were both reported, then removed.
 - `app-locale.spec.ts`: `LOCALE_ID` is `it` without providers; numbers and dates are formatted the Italian way (`1.234,50`, `13 novembre 2026`).
