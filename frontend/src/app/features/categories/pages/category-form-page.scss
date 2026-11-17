@@ -1,0 +1,27 @@
+@use '../../../../form-page' as page;
+
+@include page.form-page;
+
+.kind {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.kind-label {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.field-hint,
+.field-error {
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.field-error {
+  color: var(--mat-sys-error);
+}

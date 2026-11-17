@@ -7,7 +7,6 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
 import { provideAppIcons, providePageTitles, SessionStatus, SessionStore } from './core';
-import { provideIsoDateAdapter } from './shared/dates';
 
 // Routing and shell together, as the app runs them (icon requests are left unanswered).
 // The session is a stub: its own behavior is tested in core/auth.
@@ -19,7 +18,6 @@ async function startApp(status: SessionStatus): Promise<RouterTestingHarness> {
       provideHttpClientTesting(),
       providePageTitles(),
       provideAppIcons(),
-      provideIsoDateAdapter(),
       {
         provide: SessionStore,
         useValue: {
@@ -71,18 +69,22 @@ describe('App routes and shell', () => {
     ['/transactions', 'Movimenti'],
     ['/budgets', 'Budget'],
     ['/accounts', 'Conti'],
+    ['/accounts/new', 'Nuovo conto'],
     ['/categories', 'Categorie'],
+    ['/categories/new', 'Nuova categoria'],
   ])('loads %s lazily, marks its link as current and titles the page', async (url, title) => {
     await harness.navigateByUrl(url);
 
     expect(heading()).toBe(title);
     const current = navLinks().filter((a) => a.getAttribute('aria-current') === 'page');
-    expect(current.map((a) => a.getAttribute('href'))).toEqual([url]);
+    // A page inside a destination (a form) keeps the destination current.
+    expect(current.map((a) => a.getAttribute('href'))).toEqual([url.replace(/\/new$/, '')]);
     expect(TestBed.inject(Title).getTitle()).toBe(`${title} · Personal Finance`);
   });
 
   it('offers the new expense form from every page', async () => {
-    await harness.navigateByUrl('/accounts');
+    // A page without data to load: whenStable() would wait for the unanswered requests.
+    await harness.navigateByUrl('/budgets');
 
     const button = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
       '[data-testid="new-expense"]',
@@ -115,7 +117,7 @@ describe('App routes and shell', () => {
   });
 
   it('opens the settings from the account button', async () => {
-    await harness.navigateByUrl('/accounts');
+    await harness.navigateByUrl('/budgets');
 
     const account = harness.routeNativeElement!.querySelector<HTMLAnchorElement>(
       '[data-testid="settings"]',

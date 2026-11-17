@@ -1,7 +1,7 @@
 import { inject, Service } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiError } from '../api/api-error';
 import { messageOf } from '../api/error-messages';
+import { Notifier } from '../feedback/notifier';
 
 /** How long an error message stays on screen. */
 export const ERROR_DURATION_MS = 8000;
@@ -12,19 +12,18 @@ export const ERROR_DURATION_MS = 8000;
  */
 @Service()
 export class ErrorNotifier {
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifier = inject(Notifier);
 
-  show(error: unknown): void {
+  show(error: unknown): Promise<void> {
     const traceId = error instanceof ApiError ? error.traceId : null;
-    const ref = this.snackBar.open(
-      messageOf(error),
-      traceId
-        ? $localize`:Snackbar action that copies the error reference:Copia riferimento`
-        : undefined,
-      { duration: ERROR_DURATION_MS },
-    );
-    if (traceId) {
-      ref.onAction().subscribe(() => void navigator.clipboard?.writeText(traceId));
-    }
+    return this.notifier.show(messageOf(error), {
+      duration: ERROR_DURATION_MS,
+      ...(traceId
+        ? {
+            action: $localize`:Snackbar action that copies the error reference:Copia riferimento`,
+            onAction: () => void navigator.clipboard?.writeText(traceId),
+          }
+        : {}),
+    });
   }
 }

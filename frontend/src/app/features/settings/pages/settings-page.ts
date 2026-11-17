@@ -3,8 +3,7 @@ import { form, FormField, minLength, required, submit, validate } from '@angular
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { SessionStore } from '../../../core';
+import { Notifier, SessionStore } from '../../../core';
 import { apiFormErrors } from '../../../core/forms';
 
 /** Minimum length of a password, as the API requires (docs/backend/security.md). */
@@ -20,7 +19,7 @@ const EMPTY_PASSWORDS = { currentPassword: '', newPassword: '', confirmation: ''
 })
 export class SettingsPage {
   private readonly session = inject(SessionStore);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifier = inject(Notifier);
 
   protected readonly user = this.session.user;
   protected readonly loggingOut = signal(false);
@@ -64,7 +63,7 @@ export class SettingsPage {
         throw error;
       }
       this.passwordForm().reset({ ...EMPTY_PASSWORDS });
-      this.snackBar.open($localize`:Snackbar after the password change:Password aggiornata.`);
+      void this.notifier.show($localize`:Snackbar after the password change:Password aggiornata.`);
       return undefined;
     });
   }

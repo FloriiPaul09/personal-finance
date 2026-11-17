@@ -1,0 +1,158 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Categorie</h1>
+
+  <nav mat-tab-nav-bar [tabPanel]="panel" aria-label="Tipo di categoria" i18n-aria-label>
+    @for (kind of kinds; track kind.kind) {
+      <a
+        mat-tab-link
+        routerLink="."
+        [queryParams]="{ kind: kind.kind }"
+        replaceUrl
+        [active]="kind.kind === selectedKind()"
+        >{{ kind.tab }}</a
+      >
+    }
+  </nav>
+
+  <mat-tab-nav-panel #panel class="panel">
+    <div class="toolbar">
+      <a
+        matButton="tonal"
+        routerLink="new"
+        [queryParams]="{ kind: selectedKind() }"
+        data-testid="new-category"
+      >
+        <mat-icon svgIcon="add" />
+        <ng-container i18n="Button that opens the new category form">Nuova categoria</ng-container>
+      </a>
+      @if (hasArchived()) {
+        <mat-slide-toggle
+          [checked]="showArchived()"
+          (change)="showArchived.set($event.checked)"
+          i18n="Toggle that shows archived categories"
+          >Mostra archiviate</mat-slide-toggle
+        >
+      }
+    </div>
+
+    @if (store.error(); as error) {
+      <app-error-state [error]="error" (retry)="store.reload()" />
+    } @else if (store.loading()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else if (!hasAny()) {
+      <app-empty-state
+        icon="category"
+        title="Nessuna categoria"
+        i18n-title="Empty categories page"
+        message="Le categorie ordinano entrate e uscite: aggiungine una."
+        i18n-message="Empty categories page"
+      />
+    } @else if (rows().length === 0) {
+      <app-empty-state
+        icon="inventory_2"
+        title="Tutte le categorie sono archiviate"
+        i18n-title="Categories page with only archived categories"
+        message="Attiva «Mostra archiviate» per vederle, oppure aggiungi una categoria."
+        i18n-message="Categories page with only archived categories"
+      />
+    } @else {
+      <ul class="list" aria-label="Categorie" i18n-aria-label="List of categories">
+        @for (category of rows(); track category.id) {
+          <li
+            class="row"
+            [class.sub]="category.parentId"
+            [class.archived]="category.isArchived"
+            data-testid="category-row"
+          >
+            <a class="main" [routerLink]="category.id">
+              @if (category.parentId) {
+                <mat-icon class="sub-icon" svgIcon="subdirectory_arrow_right" />
+              }
+              <span class="text">
+                <span class="name">{{ category.name }}</span>
+                @if (category.isArchived) {
+                  <span class="meta" i18n="Label of an archived category">Archiviata</span>
+                }
+              </span>
+            </a>
+            <button
+              matIconButton
+              type="button"
+              [matMenuTriggerFor]="actions"
+              [matMenuTriggerData]="{ category }"
+              [attr.aria-label]="actionsLabel(category)"
+            >
+              <mat-icon svgIcon="more_vert" />
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </mat-tab-nav-panel>
+</section>
+
+<mat-menu #actions xPosition="before">
+  <ng-template matMenuContent let-category="category">
+    <a mat-menu-item [routerLink]="category.id">
+      <mat-icon svgIcon="edit" />
+      <span i18n="Menu item that opens the category form">Modifica</span>
+    </a>
+    @if (!category.parentId && !category.isArchived) {
+      <a
+        mat-menu-item
+        routerLink="new"
+        [queryParams]="{ kind: category.kind, parent: category.id }"
+      >
+        <mat-icon svgIcon="add" />
+        <span i18n="Menu item that adds a subcategory">Aggiungi sottocategoria</span>
+      </a>
+    }
+    @if (category.isArchived) {
+      @let parent = archivedParentOf(category);
+      <button mat-menu-item type="button" [disabled]="!!parent" (click)="unarchive(category)">
+        <mat-icon svgIcon="unarchive" />
+        <span class="menu-text">
+          <span i18n="Menu item that restores an archived category">Ripristina</span>
+          @if (parent) {
+            <span class="menu-hint" i18n="Why a subcategory cannot be restored yet"
+              >Ripristina prima «{{ parent.name }}»</span
+            >
+          }
+        </span>
+      </button>
+    } @else {
+      <button mat-menu-item type="button" (click)="archive(category)">
+        <mat-icon svgIcon="archive" />
+        <span class="menu-text">
+          <span i18n="Menu item that archives a category">Archivia</span>
+          @if (category.hasSubcategories) {
+            <span class="menu-hint" i18n="What archiving a parent category does"
+              >Anche le sottocategorie</span
+            >
+          }
+        </span>
+      </button>
+    }
+    <button
+      mat-menu-item
+      type="button"
+      [disabled]="category.isInUse || category.hasSubcategories"
+      (click)="delete(category)"
+      data-testid="delete-category"
+    >
+      <mat-icon svgIcon="delete" />
+      <span class="menu-text">
+        <span i18n="Menu item that deletes a category">Elimina</span>
+        @if (category.hasSubcategories) {
+          <span class="menu-hint" i18n="Why a category cannot be deleted"
+            >Ha delle sottocategorie</span
+          >
+        } @else if (category.isInUse) {
+          <span class="menu-hint" i18n="Why a category cannot be deleted"
+            >È usata: puoi archiviarla</span
+          >
+        }
+      </span>
+    </button>
+  </ng-template>
+</mat-menu>

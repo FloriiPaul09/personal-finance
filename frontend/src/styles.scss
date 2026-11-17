@@ -60,6 +60,12 @@ body {
   }
 }
 
+// Options of the account and category selectors (core/selectors): the text takes the whole
+// row, so the balance of an account lines up on the right.
+.pf-select-panel .mat-mdc-option .mdc-list-item__primary-text {
+  flex: 1;
+}
+
 // Pages outside the shell (login, server unavailable): one centered column.
 .pf-centered {
   box-sizing: border-box;

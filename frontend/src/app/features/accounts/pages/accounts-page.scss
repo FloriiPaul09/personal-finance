@@ -1,0 +1,15 @@
+@use '../../../../list-rows' as rows;
+
+@include rows.toolbar;
+@include rows.list;
+@include rows.menu-hint;
+
+.type-icon {
+  flex: none;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.balance {
+  flex: none;
+  font: var(--mat-sys-body-large);
+}

@@ -1,0 +1,26 @@
+@use '../../../../list-rows' as rows;
+
+@include rows.toolbar;
+@include rows.list;
+@include rows.menu-hint;
+
+.panel {
+  display: block;
+  padding-top: 16px;
+}
+
+.row.sub .main {
+  padding-inline-start: 24px;
+}
+
+.row:not(.sub) .name {
+  font-weight: 500;
+}
+
+.sub-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-inline-end: -8px;
+  color: var(--mat-sys-on-surface-variant);
+}
