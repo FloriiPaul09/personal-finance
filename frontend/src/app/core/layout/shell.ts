@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { NAV_ITEMS, NEW_EXPENSE_PATH } from './nav-items';
+import { NAV_ITEMS, NEW_EXPENSE_PATH, SETTINGS_PATH } from './nav-items';
 
 /**
  * Layout of every signed-in page: M3 navigation bar at the bottom on phones,
@@ -18,4 +18,5 @@ import { NAV_ITEMS, NEW_EXPENSE_PATH } from './nav-items';
 export class Shell {
   protected readonly items = NAV_ITEMS;
   protected readonly newExpensePath = NEW_EXPENSE_PATH;
+  protected readonly settingsPath = SETTINGS_PATH;
 }

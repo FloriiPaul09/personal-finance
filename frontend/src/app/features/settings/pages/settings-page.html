@@ -1,0 +1,78 @@
+<section class="pf-page">
+  <h1 class="pf-page-title" i18n="Page title">Impostazioni</h1>
+
+  <section class="block" aria-labelledby="account-title">
+    <h2 id="account-title" class="block-title" i18n="Settings section">Account</h2>
+    <p class="email" data-testid="account-email">{{ user()?.email }}</p>
+    <button
+      matButton="outlined"
+      type="button"
+      data-testid="logout"
+      [disabled]="loggingOut()"
+      (click)="logout()"
+      i18n="Logout button"
+    >
+      Esci
+    </button>
+  </section>
+
+  <section class="block" aria-labelledby="password-title">
+    <h2 id="password-title" class="block-title" i18n="Settings section">Cambia password</h2>
+    <form class="password-form" novalidate (submit)="changePassword($event)">
+      <mat-form-field>
+        <mat-label i18n="Password form field">Password attuale</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="current-password"
+          [formField]="passwordForm.currentPassword"
+        />
+        @if (passwordForm.currentPassword().errors(); as errors) {
+          @if (errors.length > 0) {
+            <mat-error>{{ errors[0].message }}</mat-error>
+          }
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label i18n="Password form field">Nuova password</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="new-password"
+          [formField]="passwordForm.newPassword"
+        />
+        <mat-hint i18n="Password form hint">Almeno 12 caratteri.</mat-hint>
+        @if (passwordForm.newPassword().errors(); as errors) {
+          @if (errors.length > 0) {
+            <mat-error>{{ errors[0].message }}</mat-error>
+          }
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label i18n="Password form field">Ripeti la nuova password</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="new-password"
+          [formField]="passwordForm.confirmation"
+        />
+        @if (passwordForm.confirmation().errors(); as errors) {
+          @if (errors.length > 0) {
+            <mat-error>{{ errors[0].message }}</mat-error>
+          }
+        }
+      </mat-form-field>
+
+      <button
+        matButton="filled"
+        type="submit"
+        [disabled]="passwordForm().submitting()"
+        i18n="Password form button"
+      >
+        Aggiorna password
+      </button>
+    </form>
+  </section>
+</section>

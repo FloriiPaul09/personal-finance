@@ -2,6 +2,9 @@
 // Features import from '../../core' (this file) only; Sheriff refuses deep imports.
 export { ApiError, CLIENT_ERROR_CODES } from './api/api-error';
 export { errorMessage, messageOf } from './api/error-messages';
+export { authGuard, guestGuard } from './auth/auth-guards';
+export { safeReturnUrl } from './auth/return-url';
+export { SessionStore, type SessionStatus } from './auth/session-store';
 export type * from './api/models';
 export { provideAppErrorHandler } from './errors/app-error-handler';
 export { ErrorNotifier } from './errors/error-notifier';
@@ -13,3 +16,4 @@ export { provideAppIcons } from './icons/app-icons';
 export { APP_NAME, providePageTitles } from './layout/page-title-strategy';
 export { Shell } from './layout/shell';
 export { provideSnackBars } from './layout/snack-bars';
+export { UnavailablePage } from './layout/unavailable-page';

@@ -56,6 +56,19 @@ body {
   }
 }
 
+// Pages outside the shell (login, server unavailable): one centered column.
+.pf-centered {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px 16px;
+  text-align: center;
+}
+
 // Page layout shared by every feature page.
 .pf-page {
   box-sizing: border-box;

@@ -1,0 +1,31 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 360px;
+  text-align: start;
+}
+
+.title {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.form-error {
+  margin: 8px 0 0;
+  color: var(--mat-sys-error);
+  font: var(--mat-sys-body-medium);
+}
+
+.submit {
+  margin-top: 16px;
+  height: 48px;
+}
