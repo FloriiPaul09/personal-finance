@@ -37,7 +37,7 @@ interface SpendingGroup {
  * 1. the month, never in the future;
  * 2. income, expenses and net of the month, one row per currency;
  * 3. the three budgets closest to their limit, and a link to all of them;
- * 4. the spending per category, a donut with its list;
+ * 4. the spending per category, bars and the list of the same categories;
  * 5. the accounts with their current balance, and the total per currency.
  *
  * Every number comes from one request (`GET /api/dashboard`), never added up here

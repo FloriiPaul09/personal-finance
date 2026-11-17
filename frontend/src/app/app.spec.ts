@@ -109,6 +109,8 @@ describe('App routes and shell', () => {
   });
 
   it('opens the catalog of the shared components in development, outside the navigation', async () => {
+    // jsdom has no canvas: the sample chart is configured but never drawn.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     await harness.navigateByUrl('/dev/components');
 
     expect(heading()).toBe('Componenti');

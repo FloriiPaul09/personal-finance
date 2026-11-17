@@ -1,9 +1,9 @@
 import { Component, computed, inject, input, LOCALE_ID, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CategoriesDirectory, CategorySpendingResponse } from '../../../core';
-import { chartColor, DonutChart, DonutSlice } from '../../../shared/charts';
+import { BarChart, BarItem } from '../../../shared/charts';
 import { formatMonth, IsoMonth } from '../../../shared/dates';
 import { AmountPipe, formatAmount } from '../../../shared/money';
 
@@ -13,20 +13,25 @@ export const SPENDING_ROWS = 5;
 interface SpendingRow {
   readonly item: CategorySpendingResponse;
   readonly name: string;
-  readonly color: string;
 }
 
 /**
  * The spending of a month in one currency, per top-level category, largest first (the API's
- * order and sums): a donut, then the list that is its legend. The first five categories have a
- * color each, the others share the neutral one; the list shows five rows, "Mostra tutte" the rest.
- * A row opens the expenses of the category in that month (docs/frontend/ui-components.md#dashboard).
+ * order and sums): horizontal bars as long as each amount compared with the largest, then the
+ * same categories as a list with their amounts. Five categories, "Mostra tutte" the rest (bars
+ * and rows together). A row, or its bar, opens the expenses of the category in that month
+ * (docs/frontend/ui-components.md#dashboard).
  */
 @Component({
   selector: 'app-spending-breakdown',
-  imports: [AmountPipe, DonutChart, MatButtonModule, MatIconModule, RouterLink],
+  imports: [AmountPipe, BarChart, MatButtonModule, MatIconModule, RouterLink],
   template: `
-    <app-donut-chart [slices]="slices()" [label]="chartLabel()" [format]="format" />
+    <app-bar-chart
+      [items]="bars()"
+      [label]="chartLabel()"
+      [format]="format"
+      (itemClick)="open(visible()[$event])"
+    />
     <ul class="rows" [attr.aria-label]="listLabel()">
       @for (row of visible(); track row.item.categoryId) {
         <li>
@@ -36,7 +41,6 @@ interface SpendingRow {
             [queryParams]="{ categoryId: row.item.categoryId, month: month() }"
             data-testid="spending-row"
           >
-            <span class="swatch" [style.background]="row.color" aria-hidden="true"></span>
             <span class="name">{{ row.name }}</span>
             <span class="pf-amount">{{ row.item.spent | amount: currency() }}</span>
             <mat-icon class="chevron" svgIcon="chevron_right" aria-hidden="true" />
@@ -71,6 +75,7 @@ interface SpendingRow {
 export class SpendingBreakdown {
   private readonly categories = inject(CategoriesDirectory);
   private readonly locale = inject(LOCALE_ID);
+  private readonly router = inject(Router);
 
   /** The spending of one currency, largest first. */
   readonly items = input.required<readonly CategorySpendingResponse[]>();
@@ -81,20 +86,16 @@ export class SpendingBreakdown {
   protected readonly showAll = signal(false);
 
   protected readonly rows = computed<SpendingRow[]>(() =>
-    this.items().map((item, index) => {
+    this.items().map((item) => {
       const category = this.categories.byId(item.categoryId);
-      return {
-        item,
-        name: category ? this.categories.label(category) : '…',
-        color: chartColor(index),
-      };
+      return { item, name: category ? this.categories.label(category) : '…' };
     }),
   );
   protected readonly visible = computed(() =>
     this.showAll() ? this.rows() : this.rows().slice(0, this.limit),
   );
-  protected readonly slices = computed<DonutSlice[]>(() =>
-    this.rows().map((row) => ({ label: row.name, value: row.item.spent, color: row.color })),
+  protected readonly bars = computed<BarItem[]>(() =>
+    this.visible().map((row) => ({ label: row.name, value: row.item.spent })),
   );
 
   private readonly monthLabel = computed(() => formatMonth(this.month(), this.locale));
@@ -109,4 +110,13 @@ export class SpendingBreakdown {
 
   protected readonly format = (value: number): string =>
     formatAmount(value, this.currency(), this.locale);
+
+  /** The expenses of the category in the month, as the row's link. */
+  protected open(row: SpendingRow | undefined): void {
+    if (row) {
+      void this.router.navigate(['/transactions'], {
+        queryParams: { categoryId: row.item.categoryId, month: this.month() },
+      });
+    }
+  }
 }

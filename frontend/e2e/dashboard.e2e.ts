@@ -51,8 +51,8 @@ test.describe('dashboard', () => {
     await expect(budget.locator('app-budget-progress')).toHaveAttribute('data-state', 'over');
     await expect(budget.getByTestId('budget-note')).toHaveText('Superato di 85,00 €');
 
-    // The spending: a donut, and the category in its list.
-    await expect(page.locator('app-donut-chart canvas').first()).toBeVisible();
+    // The spending: the bars, and the category in their list.
+    await expect(page.locator('app-bar-chart canvas').first()).toBeVisible();
     const spending = page.getByTestId('spending-row').filter({ hasText: expenses.name });
     await expect(spending).toContainText(`95,00 ${currency}`);
 

@@ -13,7 +13,7 @@ import {
   problem,
   provideApiHttpTesting,
 } from '../../../core/testing';
-import { CHART_OTHER_COLOR } from '../../../shared/charts';
+import { BarChart } from '../../../shared/charts';
 import { addMonthsToMonth, currentMonth } from '../../../shared/dates';
 import { DashboardPage } from './dashboard-page';
 
@@ -28,7 +28,7 @@ describe('DashboardPage', () => {
     list.map((category, index) => ({ categoryId: category.id, currency, spent: 300 - index * 50 }));
 
   beforeEach(() => {
-    // jsdom has no canvas: the donut is configured but never drawn.
+    // jsdom has no canvas: the chart is configured but never drawn.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     TestBed.configureTestingModule({
       imports: [MatIconTestingModule],
@@ -104,7 +104,7 @@ describe('DashboardPage', () => {
     expect(totals.querySelector('.empty a')!.getAttribute('href')).toBe('/transactions/new');
     const spending = one('[data-testid="spending"]');
     expect(text(spending)).toContain('Nessuna spesa in questo mese.');
-    expect(el().querySelector('app-donut-chart')).toBeNull();
+    expect(el().querySelector('app-bar-chart')).toBeNull();
   });
 
   describe('budgets', () => {
@@ -157,11 +157,7 @@ describe('DashboardPage', () => {
     const chart = () =>
       fixture.debugElement
         .query(By.directive(BaseChartDirective))
-        .injector.get(BaseChartDirective) as BaseChartDirective<'doughnut'>;
-    const swatches = () =>
-      testId('spending-row').map(
-        (row) => row.querySelector<HTMLElement>('.swatch')!.style.background,
-      );
+        .injector.get(BaseChartDirective) as BaseChartDirective<'bar'>;
 
     it('lists the first five categories, largest first, each opening its expenses', async () => {
       await open(aDashboard({ spending: spendingOf(categories) }));
@@ -172,21 +168,30 @@ describe('DashboardPage', () => {
       expect(rows[0].getAttribute('href')).toBe(
         `/transactions?categoryId=${categories[0].id}&month=${month}`,
       );
-      expect(swatches()).toEqual([1, 2, 3, 4, 5].map((slot) => `var(--pf-chart-${slot})`));
     });
 
-    it('draws every category in the donut, the ones after the fifth in the neutral color', async () => {
+    it('draws the same categories as bars, in the same order', async () => {
       await open(aDashboard({ spending: spendingOf(categories) }));
 
-      expect(chart().data!.labels).toEqual(names);
-      expect(chart().data!.datasets[0].data).toEqual([300, 250, 200, 150, 100, 50]);
-      expect((chart().data!.datasets[0].backgroundColor as string[])[5]).toBe(CHART_OTHER_COLOR);
+      expect(chart().data!.labels).toEqual(names.slice(0, 5));
+      expect(chart().data!.datasets[0].data).toEqual([300, 250, 200, 150, 100]);
       expect(one('canvas').getAttribute('aria-label')).toContain('per categoria in EUR');
     });
 
-    it('shows the other categories on request, with their colors unchanged', async () => {
+    it('opens the expenses of the category of a bar', async () => {
       await open(aDashboard({ spending: spendingOf(categories) }));
-      const before = swatches();
+      const router = TestBed.inject(Router);
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      fixture.debugElement.query(By.directive(BarChart)).triggerEventHandler('itemClick', 2);
+
+      expect(navigate).toHaveBeenCalledWith(['/transactions'], {
+        queryParams: { categoryId: categories[2].id, month },
+      });
+    });
+
+    it('shows the other categories on request, in the list and in the bars', async () => {
+      await open(aDashboard({ spending: spendingOf(categories) }));
 
       const more = one('[data-testid="spending-more"]');
       expect(text(more)).toContain('Mostra tutte (6)');
@@ -195,8 +200,7 @@ describe('DashboardPage', () => {
       fixture.detectChanges();
 
       expect(testId('spending-row')).toHaveLength(6);
-      expect(swatches().slice(0, 5)).toEqual(before);
-      expect(swatches()[5]).toBe(CHART_OTHER_COLOR);
+      expect(chart().data!.labels).toEqual(names);
       expect(text(more)).toContain('Mostra meno');
       expect(more.getAttribute('aria-expanded')).toBe('true');
     });
@@ -254,7 +258,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  it('keeps currencies apart: a row of figures, a donut and a total each', async () => {
+  it('keeps currencies apart: a row of figures, a chart and a total each', async () => {
     const usd = anAccount({ name: 'Wise', currency: 'USD', balance: 200 });
     await open(
       aDashboard({
@@ -276,7 +280,7 @@ describe('DashboardPage', () => {
 
     expect(testId('totals-row').map((row) => row.dataset['currency'])).toEqual(['EUR', 'USD']);
     expect(all('[data-testid="spending"] h3').map(text)).toEqual(['EUR', 'USD']);
-    expect(all('app-donut-chart')).toHaveLength(2);
+    expect(all('app-bar-chart')).toHaveLength(2);
     expect(testId('balance-total').map((total) => text(total.querySelector('.name')))).toEqual([
       'Totale in EUR',
       'Totale in USD',

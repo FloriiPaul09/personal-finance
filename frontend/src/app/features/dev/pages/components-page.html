@@ -106,18 +106,16 @@
   </section>
 
   <section class="block" aria-labelledby="chart-title">
-    <h2 id="chart-title" class="block-title">Grafico a ciambella</h2>
-    <div class="chart">
-      <app-donut-chart [slices]="slices" label="Parti di esempio" [format]="formatSlice" />
-      <ul class="legend">
-        @for (slice of slices; track slice.label) {
-          <li>
-            <span class="swatch" [style.background]="slice.color"></span>
-            {{ slice.label }} · {{ slice.value | amount: currency() }}
-          </li>
-        }
-      </ul>
-    </div>
+    <h2 id="chart-title" class="block-title">Grafico a barre</h2>
+    <p>Un nome lungo è tagliato sull'asse: il tooltip lo mostra intero.</p>
+    <app-bar-chart
+      class="chart"
+      [items]="bars"
+      label="Barre di esempio"
+      [format]="formatBar"
+      (itemClick)="barClicked.set(bars[$event].label)"
+    />
+    <p>Ultima barra toccata: {{ barClicked() ?? 'nessuna' }}</p>
   </section>
 
   <section class="block" aria-labelledby="dates-title">
