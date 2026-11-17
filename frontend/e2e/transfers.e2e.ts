@@ -34,7 +34,10 @@ test.describe('transfers', () => {
     await page.getByLabel('Descrizione').fill('Risparmio');
     await page.getByTestId('save-transfer').click();
 
+    // The form replaced /transactions/new, the first page loaded: nothing of the app behind,
+    // so saving opens the list instead of going back to the page before the app.
     await expect(page.getByText('Trasferimento salvato.')).toBeVisible();
+    await expect(page).toHaveURL('/transactions');
     await expect.poll(async () => (await api.account(from.id)).balance).toBe(700);
     await expect.poll(async () => (await api.account(to.id)).balance).toBe(300);
 

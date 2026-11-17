@@ -22,6 +22,6 @@ export { newId } from './ids/new-id';
 export { provideAppIcons } from './icons/app-icons';
 export { APP_NAME, providePageTitles } from './layout/page-title-strategy';
 export { FORM_PAGE } from './layout/nav-items';
-export { PageExit } from './layout/page-exit';
+export { PageExit, providePageExit } from './layout/page-exit';
 export { Shell } from './layout/shell';
 export { UnavailablePage } from './layout/unavailable-page';
