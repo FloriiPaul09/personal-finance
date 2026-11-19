@@ -20,9 +20,12 @@ public static class Problems
         return problem;
     }
 
-    /// <summary>The problem reports an error on <paramref name="field"/> (field names compared without case).</summary>
+    /// <summary>
+    /// The problem reports an error on <paramref name="field"/>, named exactly as the JSON property of the request
+    /// (camelCase, ADR-0029): the app puts the error on the form field with that name.
+    /// </summary>
     public static void AssertField(JsonElement problem, string field) =>
         Assert.Contains(
             problem.GetProperty("errors").EnumerateObject(),
-            error => string.Equals(error.Name, field, StringComparison.OrdinalIgnoreCase));
+            error => string.Equals(error.Name, field, StringComparison.Ordinal));
 }

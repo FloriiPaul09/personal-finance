@@ -96,8 +96,8 @@ The app is organized in feature areas that mirror the backend modules (accounts,
 - Recent choices are per device; kept by the API if people use more devices.
 - ✅ Block 8: chart library and home page ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 - Charts over time: an endpoint over a range of months from `[Backend]`, then line and bar charts with the same library and tokens (`[Feature] Grafici`).
-- `[DevOps]`: lint and coverage in CI; OpenAPI document exported at build time to check `openapi.json` / `schema.ts`; E2E in CI (PostgreSQL, .NET and Node, when they run).
-- `[Backend]`: numbers and `YearMonth` described precisely in the OpenAPI document; field names of validation errors in camelCase (today `Email`, mapped by the app).
+- `[DevOps]`: lint and coverage in CI; check `openapi.json` / `schema.ts` against the document the API build writes (`-p:OpenApiGenerateDocuments=true`, [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)); E2E in CI (PostgreSQL, .NET and Node, when they run).
+- ✅ `[Backend]`: numbers, `YearMonth`, `If-Match` / `ETag` described precisely in the OpenAPI document, field names of validation errors in camelCase; types generated without adjustments — [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-19_

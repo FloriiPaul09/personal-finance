@@ -28,7 +28,7 @@ Every error is a ProblemDetails (RFC 9457, `application/problem+json`) with two 
 | `detail` | English message for developers and logs. Absent on `500`. Never shown as is to the user |
 | `code` | **Stable code** the frontend switches on and translates — the contract |
 | `traceId` | Id to quote when reporting a problem; the same id is in the logs |
-| `errors` | Only on `400` about fields: field name → messages |
+| `errors` | Only on `400` about fields: field name → messages. Names are the JSON properties of the request (`email`, `accountId`, `tags[0]`, `lines[1].amount`), never the C# names ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)) |
 
 ```json
 {
@@ -46,14 +46,15 @@ How it is produced (`AddApiErrors()` / `UseApiErrors()`, before authentication):
 - `ApiExceptionHandler` (an `IExceptionHandler`) maps the known exceptions below, including `BadHttpRequestException`: in Development the framework throws it for an unreadable request, and it becomes `request.invalid` with a fixed message (the framework message names internal parameters). In other environments the framework answers the bare `400`, which status code pages turn into the same response.
 - Anything else is logged by the exception handler middleware and answered `500` with code `server.error`, without details.
 - `UseStatusCodePages` gives a ProblemDetails body to responses that have none: `TypedResults.NotFound()`, the `401` of the cookie, `405`, `415`.
-- `CustomizeProblemDetails` adds `traceId`, and a `code` from the status when there is none.
+- `CustomizeProblemDetails` adds `traceId`, and a `code` from the status when there is none. It also renames the keys of `errors` with the JSON naming policy of the API, segment by segment (`Lines[1].AccountId` → `lines[1].accountId`), merging messages of keys that become equal: built-in validation reports the C# names (`Email`), the client looks for `email` ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)).
+- The OpenAPI document describes this shape as the `ProblemDetails` schema ([api-endpoints.md](api-endpoints.md#openapi)).
 
 ### Codes
 
 | Code | Status | When |
 |---|---|---|
 | `validation.failed` | 400 | Request shape invalid (built-in validation), `errors` by field; also query parameters out of range (`limit`, `to` before `from`, `q` too long) |
-| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, a month not written `yyyy-MM` (body or `?month=`), wrong type of a route or query value (`?includeArchived=maybe`, `?from=yesterday`), an unknown query enum (`?kind=refund`, with `errors.kind`), a cursor the API did not issue (`errors.cursor`) |
+| `request.invalid` | 400 | Unreadable request: invalid JSON, unknown enumeration value or a number for an enumeration, a number written as text (`"12.5"`), a month not written `yyyy-MM` (body or `?month=`), wrong type of a route or query value (`?includeArchived=maybe`, `?from=yesterday`), an unknown query enum (`?kind=refund`, with `errors.kind`), a cursor the API did not issue (`errors.cursor`) |
 | `id.invalid` | 400 | An empty id chosen by the caller (the domain refuses `00000000-…`) |
 | `{resource}.not_found` | 400 | An id in the body is not one of the user's (`account.not_found`, `category.not_found`, …), `errors` on that field |
 | `concurrency.version_invalid` | 400 | `If-Match` malformed (weak tag, `*`, several tags) |
@@ -135,7 +136,7 @@ public sealed record Request(
 - Nested records and collections are validated recursively.
 - An endpoint can opt out with `.DisableValidation()` (none should need it).
 
-The response is `400` with `code: "validation.failed"` and `errors` by field. Field names and messages are reviewed with the first endpoint and `[Frontend]`.
+The response is `400` with `code: "validation.failed"` and `errors` by field, named as the JSON properties (`email`).
 
 ## Decisions
 
@@ -147,12 +148,14 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 | Domain codes by family (`400` / `409` / `500`) in one table checked by a test | Meaningful statuses, no forgotten code | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | Duplicates detected by the database (`23505` → `*.name_taken`, `409`) | Correct under simultaneous requests, no repeated checks | [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md) |
 | Unreadable requests `400` `request.invalid` in every environment, with a fixed message | Same contract in Development and Production; framework messages stay in the logs | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
+| Keys of `errors` renamed as the JSON properties in one place, for every source; numbers in quotes refused | Forms find their field by name; the document describes numbers as numbers only | [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md) |
 
 ## Tests
 
 - `ErrorMappingTests`: every `DomainErrors` code is mapped and nothing else; status of each family; code of each status; unreadable requests keep their status without the framework message; entity tag format and parsing.
 - `ErrorHandlingTests`, on a host with sample endpoints over the class database: `400` / `409` / `500` from domain codes (no details on `500`), unexpected exception, empty `404` and `401` with a ProblemDetails body, duplicate name `409`, references to another user's or a nonexistent id `400` on the field. Every response is checked for `application/problem+json`, `status`, `code` and `traceId`.
 - `UniqueConstraintErrorsTests`: unique indexes in PostgreSQL = mapped + internal.
+- `ErrorMappingTests.ValidationKeys_*`: C# names and paths become JSON names (`Lines[1].AccountId` → `lines[1].accountId`); messages of keys that become equal are kept. `Problems.AssertField` compares field names exactly, so every validation test of every endpoint checks the camelCase name.
 - From block 4, every endpoint that accepts input has a test that sends an invalid request and checks `400` and the field in `errors` ([testing.md](testing.md#minimum-per-endpoint)).
 - `BudgetsTests`: missing `categoryId` / `from`, malformed months (body and query), amounts, `budget.category_not_expense`, `budget.month_taken`, `budget.branch_conflict`, `category.archived`, `category.not_found` on `categoryId`.
 - `TransactionsTests`: missing fields, `kind: transfer` and a non-UUIDv7 `id` (`IValidatableObject`, `UuidV7Attribute`), too many tags and long descriptions, invalid query parameters (`validation.failed` / `request.invalid` on the parameter), domain codes for amounts, kinds and archived data, `{resource}.not_found` on `accountId` / `categoryId`, `resource.conflict` on `id`.
@@ -170,9 +173,9 @@ The response is `400` with `code: "validation.failed"` and `errors` by field. Fi
 
 ## To do / open questions
 
-- `[Frontend]`: check the keys of `errors` against the form fields with the first form (accounts); tests compare them without regard to case. The app turns them into camelCase (`Email` → `email`), [ADR-0022](../architecture/adr/0022-frontend-api-integration.md); emitting camelCase keys here would remove that step.
+- ✅ Keys of `errors` in camelCase, emitted by the API; the app reads them as they are — [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
 - A database error that slips past the domain because of a race (a movement saved while its account is deleted, foreign key `23503`) gives `500`; map foreign key violations if it ever shows up.
 - ✅ `[Frontend]`: map `code` to Italian messages, read `errors` for form fields, on `412` reload and say it changed elsewhere — `ApiError` and `core/api/error-messages.ts`, [ADR-0022](../architecture/adr/0022-frontend-api-integration.md).
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-19_

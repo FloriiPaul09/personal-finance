@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Options;
 
 namespace PersonalFinance.Api.Common.Errors;
 
@@ -23,11 +26,54 @@ public static class ApiErrorHandling
 
             problem.Extensions.TryAdd(CodeExtension, problem is HttpValidationProblemDetails ? ApiErrors.ValidationFailed : ApiErrors.ForStatus(status));
             problem.Extensions.TryAdd(TraceIdExtension, Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+
+            if (problem is HttpValidationProblemDetails validation)
+            {
+                var naming = context.HttpContext.RequestServices.GetService<IOptions<JsonOptions>>()?.Value.SerializerOptions.PropertyNamingPolicy
+                    ?? JsonNamingPolicy.CamelCase;
+                NameFieldsAsJson(validation.Errors, naming);
+            }
         });
 
         services.AddExceptionHandler<ApiExceptionHandler>();
         return services;
     }
+
+    /// <summary>
+    /// Keys of <c>errors</c> named as the JSON properties of the request (ADR-0029): built-in validation reports the C#
+    /// names (<c>Email</c>, <c>Tags[0]</c>), the client knows <c>email</c>, <c>tags[0]</c>. Each segment of a path is
+    /// renamed; messages of keys that end up equal are merged.
+    /// </summary>
+    internal static void NameFieldsAsJson(IDictionary<string, string[]> errors, JsonNamingPolicy naming)
+    {
+        if (errors.Count == 0)
+        {
+            return;
+        }
+
+        var renamed = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        foreach (var (key, messages) in errors)
+        {
+            var name = JsonPath(key, naming);
+            renamed[name] = renamed.TryGetValue(name, out var existing) ? [.. existing, .. messages] : messages;
+        }
+
+        errors.Clear();
+        foreach (var (key, messages) in renamed)
+        {
+            errors[key] = messages;
+        }
+    }
+
+    /// <summary><c>Lines[1].AccountId</c> → <c>lines[1].accountId</c>; the indexes stay as they are.</summary>
+    internal static string JsonPath(string key, JsonNamingPolicy naming) =>
+        string.Join('.', key.Split('.').Select(segment =>
+        {
+            var index = segment.IndexOf('[', StringComparison.Ordinal);
+            return index < 0
+                ? naming.ConvertName(segment)
+                : naming.ConvertName(segment[..index]) + segment[index..];
+        }));
 
     /// <summary>
     /// Exception handler and status code pages, before authentication so that a <c>401</c> gets a body too. Responses

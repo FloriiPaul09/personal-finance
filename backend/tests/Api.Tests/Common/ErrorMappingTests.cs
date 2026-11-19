@@ -84,4 +84,28 @@ public sealed class ErrorMappingTests
     {
         Assert.False(EntityTag.TryParse(value, out _));
     }
+
+    [Theory]
+    [InlineData("Email", "email")]
+    [InlineData("AccountId", "accountId")]
+    [InlineData("Tags[0]", "tags[0]")]
+    [InlineData("Lines[1].AccountId", "lines[1].accountId")]
+    [InlineData("limit", "limit")]
+    public void ValidationKeys_AreNamedAsTheJsonProperties(string key, string expected)
+    {
+        // ADR-0029: the client puts an error on the form field with the name of the JSON property.
+        Assert.Equal(expected, ApiErrorHandling.JsonPath(key, System.Text.Json.JsonNamingPolicy.CamelCase));
+    }
+
+    [Fact]
+    public void ValidationKeys_ThatBecomeEqual_KeepEveryMessage()
+    {
+        var errors = new Dictionary<string, string[]> { ["Email"] = ["Required."], ["email"] = ["Invalid."] };
+
+        ApiErrorHandling.NameFieldsAsJson(errors, System.Text.Json.JsonNamingPolicy.CamelCase);
+
+        var (key, messages) = Assert.Single(errors);
+        Assert.Equal("email", key);
+        Assert.Equal(new[] { "Required.", "Invalid." }, messages);
+    }
 }

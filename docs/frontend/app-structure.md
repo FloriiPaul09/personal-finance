@@ -19,7 +19,7 @@ frontend/
 ├── package.json            # scripts below
 ├── e2e/                    # Playwright tests and their support code
 ├── scripts/
-│   └── api-types.mjs       # generates core/api/schema.ts (pnpm api:types)
+│   └── api-types.mjs       # generates core/api/schema.ts from the document the API build writes (pnpm api:types)
 └── src/
     ├── index.html
     ├── main.ts
@@ -114,16 +114,16 @@ features/accounts/
 
 ### API types
 
-`scripts/api-types.mjs` ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md)):
+`scripts/api-types.mjs` ([ADR-0022](../architecture/adr/0022-frontend-api-integration.md), [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)):
 
 | Command | Source of the document |
 |---|---|
-| `pnpm api:types` | The API running in Development (`http://localhost:5080/openapi/v1.json`); the document is saved as `core/api/openapi.json` |
-| `pnpm api:types --url <url>` | Another address |
-| `pnpm api:types --file src/app/core/api/openapi.json` | The committed snapshot, without the API (e.g. a CI check) |
+| `pnpm api:types` | Builds the API with the document export on (`dotnet build backend/src/Api -p:OpenApiGenerateDocuments=true`) and reads `backend/artifacts/openapi/openapi.json`: no API or database running |
+| `pnpm api:types --file <path>` | A document exported elsewhere, e.g. by the CI build; the committed snapshot works too |
+| `pnpm api:types --url <url>` | A running API, e.g. `http://localhost:5080/openapi/v1.json` in Development |
 
-1. The document is **adjusted** before generation, where it is looser than the API: every number is described as `number | string` (ASP.NET Core also *reads* numbers written as text) → `number` / `integer` only; `YearMonth` is an empty schema → a `yyyy-MM` string. Each rule goes away once `[Backend]` describes the value precisely.
-2. `openapi-typescript` writes `core/api/schema.ts` (formatted with Prettier). Both `openapi.json` and `schema.ts` are committed; `schema.ts` is excluded from lint and coverage. A change of the contract shows in the pull request as a diff of `openapi.json`.
+1. The document is saved, formatted with Prettier, as `core/api/openapi.json`, and used **as it is**: the backend describes numbers as `number` / `integer`, months as the `YearMonth` string `yyyy-MM` (also in `?month=`), `If-Match` / `ETag`, the `412` / `428` answers and the `ProblemDetails` error shape ([backend/api-endpoints.md](../backend/api-endpoints.md#openapi)). The adjustments the script made until ADR-0029 are gone.
+2. `openapi-typescript` writes `core/api/schema.ts` (formatted with Prettier). Both `openapi.json` and `schema.ts` are committed; `schema.ts` is excluded from lint and coverage. A change of the contract shows in the pull request as a diff of `openapi.json`. The CI check of `[DevOps]`: build the API with the export, `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`, then `git diff --exit-code` on both files.
 3. The app imports the **aliases** of `core/api/models.ts`, never `schema.ts` directly: `AccountResponse`, `CategoryResponse`, `TransactionResponse`, `TransferResponse`, `BudgetResponse`, `BudgetProgressResponse`, `DashboardResponse`, request types, `ListResponse<T>`, `PageResponse<T>`, `Version`, `IsoDate`, `YearMonth`.
 
 Services are written by hand per feature on `HttpClient` ([state-management.md](state-management.md#the-store-pattern)); what the types do not say comes from `core`: `ifMatch(version)`, `ApiError` and its `code`, `newId()`, `cursorPager()`.
@@ -145,7 +145,7 @@ Services are written by hand per feature on `HttpClient` ([state-management.md](
 | `pnpm test` | Vitest in watch mode; `pnpm test --watch=false` for one run |
 | `pnpm test:coverage` | One run with coverage (`coverage/`) |
 | `pnpm lint` | ESLint: Angular rules, template accessibility, module boundaries |
-| `pnpm api:types` | Regenerate `core/api/openapi.json` and `schema.ts` from the running API (`--file` for a saved document) |
+| `pnpm api:types` | Regenerate `core/api/openapi.json` and `schema.ts` from the document written by the API build (`--file` for a saved document, `--url` for a running API) |
 | `pnpm e2e` | Playwright tests on the full stack ([testing.md](testing.md#end-to-end-playwright)); `pnpm e2e:report` opens the last report |
 
 Formatting: Prettier (`.prettierrc`, width 100, single quotes).
@@ -157,6 +157,7 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 | Folders by feature, named like the backend modules; `core`, `shared`, `features` | A new feature is one backend module plus one frontend folder | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Boundaries checked by Sheriff through ESLint | Same idea as the architecture tests of the backend: the structure cannot erode silently | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Types generated from OpenAPI, services by hand | Types follow the backend; versions and error codes stay under our control | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
+| Types generated from the document the API build writes, without adjustments | The backend describes the wire format exactly; the API need not run to regenerate | [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md) |
 | `@angular/localize`, source locale `it` in `angular.json` | Built into Angular, no runtime cost; locale, locale data and `lang` from one setting | [ADR-0021](../architecture/adr/0021-frontend-foundation.md) |
 | Session in `core/auth`, form helpers in a separate `core/forms` barrel, Playwright in `frontend/e2e` | Every feature needs the session; forms only where there is a form; E2E share the workspace's dependencies | [ADR-0023](../architecture/adr/0023-frontend-authentication.md) |
 | `shared/money`, `shared/dates`, `shared/date-pickers`, `shared/ui`, `shared/testing`; development pages replaced by an empty list in production; initial budget error at 600 kB | One library per topic, imported only where used; nothing heavy at startup; developer tools cost nothing in production | [ADR-0024](../architecture/adr/0024-frontend-shared-components.md) |
@@ -174,6 +175,7 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 - `app.spec.ts`: every feature is reached through its lazy route ([routing.md](routing.md#tests)).
 - `core/icons/app-icons.spec.ts`: icon names resolve to `icons/<name>.svg`; anything else (paths, URLs, namespaces) is refused.
 - The generation was checked against the API in Development: the snapshot is byte-identical to the document it served (SHA-256), and the generated types have `number` amounts and versions and `string` months.
+- ADR-0029: regenerated from the document written by the build, without adjustments: the component types are the same as with the old adjustments (amounts `number`, versions `number`, `YearMonth` `string`); new are `ProblemDetails`, the `If-Match` header on updates and deletes, `ETag` on single resources and `?month=` typed as `YearMonth`. `api-error.spec.ts` reads field errors exactly as the API sends them (camelCase); Vitest and Playwright stay green.
 
 ## Scalability
 
@@ -185,10 +187,10 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 
 ## To do / open questions
 
-- `[Backend]`: describe numbers as `number` only and `YearMonth` as a `yyyy-MM` string in the OpenAPI document, then remove the adjustments of `scripts/api-types.mjs`.
-- `[Backend]` / `[DevOps]`: export the OpenAPI document at build time and check in CI that `openapi.json` and `schema.ts` match it (`pnpm api:types --file …` then `git diff --exit-code`).
+- ✅ `[Backend]`: numbers, `YearMonth`, `If-Match` / `ETag` described in the OpenAPI document, the adjustments of `scripts/api-types.mjs` removed; document exported at build time — [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
+- `[DevOps]`: in CI, build the API with `-p:OpenApiGenerateDocuments=true`, run `pnpm api:types --file ../backend/artifacts/openapi/openapi.json` and fail on `git diff --exit-code` of `openapi.json` and `schema.ts`.
 - `[DevOps]`: run `pnpm lint` and `pnpm test:coverage` in CI.
 - Split `core` into libraries when it grows past a handful of folders.
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-19_

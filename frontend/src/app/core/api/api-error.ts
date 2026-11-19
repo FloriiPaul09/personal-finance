@@ -89,18 +89,16 @@ function asProblem(body: unknown): ProblemDetails | null {
 }
 
 /**
- * `errors` by field, with keys in camelCase like the request properties:
- * the API may name a field after the C# property (`AccountId`).
+ * `errors` by field: the API names each field as the JSON property of the request (camelCase, ADR-0029),
+ * so the keys are the names of the form fields.
  */
 function fieldErrorsOf(errors: unknown): Record<string, string[]> {
   if (errors === null || typeof errors !== 'object') {
     return {};
   }
   const result: Record<string, string[]> = {};
-  for (const [key, messages] of Object.entries(errors)) {
-    const field = key.charAt(0).toLowerCase() + key.slice(1);
-    const list = Array.isArray(messages) ? messages.filter((m) => typeof m === 'string') : [];
-    result[field] = [...(result[field] ?? []), ...list];
+  for (const [field, messages] of Object.entries(errors)) {
+    result[field] = Array.isArray(messages) ? messages.filter((m) => typeof m === 'string') : [];
   }
   return result;
 }

@@ -106,6 +106,8 @@ var account = await Database.CreateAccountAsync(userId, name: "Carta", initialBa
 
 `ApiHostTests` run on the real host: health public, unknown route `401` with a ProblemDetails body, OpenAPI document and Scalar in Development (schema names prefixed by slice, enum values as strings), absent in Production, `HttpCurrentUser` registered, the **list of public routes** — any endpoint with `AllowAnonymous()` outside the list fails the test — and **`If-Match` on every `PUT` / `PATCH` / `DELETE`**.
 
+`OpenApiDocumentTests` read the served document, which comes from the same generator and transformers as the one written at build time ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)): numbers never described as text, months as `yyyy-MM` in bodies and queries, `If-Match` exactly where the endpoint metadata requires a version (with `400` / `412` / `428`), `ETag` on single resources only and only from handlers that take `HttpResponse`, one `ProblemDetails` schema, no `servers`. `Problems.AssertField` compares field names exactly, so the validation test of every endpoint also checks that `errors` uses the JSON names.
+
 ### Mapping tests
 
 - `ErrorMappingTests` (unit): every constant of `DomainErrors` has a status family and nothing else is mapped; status → default code; entity tag format and parsing (weak tags, `*`, lists, overflow rejected).
@@ -174,4 +176,4 @@ This document describes tests; it is verified by `dotnet test` passing locally a
 - `[DevOps]` CI job with Docker for `Api.Tests`.
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-19_

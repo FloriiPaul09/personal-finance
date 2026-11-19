@@ -252,6 +252,20 @@ public sealed class AccountsTests(ApiServer server) : ApiTest(server)
     }
 
     [Theory]
+    [InlineData("\"100.00\"")]
+    [InlineData("\"100\"")]
+    public async Task Create_WithAnAmountWrittenAsText_Returns400RequestInvalid(string initialBalance)
+    {
+        var userId = await NewUserAsync();
+        var json = $$"""{ "name": "{{TestData.UniqueName("Conto")}}", "type": "checking", "currency": "EUR", "initialBalance": {{initialBalance}} }""";
+
+        var response = await ClientFor(userId).PostAsync(Accounts, new StringContent(json, System.Text.Encoding.UTF8, "application/json"), Ct);
+
+        // Numbers are JSON numbers only (ADR-0029): the OpenAPI document describes them as number, never as text.
+        await Problems.AssertAsync(response, HttpStatusCode.BadRequest, ApiErrors.RequestInvalid);
+    }
+
+    [Theory]
     [InlineData("currency", "E1R", DomainErrors.CurrencyInvalid)]
     [InlineData("initialBalance", 10.005, DomainErrors.AmountTooManyDecimals)]
     public async Task Create_ValueRejectedByTheDomain_Returns400WithItsCode(string field, object value, string code)

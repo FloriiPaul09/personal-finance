@@ -26,21 +26,18 @@ describe('toApiError', () => {
     expect(error.fields).toEqual(['name']);
   });
 
-  it('names fields like the request properties (camelCase) and merges duplicates', () => {
+  it('keeps field names as the API sends them and drops what is not a message', () => {
     const error = toApiError(
       errorResponse(400, {
         code: 'validation.failed',
-        errors: { AccountId: ['Required.'], accountId: ['Not found.'], Amount: ['Too big.'] },
+        errors: { accountId: ['Not found.', 42], 'tags[0]': ['Too long.'] },
       }),
     );
 
-    expect(error.fieldErrors).toEqual({
-      accountId: ['Required.', 'Not found.'],
-      amount: ['Too big.'],
-    });
+    expect(error.fieldErrors).toEqual({ accountId: ['Not found.'], 'tags[0]': ['Too long.'] });
   });
 
-  it('reads the validation answer exactly as the API sends it (field names in PascalCase)', () => {
+  it('reads the validation answer exactly as the API sends it (field names in camelCase)', () => {
     // Recorded from POST /api/auth/login with an invalid email and no password.
     const error = toApiError(
       errorResponse(400, {
@@ -48,8 +45,8 @@ describe('toApiError', () => {
         title: 'One or more validation errors occurred.',
         status: 400,
         errors: {
-          Email: ['The Email field is not a valid e-mail address.'],
-          Password: ['The Password field is required.'],
+          email: ['The Email field is not a valid e-mail address.'],
+          password: ['The Password field is required.'],
         },
         code: 'validation.failed',
         traceId: '00-2c94db1953e1d026635a7cbcfaa55c61-490fa6f2c4f1c1be-00',

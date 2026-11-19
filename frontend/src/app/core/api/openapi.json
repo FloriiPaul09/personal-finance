@@ -1,7 +1,6 @@
 {
   "openapi": "3.1.1",
   "info": { "title": "PersonalFinance.Api | v1", "version": "1.0.0" },
-  "servers": [{ "url": "http://localhost:5080/" }],
   "paths": {
     "/api/accounts/{id}/archive": {
       "post": {
@@ -18,6 +17,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
             }
@@ -41,6 +47,13 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
             }
@@ -79,11 +92,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -100,6 +144,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
             }
@@ -116,6 +167,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -129,11 +187,42 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     },
@@ -152,6 +241,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/AccountResponse" } }
             }
@@ -240,6 +336,13 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
             }
@@ -274,11 +377,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -295,6 +429,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
             }
@@ -311,6 +452,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -322,11 +470,42 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/BudgetResponse" } }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     },
@@ -334,7 +513,9 @@
       "get": {
         "tags": ["Budgets"],
         "operationId": "GetBudgetProgress",
-        "parameters": [{ "name": "month", "in": "query", "schema": { "type": "string" } }],
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "$ref": "#/components/schemas/YearMonth" } }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -362,6 +543,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
             }
@@ -385,6 +573,13 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
             }
@@ -424,11 +619,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -445,6 +671,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
             }
@@ -461,6 +694,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -474,11 +714,42 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     },
@@ -497,6 +768,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
             }
@@ -509,7 +787,9 @@
       "get": {
         "tags": ["Dashboard"],
         "operationId": "GetDashboard",
-        "parameters": [{ "name": "month", "in": "query", "schema": { "type": "string" } }],
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "$ref": "#/components/schemas/YearMonth" } }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -530,11 +810,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "put": {
@@ -546,6 +857,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -557,11 +875,42 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/TagResponse" } }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     },
@@ -596,6 +945,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/TransactionResponse" }
@@ -604,6 +960,13 @@
           },
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/TransactionResponse" }
@@ -624,15 +987,7 @@
           { "name": "tag", "in": "query", "schema": { "type": "string" } },
           { "name": "q", "in": "query", "schema": { "type": "string" } },
           { "name": "cursor", "in": "query", "schema": { "type": "string" } },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": ["integer", "string"],
-              "format": "int32"
-            }
-          }
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "format": "int32" } }
         ],
         "responses": {
           "200": {
@@ -656,11 +1011,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -677,6 +1063,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/TransactionResponse" }
@@ -695,6 +1088,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -708,13 +1108,44 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/TransactionResponse" }
               }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     },
@@ -733,12 +1164,26 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
             }
           },
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
             }
@@ -756,11 +1201,42 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "responses": {
           "204": { "description": "No Content" },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -777,6 +1253,13 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
             }
@@ -793,6 +1276,13 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
+            "required": true,
+            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
           }
         ],
         "requestBody": {
@@ -806,11 +1296,42 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The version of the resource, to send back in If-Match.",
+                "required": true,
+                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+              }
+            },
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/TransferResponse" } }
             }
           },
-          "404": { "description": "Not Found" }
+          "400": {
+            "description": "The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "404": { "description": "Not Found" },
+          "412": {
+            "description": "The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          },
+          "428": {
+            "description": "The If-Match header is missing (concurrency.version_required).",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            }
+          }
         }
       }
     }
@@ -835,23 +1356,11 @@
           "name": { "type": "string" },
           "type": { "$ref": "#/components/schemas/AccountType" },
           "currency": { "type": "string" },
-          "initialBalance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "balance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
+          "initialBalance": { "type": "number", "format": "double" },
+          "balance": { "type": "number", "format": "double" },
           "isArchived": { "type": "boolean" },
           "hasMovements": { "type": "boolean" },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "AccountType": { "enum": ["cash", "checking", "creditCard", "savings", "other"] },
@@ -871,26 +1380,10 @@
           "categoryId": { "type": "string", "format": "uuid" },
           "budgetId": { "type": "string", "format": "uuid" },
           "month": { "$ref": "#/components/schemas/YearMonth" },
-          "limit": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "spent": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "remaining": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "ratio": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
+          "limit": { "type": "number", "format": "double" },
+          "spent": { "type": "number", "format": "double" },
+          "remaining": { "type": "number", "format": "double" },
+          "ratio": { "type": "number", "format": "double" },
           "isOverBudget": { "type": "boolean" }
         }
       },
@@ -901,16 +1394,8 @@
           "id": { "type": "string", "format": "uuid" },
           "categoryId": { "type": "string", "format": "uuid" },
           "from": { "$ref": "#/components/schemas/YearMonth" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "amount": { "type": ["null", "number"], "format": "double" },
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "CategoryKind": { "enum": ["income", "expense"] },
@@ -934,11 +1419,7 @@
           "isArchived": { "type": "boolean" },
           "isInUse": { "type": "boolean" },
           "hasSubcategories": { "type": "boolean" },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "CategorySpendingResponse": {
@@ -947,11 +1428,7 @@
         "properties": {
           "categoryId": { "type": "string", "format": "uuid" },
           "currency": { "type": "string" },
-          "spent": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          }
+          "spent": { "type": "number", "format": "double" }
         }
       },
       "ChangePasswordRequest": {
@@ -969,11 +1446,7 @@
           "name": { "type": "string" },
           "type": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/AccountType" }] },
           "currency": { "type": "string" },
-          "initialBalance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          }
+          "initialBalance": { "type": ["null", "number"], "format": "double" }
         }
       },
       "CreateBudgetRequest": {
@@ -982,11 +1455,7 @@
         "properties": {
           "categoryId": { "type": ["null", "string"], "format": "uuid" },
           "from": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/YearMonth" }] },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          }
+          "amount": { "type": ["null", "number"], "format": "double" }
         }
       },
       "CreateCategoryRequest": {
@@ -1020,11 +1489,7 @@
           "accountId": { "type": ["null", "string"], "format": "uuid" },
           "categoryId": { "type": ["null", "string"], "format": "uuid" },
           "date": { "type": ["null", "string"], "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": ["null", "number"], "format": "double" },
           "description": { "type": ["null", "string"] },
           "tags": { "type": ["null", "array"], "items": { "type": "string" } }
         }
@@ -1037,11 +1502,7 @@
           "fromAccountId": { "type": ["null", "string"], "format": "uuid" },
           "toAccountId": { "type": ["null", "string"], "format": "uuid" },
           "date": { "type": ["null", "string"], "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": ["null", "number"], "format": "double" },
           "description": { "type": ["null", "string"] }
         }
       },
@@ -1050,16 +1511,8 @@
         "type": "object",
         "properties": {
           "currency": { "type": "string" },
-          "balance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "archivedBalance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          }
+          "balance": { "type": "number", "format": "double" },
+          "archivedBalance": { "type": "number", "format": "double" }
         }
       },
       "DashboardResponse": {
@@ -1160,22 +1613,35 @@
         "type": "object",
         "properties": {
           "currency": { "type": "string" },
-          "income": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "expense": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "net": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          }
+          "income": { "type": "number", "format": "double" },
+          "expense": { "type": "number", "format": "double" },
+          "net": { "type": "number", "format": "double" }
         }
+      },
+      "ProblemDetails": {
+        "required": ["status", "code", "traceId"],
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "integer", "format": "int32" },
+          "detail": {
+            "type": "string",
+            "description": "English message for developers; never shown to users as is."
+          },
+          "instance": { "type": "string" },
+          "code": {
+            "type": "string",
+            "description": "Stable error code, e.g. concurrency.version_mismatch."
+          },
+          "traceId": { "type": "string", "description": "Id to quote when reporting the problem." },
+          "errors": {
+            "type": "object",
+            "additionalProperties": { "type": "array", "items": { "type": "string" } },
+            "description": "Messages by request field, named as the JSON property (camelCase)."
+          }
+        },
+        "description": "An error (RFC 9457) with the stable code the client switches on."
       },
       "RenameTagRequest": {
         "required": ["name"],
@@ -1188,16 +1654,8 @@
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
-          "transactionCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "int32"
-          },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "transactionCount": { "type": "integer", "format": "int32" },
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "TransactionKind": { "enum": ["income", "expense", "transfer"] },
@@ -1223,23 +1681,11 @@
           "categoryId": { "type": ["null", "string"], "format": "uuid" },
           "transferId": { "type": ["null", "string"], "format": "uuid" },
           "date": { "type": "string", "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
-          "signedAmount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": "number", "format": "double" },
+          "signedAmount": { "type": "number", "format": "double" },
           "description": { "type": ["null", "string"] },
           "tags": { "type": "array", "items": { "type": "string" } },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "TransferResponse": {
@@ -1260,19 +1706,11 @@
           "fromAccountId": { "type": "string", "format": "uuid" },
           "toAccountId": { "type": "string", "format": "uuid" },
           "date": { "type": "string", "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": "number", "format": "double" },
           "description": { "type": ["null", "string"] },
           "outgoingTransactionId": { "type": "string", "format": "uuid" },
           "incomingTransactionId": { "type": "string", "format": "uuid" },
-          "version": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": ["integer", "string"],
-            "format": "uint32"
-          }
+          "version": { "type": "integer", "format": "uint32" }
         }
       },
       "UpdateAccountRequest": {
@@ -1282,23 +1720,13 @@
           "name": { "type": "string" },
           "type": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/AccountType" }] },
           "currency": { "type": "string" },
-          "initialBalance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          }
+          "initialBalance": { "type": ["null", "number"], "format": "double" }
         }
       },
       "UpdateBudgetRequest": {
         "required": ["amount"],
         "type": "object",
-        "properties": {
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          }
-        }
+        "properties": { "amount": { "type": ["null", "number"], "format": "double" } }
       },
       "UpdateCategoryRequest": {
         "required": ["name", "kind", "parentId"],
@@ -1318,11 +1746,7 @@
           "accountId": { "type": ["null", "string"], "format": "uuid" },
           "categoryId": { "type": ["null", "string"], "format": "uuid" },
           "date": { "type": ["null", "string"], "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": ["null", "number"], "format": "double" },
           "description": { "type": ["null", "string"] },
           "tags": { "type": ["null", "array"], "items": { "type": "string" } }
         }
@@ -1334,15 +1758,16 @@
           "fromAccountId": { "type": ["null", "string"], "format": "uuid" },
           "toAccountId": { "type": ["null", "string"], "format": "uuid" },
           "date": { "type": ["null", "string"], "format": "date" },
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": ["null", "number", "string"],
-            "format": "double"
-          },
+          "amount": { "type": ["null", "number"], "format": "double" },
           "description": { "type": ["null", "string"] }
         }
       },
-      "YearMonth": {}
+      "YearMonth": {
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+        "type": "string",
+        "description": "A month, written yyyy-MM.",
+        "example": "2026-06"
+      }
     }
   },
   "tags": [
