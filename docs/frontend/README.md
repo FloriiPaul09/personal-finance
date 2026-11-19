@@ -30,7 +30,7 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 **Block 7 (budgets) done** ([ADR-0027](../architecture/adr/0027-frontend-budgets.md)): budgets of a month with a progress bar in three states (normal, amber warning from 90%, red over the limit), rows opening the expenses of their category, "Ferma da <mese>" with "Annulla", a budget form per category with the month it applies from and the history of its entries (delete a wrong one after a confirmation), categories that cannot get a budget disabled with the reason, amounts in euros until budgets have a currency.
 
-**Block 8 (dashboard) in review** ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)): the home page of a month (never a future one) from one request: income, expenses and net per currency, the three budgets closest to their limit, the spending per category as bars with the list of the same categories (five, then "Mostra tutte"), the accounts with their current balance and the total per currency; every row opens the movements behind it; an invitation to add the first account. Chart.js 4 through ng2-charts in `shared/charts`, only in the dashboard chunk, with chart colors as validated `--pf-chart-*` tokens; initial bundle 492.3 kB.
+**Block 8 (dashboard) done** ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)): the home page of a month (never a future one) from one request: income, expenses and net per currency, the three budgets closest to their limit, the spending per category as bars with the list of the same categories (five, then "Mostra tutte"), the accounts with their current balance and the total per currency; every row opens the movements behind it; an invitation to add the first account. Chart.js 4 through ng2-charts in `shared/charts`, only in the dashboard chunk, with chart colors as validated `--pf-chart-*` tokens; initial bundle 492.3 kB.
 
 - Angular 22 (standalone components, signals, zoneless, `OnPush` by default, TypeScript strict), SCSS, no SSR.
 - **pnpm 11** (`packageManager` in `package.json`), Node.js 26 LTS (`.nvmrc`).
@@ -41,7 +41,7 @@ The Angular single-page application: structure of the workspace, routing, state 
 
 ### Blocks
 
-The MVP frontend is built one block at a time, one branch and one pull request each (commits `type(frontend[/module])`).
+The MVP frontend is built one block at a time, one branch and one pull request each (commits `type(frontend[/module])`). **All eight blocks are done**: the next features (trend charts, PWA, recurring transactions, CSV import) start in their `[Feature]` conversations.
 
 | # | Block | Content | End-to-end | Status |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@ The MVP frontend is built one block at a time, one branch and one pull request e
 | 5 | Accounts and categories | Pages and forms; archive vs delete from `hasMovements`, `isInUse`, `hasSubcategories`; reference data in `core` with account and category selectors | Accounts, categories | Done (PR #31) |
 | 6 | Transactions and transfers | List with filter bar and cursor, quick entry from the phone, transfers | Expense on phone, transfer, list filter | Done (PR #32) |
 | 7 | Budgets | Progress of the month; "stop from this month" vs "delete" | Budget set, counted and stopped | Done (PR #33) |
-| 8 | Dashboard | One row per currency; chart library | Dashboard | In review |
+| 8 | Dashboard | One row per currency; chart library | Dashboard | Done (PR #34) |
 
 ## Decisions
 
