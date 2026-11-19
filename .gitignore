@@ -9,6 +9,8 @@
 bin/
 obj/
 TestResults/
+# OpenAPI document written by the build (backend/src/Api, ADR-0029)
+backend/artifacts/
 *.user
 *.suo
 *.rsuser

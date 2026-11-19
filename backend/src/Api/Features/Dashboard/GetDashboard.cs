@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Api.Common.Endpoints;
+using PersonalFinance.Api.Common.OpenApi;
 using PersonalFinance.Api.Common.Requests;
 using PersonalFinance.Api.Features.Accounts;
 using PersonalFinance.Api.Features.Budgets;
@@ -40,7 +41,7 @@ public static class GetDashboard
     }
 
     internal static async Task<Ok<DashboardResponse>> Handle(
-        AppDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken, string? month = null)
+        AppDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken, [MonthQuery] string? month = null)
     {
         var selected = QueryValues.ParseMonth(month, nameof(month))
             ?? YearMonth.Of(DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime));

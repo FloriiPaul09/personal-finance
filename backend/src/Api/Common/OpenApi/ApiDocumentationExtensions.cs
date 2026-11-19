@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
@@ -6,9 +7,27 @@ namespace PersonalFinance.Api.Common.OpenApi;
 
 public static class ApiDocumentationExtensions
 {
-    /// <summary>The built-in OpenAPI document generator (ADR-0003); the document is served in development only.</summary>
+    /// <summary>
+    /// <see langword="true"/> while the build writes the document (<c>-p:OpenApiGenerateDocuments=true</c>, ADR-0029):
+    /// the tool runs the app's startup without a server, so startup work that needs the database is skipped.
+    /// </summary>
+    public static bool IsGeneratingDocument { get; } =
+        Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
+    /// <summary>
+    /// The built-in OpenAPI document generator (ADR-0003); the document is served in development only and written at
+    /// build time on request. Transformers describe what the generator cannot see (ADR-0029): months, versions and
+    /// the error shape.
+    /// </summary>
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services) =>
-        services.AddOpenApi(options => options.CreateSchemaReferenceId = SchemaId);
+        services.AddOpenApi(options =>
+        {
+            options.CreateSchemaReferenceId = SchemaId;
+            options.AddSchemaTransformer<YearMonthSchemaTransformer>();
+            options.AddOperationTransformer<MonthQueryOperationTransformer>();
+            options.AddOperationTransformer<VersionOperationTransformer>();
+            options.AddDocumentTransformer<ProblemDetailsSchema>();
+        });
 
     /// <summary>
     /// Schema name of a type. Slices nest their contracts (<c>Login.Request</c>, <c>ChangePassword.Request</c>): the

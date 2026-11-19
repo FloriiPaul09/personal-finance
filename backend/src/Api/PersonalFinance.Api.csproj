@@ -11,6 +11,23 @@
     <PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>
 
+  <!--
+    OpenAPI document written by the build, on request (ADR-0029, docs/backend/api-endpoints.md#openapi):
+      dotnet build backend/src/Api -p:OpenApiGenerateDocuments=true  →  backend/artifacts/openapi/openapi.json
+    Off by default, so dotnet watch and test builds do not run the app's startup at build time.
+  -->
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../artifacts/openapi</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <!-- APIs that slices must never call, checked at compile time (BannedSymbols.txt, docs/backend/security.md). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">

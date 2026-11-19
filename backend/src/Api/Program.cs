@@ -23,9 +23,13 @@ builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 // Pending migrations are applied before serving requests (docs/database/migrations.md), then the first user is
-// created if the database has none (docs/backend/security.md#initial-user).
-await app.Services.MigrateDatabaseAsync();
-await app.Services.EnsureInitialUserAsync();
+// created if the database has none (docs/backend/security.md#initial-user). Skipped while the build writes the
+// OpenAPI document, which needs no database (docs/backend/api-endpoints.md#openapi).
+if (!ApiDocumentationExtensions.IsGeneratingDocument)
+{
+    await app.Services.MigrateDatabaseAsync();
+    await app.Services.EnsureInitialUserAsync();
+}
 
 // Before authentication, so every error — a 401 included — is a ProblemDetails with a code (docs/backend/validation-and-errors.md).
 app.UseApiErrors();

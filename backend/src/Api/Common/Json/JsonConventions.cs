@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace PersonalFinance.Api.Common.Json;
 
 /// <summary>
-/// JSON of every request and response (ADR-0015, docs/backend/api-endpoints.md#conventions): ASP.NET Core web
-/// defaults (<c>camelCase</c> properties, case-insensitive reading) plus enumerations as <c>camelCase</c> strings and
-/// months as <c>"yyyy-MM"</c>.
+/// JSON of every request and response (ADR-0015, ADR-0029, docs/backend/api-endpoints.md#conventions): ASP.NET Core
+/// web defaults (<c>camelCase</c> properties, case-insensitive reading) plus numbers only as JSON numbers, enumerations
+/// as <c>camelCase</c> strings and months as <c>"yyyy-MM"</c>.
 /// </summary>
 public static class JsonConventions
 {
@@ -18,6 +18,10 @@ public static class JsonConventions
 
     private static JsonSerializerOptions Apply(JsonSerializerOptions options)
     {
+        // 12.5, never "12.5" (ADR-0029): the web defaults also read numbers written as text, and the OpenAPI document
+        // then describes every number as "number | string". A number in quotes is unreadable JSON → 400 request.invalid.
+        options.NumberHandling = JsonNumberHandling.Strict;
+
         // "creditCard", never 2: reordering or adding members never changes the contract. Numbers are refused, so a
         // client cannot depend on the order of the members either.
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
