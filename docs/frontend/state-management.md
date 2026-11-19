@@ -163,7 +163,7 @@ Every failed `/api` request fails with an `ApiError` ([ADR-0022](../architecture
 |---|---|
 | `status` | HTTP status; `0` when there was no answer |
 | `code` | Stable code of the API ([backend/validation-and-errors.md](../backend/validation-and-errors.md#codes)) or of the app: `network.unavailable` (no answer: offline), `server.unavailable` (`502` / `503` / `504` from the proxy: the API is down), `response.unexpected` (any other answer without ProblemDetails) |
-| `fieldErrors`, `fields` | Messages by field, keys in camelCase like the request (`Email` from the API → `email`) |
+| `fieldErrors`, `fields` | Messages by field, keys as the API sends them: the JSON names of the request (`email`, `tags[0]`, [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)) |
 | `traceId` | Id of the request in the API logs |
 
 - `errorMessage(code)` / `messageOf(error)`: the Italian message (one `$localize` map in `core/api/error-messages.ts`; unknown codes get a generic message).
@@ -235,4 +235,4 @@ It passes `nextCursor` back unchanged, ignores `loadMore()` while loading or aft
 - Recent choices kept by the API, if people use more devices.
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-19_

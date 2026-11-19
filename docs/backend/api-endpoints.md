@@ -6,24 +6,24 @@ Conventions shared by every endpoint and the contract of each endpoint: route, a
 
 ## Current state
 
-The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md); budgets in [ADR-0019](../architecture/adr/0019-budgets-module.md); the dashboard in [ADR-0020](../architecture/adr/0020-dashboard-module.md). **Every MVP endpoint is implemented.** Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
+The foundation is implemented: health, development tools, authentication, the mechanism that maps every module ([ADR-0012](../architecture/adr/0012-api-foundation.md)), error responses and versions ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)). The conventions shared by resources and the first resource, accounts, are in [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md); categories in [ADR-0016](../architecture/adr/0016-categories-module.md); transactions and tags in [ADR-0017](../architecture/adr/0017-transactions-and-tags.md); transfers in [ADR-0018](../architecture/adr/0018-transfers-module.md); budgets in [ADR-0019](../architecture/adr/0019-budgets-module.md); the dashboard in [ADR-0020](../architecture/adr/0020-dashboard-module.md). **Every MVP endpoint is implemented.** The OpenAPI document describes the contract precisely enough to generate the client's types without corrections and is written at build time on request ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md), [OpenAPI](#openapi)). Resource endpoints arrive one block at a time; their contract is written here in the same pull request as the code.
 
 ### Conventions
 
 | Topic | Convention |
 |---|---|
 | Base path | `/api`; each module adds its prefix: `/api/accounts`, `/api/categories`, … The Angular dev server and nginx proxy `/api` ([devops/local-development.md](../devops/local-development.md)) |
-| Format | JSON, `camelCase` properties (ASP.NET Core default); **enumerations as `camelCase` strings** (`"creditCard"`) — numbers and unknown values give `400` `request.invalid` ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)). Options in `JsonConventions` |
+| Format | JSON, `camelCase` properties (ASP.NET Core default); **enumerations as `camelCase` strings** (`"creditCard"`) — numbers and unknown values give `400` `request.invalid` ([ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md)); **numbers only as JSON numbers** — `"12.5"` in quotes gives `400` `request.invalid` ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)). Options in `JsonConventions` |
 | Authentication | Session cookie on every endpoint unless marked **public** ([security.md](security.md)); without a session `401` |
 | Identifiers | `Guid` (UUIDv7) in routes: `/api/accounts/{id:guid}`. Creates that must be safe to send again (offline queue) accept an `id` chosen by the client, a UUIDv7 ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
 | Amounts | **JSON numbers** with at most 2 decimals (`1234.56`), `decimal` on the server; a third decimal is refused (`amount.too_many_decimals`), never rounded. Totals and balances are computed by the server: clients never add amounts in floating point. Movements: kind + positive `amount` in requests; responses add `signedAmount` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
-| Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); months `YYYY-MM` (`YearMonth`, budgets); timestamps ISO 8601 in UTC |
+| Dates | Transaction dates `YYYY-MM-DD` (`DateOnly`); months `YYYY-MM` (`YearMonth`, budgets, dashboard), in JSON and in the query — a month parameter carries `[MonthQuery]` so the document points it to the `YearMonth` schema; timestamps ISO 8601 in UTC |
 | Methods | `GET` read, `POST` create (`201` + `Location` + `ETag`), `PUT` replace the whole resource (`200` + `ETag`), `DELETE` (`204`), `POST /{id}/{action}` for idempotent state changes such as `archive` (`200` + `ETag`). `PUT`, `PATCH` and `DELETE` require `If-Match` ([Versions](#versions)) |
-| Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field ([validation-and-errors.md](validation-and-errors.md)) |
+| Errors | ProblemDetails (RFC 9457) with a stable `code` and a `traceId`; validation errors `400` with `errors` by field, keys named as the JSON properties (`email`, `tags[0]`) ([validation-and-errors.md](validation-and-errors.md)) |
 | Not found | `404` `resource.not_found` for a route id that is not the user's — another user's id included ([security.md](security.md#another-users-data)) |
 | Responses | One response type per resource (e.g. `AccountResponse`), the same for list items, reads and writes, with `version` in the body |
 | Lists | **Envelope** `{ "items": [...] }` (`ListResponse<T>`) for every list, paged or not; filters in the query string (`?includeArchived=true`, `?kind=expense`) — enumerations in the query follow the JSON names (`QueryValues.ParseEnum`). Paged lists use a cursor: `{ "items": [...], "nextCursor": "…" }` (`PageResponse<T>`), `?limit=` and `?cursor=` ([ADR-0017](../architecture/adr/0017-transactions-and-tags.md)) |
-| OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults`; schema names are prefixed with their slice (`CreateAccountRequest`) |
+| OpenAPI | Every endpoint has a name (`WithName`) and its module tag; responses come from `TypedResults`; schema names are prefixed with their slice (`CreateAccountRequest`); numbers, months, `If-Match` / `ETag` and concurrency errors are described by convention ([OpenAPI](#openapi)) |
 
 ### Endpoint template
 
@@ -78,6 +78,7 @@ internal static async Task<Results<Ok<Response>, NotFound>> Handle(
 - Taking an `IfMatch` parameter is what makes the header mandatory; `ApiHostTests.EveryUpdateAndDelete_RequiresIfMatch` fails if an update or delete endpoint does not take it.
 - Read projections get the version with `EF.Property<uint>(entity, RowVersion.PropertyName)`.
 - `If-None-Match` / `304` for reads is not implemented yet (see Scalability).
+- The OpenAPI document describes versions by convention ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)): every endpoint with an `IfMatch` parameter requires the `If-Match` header and lists `400`, `412` and `428` with the `ProblemDetails` schema; every `200` / `201` whose body is one resource with a `Version` lists the `ETag` header. Nothing to write in the slice.
 
 ### Health
 
@@ -94,14 +95,32 @@ Used by container health checks later ([devops/docker.md](../devops/docker.md)).
 
 ### OpenAPI
 
-Development only ([ADR-0012](../architecture/adr/0012-api-foundation.md)): in any other environment these routes do not exist.
+Served in Development only ([ADR-0012](../architecture/adr/0012-api-foundation.md)): in any other environment these routes do not exist.
 
 | Route | Content |
 |---|---|
 | `GET /openapi/v1.json` | OpenAPI document generated by ASP.NET Core |
 | `GET /scalar/` | Scalar UI on that document (`/scalar` redirects here) |
 
-Both are public on a development machine. Requests sent from Scalar carry the cookies of the API origin: call `GET /api/auth/antiforgery`, add the header `X-XSRF-TOKEN` with the value of the `XSRF-TOKEN` cookie, log in with `POST /api/auth/login`, then call the protected endpoints. The document is also the input for a generated Angular client, if `[Frontend]` chooses one.
+Both are public on a development machine. Requests sent from Scalar carry the cookies of the API origin: call `GET /api/auth/antiforgery`, add the header `X-XSRF-TOKEN` with the value of the `XSRF-TOKEN` cookie, log in with `POST /api/auth/login`, then call the protected endpoints.
+
+**Written at build time** ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)), without starting the API or a database:
+
+```powershell
+dotnet build backend/src/Api -p:OpenApiGenerateDocuments=true   # → backend/artifacts/openapi/openapi.json (ignored by git)
+```
+
+Off by default (`Microsoft.Extensions.ApiDescription.Server`, properties in `PersonalFinance.Api.csproj`), so `dotnet watch` and test builds stay fast. The tool runs the app's startup without a server: `Program.cs` skips migrations and the initial user while `ApiDocumentationExtensions.IsGeneratingDocument` is `true` — any new startup work that needs a database or another service must do the same. The document has no `servers`, so the built and the served documents are identical. The frontend generates its types from it (`pnpm api:types`, [frontend/app-structure.md](../frontend/app-structure.md#api-types)); `[DevOps]` checks in CI that the committed snapshot matches it.
+
+**What the document describes beyond the generator** (`Common/OpenApi`):
+
+| Value | How it is described | Transformer |
+|---|---|---|
+| Numbers | `number` / `integer` only: `JsonConventions` reads numbers strictly (`NumberHandling = Strict`), so the generator no longer adds `string` | — |
+| Months | Component `YearMonth`: `string`, pattern `^\d{4}-(0[1-9]\|1[0-2])$`, example `2026-06`; query parameters with `[MonthQuery]` point to it | `YearMonthSchemaTransformer`, `MonthQueryOperationTransformer` |
+| `If-Match` | Required header on endpoints with an `IfMatch` parameter, with `400` / `412` / `428` | `VersionOperationTransformer` |
+| `ETag` | Header of every `200` / `201` whose body is one resource with `Version` (not lists) | `VersionOperationTransformer` |
+| Errors | Component `ProblemDetails` (`status`, `code`, `traceId` required, `errors` by field) for `application/problem+json`; only the concurrency errors are listed per operation, the others are in [validation-and-errors.md](validation-and-errors.md) | `ProblemDetailsSchema` |
 
 ### Authentication
 
@@ -670,6 +689,7 @@ Amounts of different currencies are never added together: with only euros, `bala
 |---|---|---|
 | `/api/{module}` routes from `ApiModule.Prefix`, not from folder names | Renaming code never changes a public URL | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
 | Development-only OpenAPI document and Scalar UI | Try endpoints locally without exposing the API surface on real instances | [ADR-0012](../architecture/adr/0012-api-foundation.md) |
+| Numbers only as JSON numbers; months, `If-Match` / `ETag`, concurrency errors and the error shape described by convention; field names in `errors` as the JSON properties; document written at build time on request | Client types generated without corrections; new endpoints described without code; CI checks the contract without running the API | [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md) |
 | Contract documented in the same pull request as the endpoint | The document never lags behind the code | [README.md](README.md) |
 | Enumerations as `camelCase` strings, amounts as JSON numbers, every list in `{ "items": [...] }`, one response type per resource | Readable and stable contract; lists can gain paging without breaking clients | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
 | Account balance computed in SQL at every read; `PUT` of the whole account; archive as idempotent actions; delete only without movements; archived accounts hidden by default | Balances always consistent; history never lost; simple forms | [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md) |
@@ -685,6 +705,8 @@ Amounts of different currencies are never added together: with only euros, `bala
 - `ErrorHandlingTests`: `ETag` on create and read; `428` without `If-Match`; `400` on a malformed one; `412` on a stale version and on a write that lands between the check and the save, with nothing changed; new `ETag` after a successful update; `404` for another user's resource, even with a version.
 - `EndpointMappingTests`: an endpoint of a module is served under `/api/{prefix}` with the module tag.
 - `ApiHostTests.OpenApiDocument_NamesSchemasAfterTheirSlice_AndListsEnumerationValues`: distinct schema names for nested contracts, enum values as strings.
+- `OpenApiDocumentTests` ([ADR-0029](../architecture/adr/0029-precise-openapi-contract.md)): no number described as text anywhere; `YearMonth` as a `yyyy-MM` string in bodies and in `?month=`; `If-Match` exactly on the endpoints that take a version, with `400` / `412` / `428` and the `ProblemDetails` schema; `ETag` on single resources (reads, creates, updates, archive actions, repeated creates) and never on lists; every documented `ETag` comes from a handler that can send it; one error schema with `code` and `traceId`; no `servers`.
+- `AccountsTests.Create_WithAnAmountWrittenAsText_Returns400RequestInvalid`: numbers in quotes are refused.
 - `DashboardTests`: every section with several currencies, an archived account, subcategories, a transfer and an out-of-month expense; an empty user; the default month; a malformed month; isolation; `401`.
 - `BudgetsTests`: every budget endpoint — success, `401`, validation, isolation, versions — plus history order, ending a budget, archived categories, one level per branch, moving a budget to subcategories after deleting the parent's entries; progress with the latest entry, subcategories, month boundaries, ended budgets, over budget, the default month, compared with `BudgetProgress.Calculate`.
 - `TransfersTests`: every transfer endpoint — success, `401`, validation, isolation (route ids and both account fields), versions — plus balances of both accounts after create, update and delete, legs listed with `transferId`, repeated create with the same id, domain codes (same account, currencies, archived accounts).
@@ -698,9 +720,9 @@ Amounts of different currencies are never added together: with only euros, `bala
 
 - **More resources**: one section per resource; the table above grows.
 - **Versioning**: not needed while the only client ships with the API. With third-party or native clients, a version segment (`/api/v2`) or header with a new ADR; `ApiModule` groups make it a change in one place.
-- **Generated clients**: the OpenAPI document can be exported at build time (`Microsoft.Extensions.ApiDescription.Server`) if `[Frontend]` generates its client.
+- **Generated clients**: the document is written at build time and describes the wire format exactly; a native client or a public SDK can be generated from the same file. With a public API, every error response (`401`, `404`, `409`, validation `400`) can be listed per operation the same way, by convention.
 - **PWA and caching**: the offline queue stores the version with each pending change and sends it as `If-Match`; a `412` means the item changed elsewhere. Reads can answer `304 Not Modified` to `If-None-Match` when needed.
-- **OpenAPI**: `If-Match` and `ETag` are not described in the document yet; an operation transformer can add them for endpoints with `IfMatchRequiredMetadata`.
+- **OpenAPI**: new month parameters (trend charts: `?from=2026-01&to=2026-06`) take `[MonthQuery]`; new update and delete endpoints get `If-Match` and its errors from their `IfMatch` parameter.
 - **Balances with years of movements**: the account query sums every movement. When that shows in response times, the `Worker` writes monthly balance snapshots and the query adds only the movements after the last snapshot; the response does not change. A covering index with `amount` is a cheaper first step.
 - **Many accounts** (shared households, multi-user): the list already uses the envelope, so paging can be added without breaking clients.
 - **Text search**: `ILIKE` scans the user's transactions; with many years of data, a `pg_trgm` index on `description` (`[DB]`) keeps `q` fast without changing the API.
@@ -714,13 +736,12 @@ Amounts of different currencies are never added together: with only euros, `bala
 ## To do / open questions
 
 - ✅ Status codes of errors, concurrency and cross-user access — [ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md).
-- Describe `If-Match` / `ETag` in the OpenAPI document (operation transformer), if the generated client needs it.
+- ✅ `If-Match` / `ETag`, numbers, months and the error shape in the OpenAPI document; document written at build time — [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
 - ✅ Enum serialization, amounts in JSON, list envelope — [ADR-0015](../architecture/adr/0015-resource-conventions-and-accounts.md).
 - ✅ Paging (cursor), signs of amounts, idempotent create — [ADR-0017](../architecture/adr/0017-transactions-and-tags.md).
 - ✅ Contract of the dashboard (block 9) — every MVP endpoint is implemented.
 - Charts: endpoints over a range of months reusing `TotalsOfAsync`, `SpendingOfAsync` and `ProgressOf`; balance at a date (`Account.BalanceAt` in SQL) for the end of a past month.
 - Budgets per currency, if accounts in several currencies become common.
-- OpenAPI: describe months as `string` with pattern `^\d{4}-\d{2}$` (schema transformer for `YearMonth`).
 - Progress over a range of months for charts, reusing `ProgressOf`, when charts arrive.
 - Transfers: a list of their own, tags, transfers between currencies (`toAmount`) — when needed ([ADR-0018](../architecture/adr/0018-transfers-module.md)).
 - `[Frontend]`: ✅ generate UUIDv7 ids (`newId()`) and follow `nextCursor` (`cursorPager`), [ADR-0022](../architecture/adr/0022-frontend-api-integration.md); never sum `amount`, use `signedAmount`; send the whole tag list on update.
@@ -729,4 +750,4 @@ Amounts of different currencies are never added together: with only euros, `bala
 - `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-19_

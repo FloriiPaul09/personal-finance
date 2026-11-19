@@ -8,8 +8,8 @@ The HTTP API of the application (`backend/src/Api`): how endpoints are written a
 
 | Document | Covers | Status |
 |---|---|---|
-| [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`) and the contract of every endpoint, one section per resource | Conventions, authentication and accounts implemented; other resources to come |
-| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013, ADR-0015 |
+| [api-endpoints.md](api-endpoints.md) | Conventions of the API, versions (`ETag` / `If-Match`), the OpenAPI document and the contract of every endpoint, one section per resource | Implemented — ADR-0012–ADR-0020, ADR-0029 |
+| [validation-and-errors.md](validation-and-errors.md) | Request validation, error responses and codes, domain errors, duplicates, references | Implemented — ADR-0012, ADR-0013, ADR-0015, ADR-0029 |
 | [security.md](security.md) | Session cookie, password and lockout, login, CSRF, rate limiting, fallback policy, public endpoints, current user, other users' data, initial user, Data Protection keys, banned APIs | Implemented — ADR-0001, ADR-0012, ADR-0013, ADR-0014 |
 | [testing.md](testing.md) | Test projects, API hosts on Testcontainers, authentication in tests, test data, mechanism, startup, host and architecture tests, minimum per endpoint | Implemented — ADR-0006, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015 |
 
@@ -36,12 +36,13 @@ The API is built in blocks, one branch and one pull request each (GitHub Flow, [
 ```
 AddPersistence (connection string read from the final configuration)
 AddApiErrors          → ProblemDetails with code + traceId, ApiExceptionHandler
-AddApiJson            → enumerations as camelCase strings, months as "yyyy-MM" (JsonConventions)
+AddApiJson            → numbers only as JSON numbers, enumerations as camelCase strings, months as "yyyy-MM" (JsonConventions)
 AddApiSecurity        → Auth options, Identity + session cookie (401/403, no redirects), Data Protection keys in the DB,
                         antiforgery, login rate limiter, fallback policy, HttpCurrentUser
 AddValidation         → built-in Minimal API validation
-AddApiDocumentation   → built-in OpenAPI document, schema names prefixed by slice
-migrations → initial user → UseApiErrors (exception handler, status code pages)
+AddApiDocumentation   → built-in OpenAPI document, schema names prefixed by slice; transformers for months,
+                        If-Match / ETag and the error schema (written at build time on request)
+migrations → initial user (both skipped while the build writes the document) → UseApiErrors (exception handler, status code pages)
            → UseApiSecurity (authentication, authorization, rate limiter, antiforgery)
 /api/health (public) · /openapi + /scalar (Development only) · MapApiEndpoints()
 ```
@@ -139,6 +140,7 @@ Mistakes in modules stop startup with the name of the type to fix: an endpoint w
 | 2026-11-12 | Transfers: one response with both leg ids, no list of their own, version of the `transfers` row rewritten on every change, optional client UUIDv7 id, no tags | [ADR-0018](../architecture/adr/0018-transfers-module.md), [api-endpoints.md](api-endpoints.md#transfers) |
 | 2026-11-12 | Budgets: entries as a resource, months `yyyy-MM`, `GET /api/budgets/progress` from one query with the domain's arithmetic, stop with an entry without amount, delete for corrections, no paging | [ADR-0019](../architecture/adr/0019-budgets-module.md), [api-endpoints.md](api-endpoints.md#budgets) |
 | 2026-11-12 | Dashboard: one `GET /api/dashboard?month=` with accounts, balances and totals per currency, spending per top-level category, budget progress; archived accounts only in the totals; period queries on a date range | [ADR-0020](../architecture/adr/0020-dashboard-module.md), [api-endpoints.md](api-endpoints.md#dashboard) |
+| 2026-11-19 | Precise OpenAPI contract: numbers only as JSON numbers, `YearMonth` and `?month=` as `yyyy-MM`, `If-Match` / `ETag` / `412` / `428` and a `ProblemDetails` schema by convention, `errors` keys in camelCase, document written at build time with `-p:OpenApiGenerateDocuments=true` | [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md), [api-endpoints.md](api-endpoints.md#openapi) |
 
 ## Tests
 
@@ -168,7 +170,8 @@ Summary of [testing.md](testing.md):
 - ✅ Block 8 — budgets: [ADR-0019](../architecture/adr/0019-budgets-module.md).
 - ✅ Block 9 — dashboard: [ADR-0020](../architecture/adr/0020-dashboard-module.md). Every MVP endpoint is implemented; what follows (charts, recurring transactions, CSV import, attachments) starts in `[Feature]` chats with the conventions above.
 - ✅ Validation of request records is tested (login).
+- ✅ OpenAPI refinement for the generated client (handoff from `[Frontend]`): [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
 - Nice to have: a `dotnet new` template that scaffolds a slice.
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-19_

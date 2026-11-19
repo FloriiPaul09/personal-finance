@@ -3,6 +3,7 @@
 - **Status**: Accepted
 - **Date**: 2026-11-16
 - **Deciders**: Paul
+- **Note**: the document adjustments of decision 6 were removed by [ADR-0029](0029-precise-openapi-contract.md), which describes numbers, months and versions precisely in the backend; the rest of this ADR stands.
 
 ## Context
 
