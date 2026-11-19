@@ -545,6 +545,24 @@ export interface components {
       /** Format: double */
       net: number;
     };
+    /** @description An error (RFC 9457) with the stable code the client switches on. */
+    ProblemDetails: {
+      type?: string;
+      title?: string;
+      /** Format: int32 */
+      status: number;
+      /** @description English message for developers; never shown to users as is. */
+      detail?: string;
+      instance?: string;
+      /** @description Stable error code, e.g. concurrency.version_mismatch. */
+      code: string;
+      /** @description Id to quote when reporting the problem. */
+      traceId: string;
+      /** @description Messages by request field, named as the JSON property (camelCase). */
+      errors?: {
+        [key: string]: string[];
+      };
+    };
     RenameTagRequest: {
       name: string;
     };
@@ -639,7 +657,10 @@ export interface components {
       amount: null | number;
       description: null | string;
     };
-    /** @description A month, written yyyy-MM. */
+    /**
+     * @description A month, written yyyy-MM.
+     * @example 2026-06
+     */
     YearMonth: string;
   };
   responses: never;
@@ -664,6 +685,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -717,6 +740,8 @@ export interface operations {
       /** @description Created */
       201: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -739,6 +764,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -757,7 +784,10 @@ export interface operations {
   UpdateAccount: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -772,10 +802,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['AccountResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -785,12 +826,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteAccount: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -805,12 +867,39 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
       };
     };
   };
@@ -828,6 +917,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -983,6 +1074,8 @@ export interface operations {
       /** @description Created */
       201: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1005,6 +1098,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1023,7 +1118,10 @@ export interface operations {
   UpdateBudget: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1038,10 +1136,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['BudgetResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -1051,12 +1160,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteBudget: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1071,6 +1201,15 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
@@ -1078,12 +1217,30 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   GetBudgetProgress: {
     parameters: {
       query?: {
-        month?: string;
+        month?: components['schemas']['YearMonth'];
       };
       header?: never;
       path?: never;
@@ -1116,6 +1273,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1170,6 +1329,8 @@ export interface operations {
       /** @description Created */
       201: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1192,6 +1353,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1210,7 +1373,10 @@ export interface operations {
   UpdateCategory: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1225,10 +1391,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['CategoryResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -1238,12 +1415,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteCategory: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1258,12 +1456,39 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
       };
     };
   };
@@ -1281,6 +1506,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1299,7 +1526,7 @@ export interface operations {
   GetDashboard: {
     parameters: {
       query?: {
-        month?: string;
+        month?: components['schemas']['YearMonth'];
       };
       header?: never;
       path?: never;
@@ -1321,7 +1548,10 @@ export interface operations {
   RenameTag: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1336,10 +1566,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['TagResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -1349,12 +1590,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteTag: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1369,12 +1631,39 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
       };
     };
   };
@@ -1444,6 +1733,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1453,6 +1744,8 @@ export interface operations {
       /** @description Created */
       201: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1475,6 +1768,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1493,7 +1788,10 @@ export interface operations {
   UpdateTransaction: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1508,10 +1806,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['TransactionResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -1521,12 +1830,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteTransaction: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1541,12 +1871,39 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
       };
     };
   };
@@ -1566,6 +1923,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1575,6 +1934,8 @@ export interface operations {
       /** @description Created */
       201: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1597,6 +1958,8 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
@@ -1615,7 +1978,10 @@ export interface operations {
   UpdateTransfer: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1630,10 +1996,21 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          /** @description The version of the resource, to send back in If-Match. */
+          ETag: string;
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['TransferResponse'];
+        };
+      };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Not Found */
@@ -1643,12 +2020,33 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
     };
   };
   DeleteTransfer: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The version last read, as the ETag the API sent (e.g. "12345", with the quotes). */
+        'If-Match': string;
+      };
       path: {
         id: string;
       };
@@ -1663,12 +2061,39 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The request is invalid, e.g. a malformed If-Match header (concurrency.version_invalid). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description The resource changed since it was read (concurrency.version_mismatch): nothing was changed. Read it again. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description The If-Match header is missing (concurrency.version_required). */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
       };
     };
   };
