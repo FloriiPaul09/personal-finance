@@ -19,6 +19,7 @@
     packages above depend on 10.0.13 or later.
   -->
   <ItemGroup>
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
