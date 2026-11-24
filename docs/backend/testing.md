@@ -159,7 +159,7 @@ Resource tests sign in with `ClientFor(userId)` and create data with `TestData`;
 
 ## Tests
 
-This document describes tests; it is verified by `dotnet test` passing locally and, once the pipeline exists, in CI ([devops](../devops/README.md)).
+This document describes tests; it is verified by `dotnet test` passing locally and in CI, on every pull request ([devops/ci-cd.md](../devops/ci-cd.md)).
 
 ## Scalability
 
@@ -173,7 +173,7 @@ This document describes tests; it is verified by `dotnet test` passing locally a
 - ✅ How tests authenticate, authenticated client helper, test data ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
 - ✅ Expected status for another user's data: `404` / `400` `{resource}.not_found` ([ADR-0013](../architecture/adr/0013-error-responses-and-concurrency.md)).
 - ✅ Startup tests: `StartupTests`, each on a database of its own (`Server.CreateDatabaseAsync`).
-- `[DevOps]` CI job with Docker for `Api.Tests`.
+- ✅ `[DevOps]` CI job with Docker for `Api.Tests`: the `backend` job runs every test project on the runner's Docker, with coverage ([devops/ci-cd.md](../devops/ci-cd.md#coverage), [ADR-0030](../architecture/adr/0030-continuous-integration.md)).
 
 ---
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-24_

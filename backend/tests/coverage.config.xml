@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings of the coverage collector (dotnet test with the coverage option, docs/devops/ci-cd.md#coverage).
+  Dynamic instrumentation only: static instrumentation rewrites the assemblies on disk, and the
+  architecture tests (ArchUnitNET) would read the rewritten ones and see dependencies that are not in the code.
+-->
+<Configuration>
+  <CodeCoverage>
+    <EnableStaticManagedInstrumentation>False</EnableStaticManagedInstrumentation>
+    <EnableDynamicManagedInstrumentation>True</EnableDynamicManagedInstrumentation>
+  </CodeCoverage>
+</Configuration>

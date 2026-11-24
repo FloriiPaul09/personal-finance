@@ -147,7 +147,7 @@ Use it to check a component in the built-in browser on a phone (390×844) and a 
 
 - **More tests**: Vitest runs files in parallel; the builder rebuilds only what changed in watch mode.
 - **Browser mode**: if jsdom misses a behavior (layout, real `IntersectionObserver` for infinite scroll), Vitest browser mode with Playwright can run the same specs in Chromium.
-- **CI** (`[DevOps]`): `pnpm lint`, `pnpm test:coverage` with the `lcov` report on every pull request; E2E timing decided there. On CI the config already turns on retries, `forbidOnly` and a non-interactive report; it needs PostgreSQL, .NET and Node, and `E2E_*` if the user differs.
+- **CI** ([devops/ci-cd.md](../devops/ci-cd.md)): `pnpm lint`, `pnpm test:coverage` (lcov in the coverage report of the run) and `pnpm build` on every pull request; Playwright on every pull request too, where the config turns on retries, `forbidOnly` and a non-interactive report. Slower suites can be sharded (`--shard`) across CI jobs.
 - **More flows**: tests that write data create their own (accounts and categories named after the test, unique with `newId()`), never rely on what another test left.
 
 ## To do / open questions
@@ -158,7 +158,7 @@ Use it to check a component in the built-in browser on a phone (390×844) and a 
 - A way to give each run its own data (a user per run needs registration, off by default).
 - ✅ Block 4: time-zone tests of the date adapter; amount input tests ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - ✅ Block 5: test data in `core/testing`; E2E that create and delete their own data ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
-- `[DevOps]`: frontend jobs in CI, E2E included (when they run, how the stack starts).
+- ✅ `[DevOps]`: frontend jobs in CI, E2E included: lint, unit tests with coverage and the production build in the `frontend` job, Playwright in the `e2e` job on every pull request and push to `main`, with the database from `compose.yaml` and the API built first ([devops/ci-cd.md](../devops/ci-cd.md#jobs), [ADR-0030](../architecture/adr/0030-continuous-integration.md)).
 
 ---
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-24_

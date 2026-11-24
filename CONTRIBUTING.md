@@ -17,7 +17,7 @@ The repository follows **GitHub Flow** ([docs/devops/repository-workflow.md](doc
 1. Create a short-lived branch from `main`, e.g. `feat/backend-create-account` or `fix/frontend-date-shift`.
 2. Commit small, focused changes.
 3. Open a pull request to `main` and fill in the checklist of the template.
-4. The pull request is merged with **squash merge** once all checks are green and the review is approved.
+4. The pull request is merged with **squash merge** once the required checks `ci` and `pr-title` are green and the review is approved ([docs/devops/ci-cd.md](docs/devops/ci-cd.md)).
 
 `main` is protected: nobody pushes to it directly, the maintainer included.
 
@@ -33,7 +33,7 @@ The repository follows **GitHub Flow** ([docs/devops/repository-workflow.md](doc
 |---|---|
 | type | `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `perf`, `build`, `ci` |
 | area | `backend`, `frontend`, `devops`, `docs` |
-| module | `accounts`, `categories`, `transactions`, `budgets`, `auth` (the backend modules; new modules extend the list) |
+| module | `accounts`, `auth`, `budgets`, `categories`, `dashboard`, `transactions`, `transfers` (the backend modules, for `backend` and `frontend` only; a new module extends the list in `.github/commitlint/commitlint.config.mjs`) |
 
 Examples:
 
@@ -41,10 +41,10 @@ Examples:
 feat(backend/accounts): add create account endpoint
 fix(frontend/transactions): keep the date when the time zone changes
 chore(devops): pin PostgreSQL 18.6
-docs(architecture): add ADR-0008
+docs(devops): add the CI/CD document
 ```
 
-With squash merge the pull request title becomes the commit on `main`, so the title must follow the same format.
+With squash merge the pull request title becomes the commit on `main`, so the title must follow the same format: the `pr-title` check runs commitlint on it ([docs/devops/ci-cd.md](docs/devops/ci-cd.md#pull-request-title)).
 
 ## Code style
 

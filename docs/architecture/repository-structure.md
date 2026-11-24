@@ -6,14 +6,16 @@ Layout of the monorepo: top-level folders and files, what each one owns, and the
 
 ## Current state
 
-Skeleton **created**, not yet published on GitHub. Repository name: **`personal-finance`** ([ADR-0009](adr/0009-repository-workflow.md)).
+Published on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance) ([ADR-0009](adr/0009-repository-workflow.md)); CI with GitHub Actions ([ADR-0030](adr/0030-continuous-integration.md)).
 
 ```
 personal-finance/
 ├── .github/
+│   ├── actions/                # composite actions: setup-backend, setup-frontend → devops/ci-cd.md
+│   ├── commitlint/             # pull request title rules (own package.json and lockfile)
 │   ├── dependabot.yml          # weekly grouped updates → devops/repository-workflow.md
 │   ├── pull_request_template.md # Definition of Done checklist
-│   └── workflows/              # CI with GitHub Actions (part 2) → devops/ci-cd.md
+│   └── workflows/              # ci.yml, pr-title.yml (ADR-0030) → devops/ci-cd.md
 ├── backend/
 │   ├── PersonalFinance.slnx
 │   ├── global.json             # .NET SDK + Microsoft Testing Platform
@@ -56,7 +58,7 @@ personal-finance/
 | Monorepo with `backend/`, `frontend/`, `docs/` | One place to clone, one version of the truth, end-to-end features in one pull request | Project context (stack), [ADR-0007](adr/0007-tech-stack.md) |
 | Backend split into `src/` and `tests/` with three source projects | Structure of the .NET solution | [ADR-0002](adr/0002-backend-structure.md), [ADR-0006](adr/0006-testing-strategy.md) |
 | `LICENSE` (MIT) and `CONTRIBUTING.md` at the root | Public repository open to contributions | [ADR-0005](adr/0005-license.md) |
-| CI in `.github/workflows/` | GitHub Actions runs all tests | [ADR-0006](adr/0006-testing-strategy.md) |
+| CI in `.github/workflows/` | GitHub Actions runs all tests | [ADR-0006](adr/0006-testing-strategy.md), [ADR-0030](adr/0030-continuous-integration.md) |
 | Name `personal-finance`, projects `PersonalFinance.*`, short folder names | Descriptive name; folders stay short in paths and docs | [ADR-0009](adr/0009-repository-workflow.md) |
 | `compose.yaml` instead of `docker-compose.yml` | File name preferred by the Compose specification | [devops/docker.md](../devops/docker.md) |
 | pnpm instead of npm | Faster, strict dependency resolution | [ADR-0008](adr/0008-local-development-environment.md) |
@@ -76,10 +78,10 @@ personal-finance/
 
 ## To do / open questions
 
-- `[DevOps]` Publish the repository on GitHub and configure the ruleset on `main` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main)).
+- ✅ `[DevOps]` Repository published on GitHub, ruleset on `main` with the required checks `ci` and `pr-title` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main), [devops/ci-cd.md](../devops/ci-cd.md#required-checks)).
 - `[DevOps]` Production Compose setup (required variables, HTTPS) when the `api` and `frontend` images exist.
-- `[Frontend]` Location of Playwright end-to-end tests (block 3).
+- ✅ `[Frontend]` Location of Playwright end-to-end tests: `frontend/e2e/` ([ADR-0023](adr/0023-frontend-authentication.md)).
 - ✅ `[Frontend]` API client: types generated from OpenAPI into `frontend/src/app/core/api/schema.ts`, services by hand ([ADR-0021](adr/0021-frontend-foundation.md)).
 
 ---
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-24_

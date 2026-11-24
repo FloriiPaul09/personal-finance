@@ -67,9 +67,29 @@ updates:
       - dependency-name: postgres
         update-types: [version-update:semver-major]
 
-  # --- GitHub Actions (workflows arrive with the CI, part 2) ---
+  # --- Pull request title check (.github/commitlint) ---
+  - package-ecosystem: npm
+    directory: /.github/commitlint
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore(devops)
+    labels: [dependencies, devops]
+    groups:
+      commitlint:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: pnpm
+        update-types: [version-update:semver-major]
+
+  # --- GitHub Actions (workflows and the local composite actions; pinned to commit SHAs) ---
   - package-ecosystem: github-actions
-    directory: /
+    directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly
       day: monday
