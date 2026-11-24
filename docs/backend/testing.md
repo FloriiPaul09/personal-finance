@@ -159,7 +159,7 @@ Resource tests sign in with `ClientFor(userId)` and create data with `TestData`;
 
 ## Tests
 
-This document describes tests; it is verified by `dotnet test` passing locally and, once the pipeline exists, in CI ([devops](../devops/README.md)).
+This document describes tests; it is verified by `dotnet test` passing locally and in CI, on every pull request ([devops/ci-cd.md](../devops/ci-cd.md)).
 
 ## Scalability
 

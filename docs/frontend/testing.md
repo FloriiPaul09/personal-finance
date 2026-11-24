@@ -147,7 +147,7 @@ Use it to check a component in the built-in browser on a phone (390×844) and a 
 
 - **More tests**: Vitest runs files in parallel; the builder rebuilds only what changed in watch mode.
 - **Browser mode**: if jsdom misses a behavior (layout, real `IntersectionObserver` for infinite scroll), Vitest browser mode with Playwright can run the same specs in Chromium.
-- **CI** (`[DevOps]`): `pnpm lint`, `pnpm test:coverage` with the `lcov` report on every pull request; E2E timing decided there. On CI the config already turns on retries, `forbidOnly` and a non-interactive report; it needs PostgreSQL, .NET and Node, and `E2E_*` if the user differs.
+- **CI** ([devops/ci-cd.md](../devops/ci-cd.md)): `pnpm lint`, `pnpm test:coverage` (lcov in the coverage report of the run) and `pnpm build` on every pull request; Playwright on every pull request too, where the config turns on retries, `forbidOnly` and a non-interactive report. Slower suites can be sharded (`--shard`) across CI jobs.
 - **More flows**: tests that write data create their own (accounts and categories named after the test, unique with `newId()`), never rely on what another test left.
 
 ## To do / open questions
