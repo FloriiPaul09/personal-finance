@@ -156,6 +156,7 @@ Use it to check a component in the built-in browser on a phone (390×844) and a 
 - ✅ Block 6: E2E of an expense on a phone, a transfer and a list filter, with their data created and deleted through the API ([ADR-0026](../architecture/adr/0026-frontend-transactions-and-transfers.md)).
 - ✅ Block 8: E2E of the dashboard on its own currency ([ADR-0028](../architecture/adr/0028-frontend-dashboard.md)).
 - A way to give each run its own data (a user per run needs registration, off by default).
+- From `[DevOps]`: jsdom 31 (Dependabot #1, kept open) fails two tests of `bar-chart.spec.ts`, both about colors resolved from CSS tokens in jsdom; adapt them on that branch.
 - ✅ Block 4: time-zone tests of the date adapter; amount input tests ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - ✅ Block 5: test data in `core/testing`; E2E that create and delete their own data ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
 - ✅ `[DevOps]`: frontend jobs in CI, E2E included: lint, unit tests with coverage and the production build in the `frontend` job, Playwright in the `e2e` job on every pull request and push to `main`, with the database from `compose.yaml` and the API built first ([devops/ci-cd.md](../devops/ci-cd.md#jobs), [ADR-0030](../architecture/adr/0030-continuous-integration.md)).
