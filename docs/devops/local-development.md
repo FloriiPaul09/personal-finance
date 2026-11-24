@@ -62,6 +62,8 @@ cd frontend && pnpm install && pnpm start    # frontend → http://localhost:420
 | `frontend/` | `pnpm test` (watch) or `pnpm test --watch=false` (single run); `pnpm test:coverage`; `pnpm lint`; `pnpm e2e` (first time: `pnpm exec playwright install chromium`) | Vitest through the Angular `@angular/build:unit-test` builder, jsdom, `v8` coverage; ESLint with module boundaries; Playwright on the full stack, which needs the database running and starts the API and the dev server when they are not ([frontend/testing.md](../frontend/testing.md#end-to-end-playwright)) |
 
 - `dotnet test` runs the four test projects of `PersonalFinance.slnx` (`Testing` is a support library, not a test project). `Infrastructure.Tests` and `Api.Tests` start PostgreSQL with Testcontainers and need Docker running; `dotnet test --project tests/Domain.Tests` runs without Docker.
+- **Run `dotnet` commands from `backend/`**: `global.json` (SDK and test runner) is found only from there; from the repository root `dotnet test` falls back to VSTest and rejects the Microsoft Testing Platform options.
+- Backend coverage, as in CI: `dotnet test --coverage --coverage-output-format cobertura --coverage-settings "$PWD/tests/coverage.config.xml" --results-directory TestResults` (absolute settings path; PowerShell: `"$PWD\tests\coverage.config.xml"`). The CI runs the same commands on every pull request ([ci-cd.md](ci-cd.md#jobs)).
 - Microsoft Testing Platform fails a run that executes zero tests: every test project keeps at least one test (`Domain.Tests` has a placeholder until the first business rule).
 
 ### Repository layout
@@ -88,7 +90,7 @@ frontend/                       # Angular 22 workspace, pnpm, Vitest
 
 ## Tests
 
-This document is verified by following it on a fresh clone: both test commands must pass. CI (part 2) runs the same commands.
+This document is verified by following it on a fresh clone: both test commands must pass. The CI runs the same commands on every pull request ([ci-cd.md](ci-cd.md)).
 
 ## Scalability
 
@@ -103,4 +105,4 @@ This document is verified by following it on a fresh clone: both test commands m
 - Optional `pnpm` scripts at the repository root are not planned: each area owns its tooling.
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-24_

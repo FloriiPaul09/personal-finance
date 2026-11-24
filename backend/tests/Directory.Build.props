@@ -13,6 +13,8 @@
 
   <ItemGroup Condition="'$(MSBuildProjectName)' != 'PersonalFinance.Testing'">
     <PackageReference Include="xunit.v3" />
+    <!-- Coverage with the coverage option of dotnet test: Cobertura reports for the CI summary (docs/devops/ci-cd.md#coverage). -->
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <Using Include="Xunit" />
   </ItemGroup>
 

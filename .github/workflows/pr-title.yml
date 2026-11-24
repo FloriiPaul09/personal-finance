@@ -1,0 +1,51 @@
+# Pull request title — docs/devops/ci-cd.md#pull-request-title, ADR-0030.
+#
+# With squash merge the title becomes the commit on main, so it must follow
+# type(area[/module]): description. A workflow of its own, so that editing the title runs
+# only this check and not the whole CI. Required by the ruleset of main next to "ci".
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: pr-title
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .github/commitlint
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: .github/commitlint/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: .github/commitlint/pnpm-lock.yaml
+
+      - name: Install commitlint
+        run: pnpm install --frozen-lockfile
+
+      # The title goes through an environment variable, never into the script text.
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$TITLE" | pnpm lint-title

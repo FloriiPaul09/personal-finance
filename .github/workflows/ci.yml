@@ -1,0 +1,241 @@
+# Continuous integration — docs/devops/ci-cd.md, ADR-0030.
+#
+# Every pull request and every push to main runs all jobs. The ruleset of main requires the
+# "ci" job, which fails when any other job fails, and the "pr-title" job of pr-title.yml.
+# Actions are pinned to a commit SHA (with the version as a comment); Dependabot updates both.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only token: no job writes to the repository, comments or statuses.
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the run still going for the previous one; runs on main
+# always finish, so every commit of main has a result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-backend
+
+      # CI=true (set by GitHub) turns warnings into errors (Directory.Build.props).
+      - name: Build
+        run: dotnet build PersonalFinance.slnx
+
+      # Integration tests start PostgreSQL with Testcontainers on the runner's Docker,
+      # reading the image from compose.yaml (ADR-0008, ADR-0011). Coverage settings: dynamic
+      # instrumentation only, so the architecture tests read the assemblies as built.
+      - name: Test with coverage
+        run: >-
+          dotnet test --no-build
+          --coverage --coverage-output-format cobertura
+          --coverage-settings "$PWD/tests/coverage.config.xml"
+          --results-directory TestResults
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-backend
+          path: backend/TestResults/*.cobertura.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-frontend
+
+      # ESLint with the module boundaries checked by Sheriff (ADR-0021).
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests with coverage
+        run: pnpm test:coverage
+
+      # Production build: also fails when the initial bundle goes over its budget.
+      - name: Build
+        run: pnpm build
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-frontend
+          path: frontend/coverage/personal-finance/lcov.info
+          if-no-files-found: error
+          retention-days: 7
+
+  api-contract:
+    name: api-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+
+      # The build writes backend/artifacts/openapi/openapi.json without a database (ADR-0029).
+      # .NET commands run in backend/, where global.json picks the SDK.
+      - name: Export the OpenAPI document
+        working-directory: backend
+        run: dotnet build src/Api -p:OpenApiGenerateDocuments=true
+
+      - name: Generate the API types
+        working-directory: frontend
+        run: pnpm api:types --file ../backend/artifacts/openapi/openapi.json
+
+      - name: Check the committed snapshot and types
+        run: |
+          if ! git diff --exit-code -- frontend/src/app/core/api/openapi.json frontend/src/app/core/api/schema.ts; then
+            echo "::error title=API contract out of date::The API changed but core/api/openapi.json or schema.ts did not. Run 'pnpm api:types' in frontend/ and commit the result."
+            exit 1
+          fi
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+
+      # Same image and development defaults as on a developer machine (compose.yaml).
+      - name: Start PostgreSQL
+        run: docker compose up --detach --wait db
+
+      # Built here so that Playwright's `dotnet run` only starts it, well within its timeout.
+      - name: Build the API
+        working-directory: backend
+        run: dotnet build src/Api
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      # playwright.config.ts starts the API and the dev server, with retries and no reuse on CI.
+      - name: End-to-end tests
+        working-directory: frontend
+        run: pnpm e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
+
+  compose:
+    name: compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A fresh clone must work without a .env (development defaults, ADR-0008).
+      - name: Validate compose.yaml without .env
+        run: docker compose config --quiet
+
+      # Every variable of .env.example must be accepted.
+      - name: Validate compose.yaml with .env.example
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+  coverage:
+    name: coverage
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-*
+          path: coverage
+
+      # One report for backend and frontend, without a threshold (ADR-0006): tests and
+      # generated migrations are left out.
+      - name: Build the report
+        uses: danielpalme/ReportGenerator-GitHub-Action@70c37c4d588cff5bf9cf190830c6f01dfcfb884b # v5.6.1
+        with:
+          reports: coverage/coverage-backend/*.cobertura.xml;coverage/coverage-frontend/lcov.info
+          targetdir: coverage-report
+          reporttypes: HtmlInline;MarkdownSummaryGithub
+          sourcedirs: frontend
+          assemblyfilters: -*.Tests;-PersonalFinance.Testing
+          classfilters: -PersonalFinance.Infrastructure.Persistence.Migrations.*
+          filefilters: -*/obj/*
+          title: Personal Finance
+
+      - name: Publish the summary
+        run: cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the HTML report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: coverage-report/
+          retention-days: 14
+
+  # The only check of this workflow required by the ruleset of main. It always runs, so that a
+  # failed or cancelled job is never reported as "skipped" (which GitHub counts as passing).
+  ci:
+    name: ci
+    if: always()
+    needs: [backend, frontend, api-contract, e2e, compose, coverage]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check the result of every job
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          # "skipped" is accepted for jobs filtered out on purpose (path filters, later).
+          failed=$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error title=CI failed::Jobs not successful: $failed"
+            exit 1
+          fi

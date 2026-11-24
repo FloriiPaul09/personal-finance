@@ -17,7 +17,7 @@ public sealed class TestAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-    public const string Scheme = "Test";
+    public const string SchemeName = "Test";
     public const string Header = "X-Test-User";
 
     /// <summary>Picks the test scheme when the header is present, the real cookie otherwise.</summary>
@@ -30,8 +30,8 @@ public sealed class TestAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.Fail($"Header {Header} must contain a user id."));
         }
 
-        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, Scheme);
-        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme)));
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, SchemeName);
+        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
     }
 
     /// <summary>Registered by <see cref="ApiFactory"/> on top of the services of <c>Program.cs</c>.</summary>
@@ -39,10 +39,10 @@ public sealed class TestAuthenticationHandler(
     {
         services
             .AddAuthentication()
-            .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(Scheme, configureOptions: null)
+            .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(SchemeName, configureOptions: null)
             .AddPolicyScheme(SelectorScheme, displayName: null, options =>
                 options.ForwardDefaultSelector = context =>
-                    context.Request.Headers.ContainsKey(Header) ? Scheme : IdentityConstants.ApplicationScheme);
+                    context.Request.Headers.ContainsKey(Header) ? SchemeName : IdentityConstants.ApplicationScheme);
 
         services.Configure<AuthenticationOptions>(options => options.DefaultScheme = SelectorScheme);
     }

@@ -1,0 +1,15 @@
+{
+  "name": "personal-finance-commitlint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Checks pull request titles (they become the squash commits of main). docs/devops/ci-cd.md#pull-request-title",
+  "type": "module",
+  "scripts": {
+    "lint-title": "commitlint --config commitlint.config.mjs"
+  },
+  "packageManager": "pnpm@11.28.9",
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4"
+  }
+}

@@ -123,7 +123,7 @@ features/accounts/
 | `pnpm api:types --url <url>` | A running API, e.g. `http://localhost:5080/openapi/v1.json` in Development |
 
 1. The document is saved, formatted with Prettier, as `core/api/openapi.json`, and used **as it is**: the backend describes numbers as `number` / `integer`, months as the `YearMonth` string `yyyy-MM` (also in `?month=`), `If-Match` / `ETag`, the `412` / `428` answers and the `ProblemDetails` error shape ([backend/api-endpoints.md](../backend/api-endpoints.md#openapi)). The adjustments the script made until ADR-0029 are gone.
-2. `openapi-typescript` writes `core/api/schema.ts` (formatted with Prettier). Both `openapi.json` and `schema.ts` are committed; `schema.ts` is excluded from lint and coverage. A change of the contract shows in the pull request as a diff of `openapi.json`. The CI check of `[DevOps]`: build the API with the export, `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`, then `git diff --exit-code` on both files.
+2. `openapi-typescript` writes `core/api/schema.ts` (formatted with Prettier). Both `openapi.json` and `schema.ts` are committed; `schema.ts` is excluded from lint and coverage. A change of the contract shows in the pull request as a diff of `openapi.json`. The `api-contract` job of the CI ([devops/ci-cd.md](../devops/ci-cd.md#jobs)) builds the API with the export, runs `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`, then `git diff --exit-code` on both files: a pull request that changes the API without the new types fails.
 3. The app imports the **aliases** of `core/api/models.ts`, never `schema.ts` directly: `AccountResponse`, `CategoryResponse`, `TransactionResponse`, `TransferResponse`, `BudgetResponse`, `BudgetProgressResponse`, `DashboardResponse`, request types, `ListResponse<T>`, `PageResponse<T>`, `Version`, `IsoDate`, `YearMonth`.
 
 Services are written by hand per feature on `HttpClient` ([state-management.md](state-management.md#the-store-pattern)); what the types do not say comes from `core`: `ifMatch(version)`, `ApiError` and its `code`, `newId()`, `cursorPager()`.
@@ -188,9 +188,9 @@ Formatting: Prettier (`.prettierrc`, width 100, single quotes).
 ## To do / open questions
 
 - ✅ `[Backend]`: numbers, `YearMonth`, `If-Match` / `ETag` described in the OpenAPI document, the adjustments of `scripts/api-types.mjs` removed; document exported at build time — [ADR-0029](../architecture/adr/0029-precise-openapi-contract.md).
-- `[DevOps]`: in CI, build the API with `-p:OpenApiGenerateDocuments=true`, run `pnpm api:types --file ../backend/artifacts/openapi/openapi.json` and fail on `git diff --exit-code` of `openapi.json` and `schema.ts`.
-- `[DevOps]`: run `pnpm lint` and `pnpm test:coverage` in CI.
+- ✅ `[DevOps]`: in CI, build the API with `-p:OpenApiGenerateDocuments=true`, run `pnpm api:types --file ../backend/artifacts/openapi/openapi.json` and fail on `git diff --exit-code` of `openapi.json` and `schema.ts` — the `api-contract` job ([devops/ci-cd.md](../devops/ci-cd.md#jobs)).
+- ✅ `[DevOps]`: run `pnpm lint` and `pnpm test:coverage` in CI — the `frontend` job, which also runs `pnpm build`.
 - Split `core` into libraries when it grows past a handful of folders.
 
 ---
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-24_

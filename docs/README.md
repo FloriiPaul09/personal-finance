@@ -8,7 +8,7 @@ Index of the project documentation. Each macro category matches a conversation t
 | Database & domain | [database/](database/README.md) | Implemented (MVP data model) |
 | Backend API | [backend/](backend/README.md) | MVP complete — foundation, errors, authentication, accounts, categories, transactions, transfers, budgets, dashboard |
 | Frontend | [frontend/](frontend/README.md) | MVP complete — foundation, backend integration, authentication, shared components, accounts and categories, transactions and transfers, budgets, dashboard |
-| DevOps | [devops/](devops/README.md) | In progress — repository skeleton and local environment done, CI next |
+| DevOps | [devops/](devops/README.md) | In progress — repository skeleton, local environment and CI done; dependency security, images, exposure and releases next |
 | Features | `features/` | Not started (after MVP) |
 
 Folders become links as soon as their `README.md` exists.
@@ -30,4 +30,4 @@ Documents written before the **Tests** section was introduced receive it at thei
 Important architectural decisions are recorded as ADRs in [architecture/adr/](architecture/README.md#architecture-decision-records).
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-24_

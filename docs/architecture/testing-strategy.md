@@ -52,12 +52,12 @@ Backend tests run on **Microsoft Testing Platform** (enabled in `backend/global.
 
 ### Coverage
 
-Measured for backend and frontend and shown in CI, **without a mandatory threshold**. It is used to spot untested areas, not as a target. Frontend: Vitest's `v8` provider, `pnpm test:coverage` ([ADR-0021](adr/0021-frontend-foundation.md)).
+Measured for backend and frontend and shown in CI, **without a mandatory threshold**. It is used to spot untested areas, not as a target. Frontend: Vitest's `v8` provider, `pnpm test:coverage` ([ADR-0021](adr/0021-frontend-foundation.md)). Backend: Microsoft code coverage through `dotnet test --coverage` (Cobertura). Both are merged into one table in the summary of each CI run ([devops/ci-cd.md](../devops/ci-cd.md#coverage)).
 
 ### Where tests run
 
 - **Locally**: `dotnet test` in `backend/` (Docker running for integration tests), `pnpm test` in `frontend/` (`--watch=false` for a single run), `pnpm e2e` in `frontend/` for end-to-end (database running; the API and the dev server are started when needed).
-- **CI (GitHub Actions)**: build and all backend and frontend tests on every pull request and push to the main branch; when end-to-end tests run is decided in `[DevOps]` part 2.
+- **CI (GitHub Actions)**: build and all backend and frontend tests, end-to-end tests included, on every pull request and push to the main branch; coverage of both in the summary of the run ([devops/ci-cd.md](../devops/ci-cd.md), [ADR-0030](adr/0030-continuous-integration.md)).
 - A pull request is merged only with all tests green (required checks on `main`, [ADR-0009](adr/0009-repository-workflow.md)).
 
 ## Decisions
@@ -73,7 +73,7 @@ Measured for backend and frontend and shown in CI, **without a mandatory thresho
 
 ## Tests
 
-This strategy is checked by the CI pipeline (part 2) and by the pull request checklist (`.github/pull_request_template.md`), which repeats the minimum required list.
+This strategy is checked by the CI pipeline ([devops/ci-cd.md](../devops/ci-cd.md)) and by the pull request checklist (`.github/pull_request_template.md`), which repeats the minimum required list.
 
 ## Scalability
 
@@ -90,7 +90,7 @@ This strategy is checked by the CI pipeline (part 2) and by the pull request che
 - ✅ Testcontainers fixture and database reset between tests — decided in `[DB]` ([ADR-0011](adr/0011-persistence-testing.md)).
 - ✅ `[Frontend]` Vitest coverage provider: `v8` ([ADR-0021](adr/0021-frontend-foundation.md)).
 - ✅ `[Frontend]` Playwright location and phone viewport: `frontend/e2e/`, Pixel 7 and 1280×720 desktop ([ADR-0023](adr/0023-frontend-authentication.md)).
-- `[DevOps]` CI workflow: jobs on pull requests vs main branch, coverage reporting, Docker for Testcontainers on runners (part 2).
+- ✅ `[DevOps]` CI workflow: every job on pull requests and `main`, coverage in the run summary, Testcontainers on the runner's Docker — [ADR-0030](adr/0030-continuous-integration.md).
 
 ---
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-24_

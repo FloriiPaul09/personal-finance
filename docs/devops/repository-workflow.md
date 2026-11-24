@@ -26,11 +26,11 @@ main ──●────────────●─────────
 
 ### Protecting `main`
 
-To configure when the repository is created (Settings → Rules → Rulesets, target `main`):
+Ruleset `Main` (Settings → Rules → Rulesets, target `main`):
 
 - restrict deletions and block force pushes;
 - require a pull request before merging (0 approvals while there is one maintainer, 1 when contributors arrive);
-- require status checks to pass — the CI jobs, added in part 2;
+- require status checks to pass: `ci` and `pr-title`, both from GitHub Actions; branches need not be up to date before merging ([ci-cd.md](ci-cd.md#required-checks), [ADR-0030](../architecture/adr/0030-continuous-integration.md));
 - require linear history; allow only squash merge (Settings → General → Pull Requests) and delete head branches automatically.
 
 ### Commit messages
@@ -38,7 +38,8 @@ To configure when the repository is created (Settings → Rules → Rulesets, ta
 `type(area[/module]): description` — full rules and examples in [CONTRIBUTING.md](../../CONTRIBUTING.md#commit-messages).
 
 - **area**: `backend`, `frontend`, `devops`, `docs`.
-- **module**: the backend modules (`accounts`, `categories`, `transactions`, `budgets`, `auth`); omitted for cross-cutting changes.
+- **module**: the backend modules (`accounts`, `auth`, `budgets`, `categories`, `dashboard`, `transactions`, `transfers`), for `backend` and `frontend` only; omitted for cross-cutting changes.
+- Pull request titles are checked by commitlint in CI (`pr-title`, [ci-cd.md](ci-cd.md#pull-request-title)); the list of modules lives in `.github/commitlint/commitlint.config.mjs`.
 
 ### Dependency updates (Dependabot)
 
@@ -49,7 +50,8 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 | NuGet | `backend/` | minor + patch together | — |
 | pnpm (`npm` ecosystem) | `frontend/` | Angular packages together; other minor + patch together | Angular, Angular DevKit, TypeScript and pnpm majors |
 | Docker Compose | `/` | — | PostgreSQL majors |
-| GitHub Actions | `/` | all together | — |
+| commitlint (`npm` ecosystem) | `.github/commitlint/` | all together | pnpm majors |
+| GitHub Actions | `/` and `.github/actions/*` (composite actions) | all together; SHA and version comment updated together | — |
 
 - Weekly on Monday morning (Europe/Rome), commit prefix `chore(<area>)`.
 - npm updates wait 3 days after a release (cooldown): pnpm 11 refuses packages younger than a day, and fresh releases are the riskiest.
@@ -91,8 +93,8 @@ Dependabot alerts and security updates are not enabled on the repository yet (se
 
 ## Tests
 
-- Pull requests cannot be merged unless the required checks pass (configured with the CI, part 2).
-- commitlint on pull request titles (part 2).
+- Pull requests cannot be merged unless `ci` and `pr-title` pass ([ci-cd.md](ci-cd.md#required-checks)).
+- commitlint on pull request titles, checked against every title of `main` when it was introduced ([ci-cd.md](ci-cd.md#tests)).
 - Dependabot pull requests go through the same checks as any other.
 
 ## Scalability
@@ -103,11 +105,11 @@ Dependabot alerts and security updates are not enabled on the repository yet (se
 
 ## To do / open questions
 
-- Create `FloriiPaul09/personal-finance` on GitHub, push the skeleton, configure the ruleset and merge settings above.
-- Part 2: required checks, commitlint, release workflow.
+- ✅ `FloriiPaul09/personal-finance` created, ruleset and merge settings configured.
+- ✅ Required checks and commitlint — [ADR-0030](../architecture/adr/0030-continuous-integration.md). Release workflow: block 5 of `[DevOps]`.
 - Move to pnpm 12 once Dependabot fully supports its lockfile.
 - Enable **Dependabot alerts** and **Dependabot security updates** in the repository settings (Settings → Security), so vulnerable transitive packages arrive as pull requests.
 - Docker images (part 2): base them on a .NET 10 runtime with the October 2026 security fixes (10.0.13 or later).
 
 ---
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-24_

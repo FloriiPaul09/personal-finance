@@ -158,7 +158,7 @@ Use it to check a component in the built-in browser on a phone (390×844) and a 
 - A way to give each run its own data (a user per run needs registration, off by default).
 - ✅ Block 4: time-zone tests of the date adapter; amount input tests ([ADR-0024](../architecture/adr/0024-frontend-shared-components.md)).
 - ✅ Block 5: test data in `core/testing`; E2E that create and delete their own data ([ADR-0025](../architecture/adr/0025-frontend-accounts-and-categories.md)).
-- `[DevOps]`: frontend jobs in CI, E2E included (when they run, how the stack starts).
+- ✅ `[DevOps]`: frontend jobs in CI, E2E included: lint, unit tests with coverage and the production build in the `frontend` job, Playwright in the `e2e` job on every pull request and push to `main`, with the database from `compose.yaml` and the API built first ([devops/ci-cd.md](../devops/ci-cd.md#jobs), [ADR-0030](../architecture/adr/0030-continuous-integration.md)).
 
 ---
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-24_

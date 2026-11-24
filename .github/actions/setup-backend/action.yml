@@ -1,0 +1,19 @@
+name: Set up the backend
+description: .NET SDK from backend/global.json and a NuGet package cache (docs/devops/ci-cd.md).
+
+runs:
+  using: composite
+  steps:
+    - name: Set up .NET
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+      with:
+        global-json-file: backend/global.json
+
+    # setup-dotnet caches only with NuGet lock files, which the backend does not use:
+    # the key is every file that decides package versions.
+    - name: Cache NuGet packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj', 'backend/.config/dotnet-tools.json') }}
+        restore-keys: nuget-${{ runner.os }}-
