@@ -117,7 +117,7 @@ Off by default (`Microsoft.Extensions.ApiDescription.Server`, properties in `Per
 | Value | How it is described | Transformer |
 |---|---|---|
 | Numbers | `number` / `integer` only: `JsonConventions` reads numbers strictly (`NumberHandling = Strict`), so the generator no longer adds `string` | — |
-| Months | Component `YearMonth`: `string`, pattern `^\d{4}-(0[1-9]\|1[0-2])$`, example `2026-06`; query parameters with `[MonthQuery]` point to it | `YearMonthSchemaTransformer`, `MonthQueryOperationTransformer` |
+| Months | Component `YearMonth`: `string`, pattern `^\d{4}-(0[1-9]\|1[0-2])$`, `examples: ["2026-06"]` (JSON Schema form of OpenAPI 3.1; `example` is obsolete in Microsoft.OpenApi 2.13); query parameters with `[MonthQuery]` point to it | `YearMonthSchemaTransformer`, `MonthQueryOperationTransformer` |
 | `If-Match` | Required header on endpoints with an `IfMatch` parameter, with `400` / `412` / `428` | `VersionOperationTransformer` |
 | `ETag` | Header of every `200` / `201` whose body is one resource with `Version` (not lists) | `VersionOperationTransformer` |
 | Errors | Component `ProblemDetails` (`status`, `code`, `traceId` required, `errors` by field) for `application/problem+json`; only the concurrency errors are listed per operation, the others are in [validation-and-errors.md](validation-and-errors.md) | `ProblemDetailsSchema` |
@@ -750,4 +750,4 @@ Amounts of different currencies are never added together: with only euros, `bala
 - `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.
 
 ---
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-24_

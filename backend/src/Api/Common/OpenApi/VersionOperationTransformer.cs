@@ -74,7 +74,7 @@ internal sealed class VersionOperationTransformer : IOpenApiOperationTransformer
     {
         Type = JsonSchemaType.String,
         Pattern = EntityTagPattern,
-        Example = JsonValue.Create("\"12345\""),
+        Examples = [JsonValue.Create("\"12345\"")],
     };
 
     private static void AddProblem(OpenApiResponses responses, string status, string text) =>

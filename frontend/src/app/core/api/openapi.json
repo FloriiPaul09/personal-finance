@@ -21,7 +21,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -51,7 +51,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -98,7 +98,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -148,7 +148,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -173,7 +173,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -191,7 +191,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -245,7 +245,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -340,7 +340,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -383,7 +383,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -433,7 +433,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -458,7 +458,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -474,7 +474,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -547,7 +547,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -577,7 +577,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -625,7 +625,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -675,7 +675,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -700,7 +700,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -718,7 +718,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -772,7 +772,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -816,7 +816,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -863,7 +863,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -879,7 +879,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -949,7 +949,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -964,7 +964,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1017,7 +1017,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -1067,7 +1067,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1094,7 +1094,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -1112,7 +1112,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1168,7 +1168,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1181,7 +1181,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1207,7 +1207,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "responses": {
@@ -1257,7 +1257,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1282,7 +1282,7 @@
             "in": "header",
             "description": "The version last read, as the ETag the API sent (e.g. \"12345\", with the quotes).",
             "required": true,
-            "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+            "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
           }
         ],
         "requestBody": {
@@ -1300,7 +1300,7 @@
               "ETag": {
                 "description": "The version of the resource, to send back in If-Match.",
                 "required": true,
-                "schema": { "pattern": "^\"\\d+\"$", "type": "string", "example": "\"12345\"" }
+                "schema": { "examples": ["\"12345\""], "pattern": "^\"\\d+\"$", "type": "string" }
               }
             },
             "content": {
@@ -1763,10 +1763,10 @@
         }
       },
       "YearMonth": {
+        "examples": ["2026-06"],
         "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
         "type": "string",
-        "description": "A month, written yyyy-MM.",
-        "example": "2026-06"
+        "description": "A month, written yyyy-MM."
       }
     }
   },
