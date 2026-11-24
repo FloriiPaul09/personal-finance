@@ -41,6 +41,9 @@ public sealed class OpenApiDocumentTests(ApiServer server) : ApiTest(server)
         var month = Component(document, "YearMonth");
         Assert.Equal("string", month.GetProperty("type").GetString());
         Assert.Equal(@"^\d{4}-(0[1-9]|1[0-2])$", month.GetProperty("pattern").GetString());
+        // OpenAPI 3.1 / JSON Schema form: "examples" (a list); "example" is obsolete in Microsoft.OpenApi 2.13.
+        Assert.Equal("2026-06", Assert.Single(month.GetProperty("examples").EnumerateArray()).GetString());
+        Assert.False(month.TryGetProperty("example", out _));
 
         Assert.Equal("#/components/schemas/YearMonth", RefOf(Component(document, "BudgetResponse").GetProperty("properties").GetProperty("from")));
 
@@ -113,6 +116,7 @@ public sealed class OpenApiDocumentTests(ApiServer server) : ApiTest(server)
         var etag = Operation(document, path, method).GetProperty("responses").GetProperty(status).GetProperty("headers").GetProperty("ETag");
 
         Assert.Equal(@"^""\d+""$", etag.GetProperty("schema").GetProperty("pattern").GetString());
+        Assert.Equal(@"""12345""", Assert.Single(etag.GetProperty("schema").GetProperty("examples").EnumerateArray()).GetString());
     }
 
     [Theory]

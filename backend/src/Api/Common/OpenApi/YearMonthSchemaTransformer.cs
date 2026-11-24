@@ -29,7 +29,7 @@ internal sealed class YearMonthSchemaTransformer : IOpenApiSchemaTransformer
         schema.Type = nullable ? JsonSchemaType.String | JsonSchemaType.Null : JsonSchemaType.String;
         schema.Pattern = Pattern;
         schema.Description = "A month, written yyyy-MM.";
-        schema.Example = JsonValue.Create("2026-06");
+        schema.Examples = [JsonValue.Create("2026-06")];
         return Task.CompletedTask;
     }
 }
