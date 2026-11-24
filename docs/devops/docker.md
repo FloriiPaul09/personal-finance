@@ -12,7 +12,7 @@ One file at the repository root (Compose project name `personal-finance`). Today
 
 | Service | Image | Port | Data |
 |---|---|---|---|
-| `db` | `postgres:18.6` (Debian) | `127.0.0.1:${POSTGRES_PORT:-5432}` → 5432 | volume `db-data` on `/var/lib/postgresql` |
+| `db` | `postgres:18.7` (Debian) | `127.0.0.1:${POSTGRES_PORT:-5432}` → 5432 | volume `db-data` on `/var/lib/postgresql` |
 
 - **Port bound to `127.0.0.1`**: the database is reachable from the developer's machine, never from the network.
 - **Volume on `/var/lib/postgresql`**: since PostgreSQL 18 the official image stores data in a per-major subfolder (`/var/lib/postgresql/18/docker`), which makes a future major upgrade possible next to the old data.
@@ -30,7 +30,7 @@ compose.yaml (db.image) ──► docker compose up        (development, quick s
 ```
 
 - `backend/tests/Testing/PostgresImage.cs` (shared test support project, [ADR-0011](../architecture/adr/0011-persistence-testing.md)) finds `compose.yaml` by walking up from the test output folder and reads `services.db.image`.
-- The tag is pinned to `major.minor` (`18.6`): reproducible across machines, updated by Dependabot with a pull request.
+- The tag is pinned to `major.minor` (`18.7`): reproducible across machines, updated by Dependabot with a pull request. Check it by hand after each quarterly PostgreSQL release: on 2026-11-24 Dependabot closed its own 18.6 → 18.7 pull request as "up-to-date" (probably confused by PostgreSQL 19, released on 2026-11-19, whose major is ignored), and 18.7 (2026-11-12, 52 security fixes) was set by hand.
 - The image is Debian-based, never Alpine: Alpine (musl) sorts and compares text differently from Debian (glibc), and tests must behave like production.
 - Major upgrades (e.g. 18 → 19) are excluded from Dependabot: they need a data migration (`pg_dump`/restore or `pg_upgrade`) and are planned by hand.
 
@@ -63,7 +63,7 @@ Not created yet. Target: an `api` image (multi-stage .NET build) and a `frontend
 
 - `api` and `frontend` Dockerfiles and nginx configuration.
 - Production setup: separate file or profile, HTTPS, reverse proxy, backups of the `db-data` volume.
-- Upgrade path to PostgreSQL 19 when useful (not required before 2030).
+- Upgrade path to PostgreSQL 19 (released 2026-11-19) when useful; PostgreSQL 18 is supported until November 2030, so it is not required before then.
 
 ---
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-24_
