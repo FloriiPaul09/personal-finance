@@ -62,7 +62,8 @@ With squash merge the title becomes the commit on `main` ([ADR-0009](../architec
 
 - types: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `perf`, `build`, `ci`;
 - scope required: an area (`backend`, `frontend`, `devops`, `docs`) or `backend/<module>` / `frontend/<module>` with a backend module (`accounts`, `auth`, `budgets`, `categories`, `dashboard`, `transactions`, `transfers`). A custom rule matches the whole scope, because commitlint's `scope-enum` splits scopes at `/` and would accept `accounts/backend`;
-- the other rules of Conventional Commits (lower-case description, at most 100 characters).
+- the description starts in lower case — a custom rule replaces `subject-case` of `config-conventional` to allow one exception: Dependabot writes NuGet titles as `Bump X from 1 to 2` with a capital B, and that cannot be configured;
+- the other rules of Conventional Commits (at most 100 characters).
 
 Try a title locally, from `.github/commitlint/` after `pnpm install`:
 
@@ -70,7 +71,7 @@ Try a title locally, from `.github/commitlint/` after `pnpm install`:
 "feat(backend/accounts): add create endpoint" | pnpm lint-title
 ```
 
-The title reaches the script through an environment variable, never inside the script text, so a crafted title cannot run commands. The check is its own workflow so that editing the title does not rerun the whole CI; Dependabot titles (`chore(backend): bump …`) pass.
+The title reaches the script through an environment variable, never inside the script text, so a crafted title cannot run commands. The check is its own workflow so that editing the title does not rerun the whole CI. Dependabot titles pass: `chore(<area>): bump …` from its `commit-message.prefix`, with `Bump` capitalized for NuGet.
 
 ### Required checks
 
@@ -109,6 +110,7 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 
 - The workflows are checked with [actionlint](https://github.com/rhysd/actionlint) before each change (`pip install actionlint-py`, then `actionlint .github/workflows/*.yml`).
 - The commitlint configuration was run on every title of `main` before this check existed: all pass except one written before the convention (`Docs/database design`); wrong scopes (`accounts/backend`, `devops/accounts`), a missing scope, unknown types and capitalized types fail.
+- Missed at first: Dependabot's NuGet titles start with `Bump` (capital B), which `subject-case` refused, so its pull requests would have stayed blocked once `pr-title` was required. Found on the open Dependabot pull requests right after the merge; the exception is tested on their titles, and `Add …` / `ADD …` written by hand still fail.
 - The pipeline checks itself: the pull request that added it (#43) passed all its jobs on the first run — 653 backend tests (integration tests on Testcontainers included), 522 Vitest tests, 54 end-to-end tests passed and 5 skipped on purpose, contract without differences. Building the backend as the CI does (`CI=true`) found a real problem while writing it: `TestAuthenticationHandler.Scheme` hid a member of the base class (`CS0108`), a warning locally and an error in CI; the constant is now `SchemeName`.
 - Coverage with static instrumentation made `Architecture.Tests` fail (the Infrastructure assembly, rewritten on disk, appeared to depend on the Api assembly); with `tests/coverage.config.xml` the architecture tests pass with coverage on.
 - The `api-contract` commands were run locally on `main` and leave no diff.
