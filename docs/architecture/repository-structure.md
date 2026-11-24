@@ -6,7 +6,7 @@ Layout of the monorepo: top-level folders and files, what each one owns, and the
 
 ## Current state
 
-Skeleton **created**, not yet published on GitHub. Repository name: **`personal-finance`** ([ADR-0009](adr/0009-repository-workflow.md)).
+Published on GitHub as the public repository [`FloriiPaul09/personal-finance`](https://github.com/FloriiPaul09/personal-finance) ([ADR-0009](adr/0009-repository-workflow.md)); CI with GitHub Actions ([ADR-0030](adr/0030-continuous-integration.md)).
 
 ```
 personal-finance/
@@ -78,9 +78,9 @@ personal-finance/
 
 ## To do / open questions
 
-- `[DevOps]` Publish the repository on GitHub and configure the ruleset on `main` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main)).
+- ✅ `[DevOps]` Repository published on GitHub, ruleset on `main` with the required checks `ci` and `pr-title` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main), [devops/ci-cd.md](../devops/ci-cd.md#required-checks)).
 - `[DevOps]` Production Compose setup (required variables, HTTPS) when the `api` and `frontend` images exist.
-- `[Frontend]` Location of Playwright end-to-end tests (block 3).
+- ✅ `[Frontend]` Location of Playwright end-to-end tests: `frontend/e2e/` ([ADR-0023](adr/0023-frontend-authentication.md)).
 - ✅ `[Frontend]` API client: types generated from OpenAPI into `frontend/src/app/core/api/schema.ts`, services by hand ([ADR-0021](adr/0021-frontend-foundation.md)).
 
 ---
