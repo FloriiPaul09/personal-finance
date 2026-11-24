@@ -17,6 +17,21 @@ updates:
     groups:
       backend-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # Packages that follow the .NET major version: moving to a new .NET (SDK, runtime images,
+      # these packages) is one planned change with its own ADR, never a Dependabot pull request.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "Microsoft.EntityFrameworkCore.*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "Npgsql*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "EFCore.NamingConventions"
+        update-types: [version-update:semver-major]
+      - dependency-name: "dotnet-ef"
+        update-types: [version-update:semver-major]
 
   # --- Frontend (pnpm) ---
   - package-ecosystem: npm

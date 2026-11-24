@@ -10,7 +10,7 @@ The GitHub Actions workflows: which jobs run, when, with which tools; how covera
 
 | Workflow | File | Runs on | Jobs |
 |---|---|---|---|
-| CI | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | every pull request, every push to `main`, by hand (`workflow_dispatch`) | `backend`, `frontend`, `api-contract`, `e2e`, `compose`, `coverage`, `ci` |
+| CI | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | every pull request, every push to `main`, by hand (`workflow_dispatch`) | `backend`, `frontend`, `api-contract`, `e2e`, `dependency-review` (pull requests only), `compose`, `coverage`, `ci` |
 | PR title | [`.github/workflows/pr-title.yml`](../../.github/workflows/pr-title.yml) | pull requests: opened, edited, reopened, new commits | `pr-title` |
 
 ```
@@ -18,7 +18,8 @@ pull request / push to main
  ├─ backend ─────┐
  ├─ frontend ────┴─► coverage ─┐
  ├─ api-contract ──────────────┤
- ├─ e2e ───────────────────────┼─► ci   (required)
+ ├─ e2e ───────────────────────┤
+ ├─ dependency-review (PR) ────┼─► ci   (required)
  └─ compose ───────────────────┘
 pull request (title)
  └─ pr-title                         (required)
@@ -34,6 +35,7 @@ Every job runs on `ubuntu-24.04`, which has Docker. A new push to a pull request
 | `frontend` | Lint with module boundaries, unit tests with coverage, production build (bundle budget) | in `frontend/`: `pnpm lint`, `pnpm test:coverage`, `pnpm build` | ~1 min |
 | `api-contract` | The committed OpenAPI snapshot and `schema.ts` match the API | in `backend/`: `dotnet build src/Api -p:OpenApiGenerateDocuments=true`; in `frontend/`: `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`; `git diff --exit-code` on both files | ~1 min |
 | `e2e` | Playwright on the real stack, phone and desktop | `docker compose up --detach --wait db`, `dotnet build src/Api`, `pnpm exec playwright install --with-deps chromium`, `pnpm e2e` | ~3 min |
+| `dependency-review` | Pull requests only: no dependency added or changed with a known vulnerability of moderate severity or more (npm, NuGet, GitHub Actions; runtime, development and unknown scopes) | `actions/dependency-review-action`, reading the dependency graph of GitHub | seconds |
 | `compose` | `compose.yaml` is valid without `.env` and with every variable of `.env.example` | `docker compose config --quiet` twice | seconds |
 | `coverage` | One report for backend and frontend in the run summary | ReportGenerator on the artifacts of `backend` and `frontend` | < 1 min |
 | `ci` | Fails when any job above failed or was cancelled | `needs` of every job, results checked with `jq` | seconds |
@@ -82,7 +84,7 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 | `ci` | CI | Summarizes every CI job: adding, renaming or filtering jobs never touches the ruleset |
 | `pr-title` | PR title | Separate workflow, so it cannot be a `need` of `ci` |
 
-- `ci` runs with `if: always()` and fails unless every job is `success` (or `skipped`, kept for path filters later). A job that never ran because the run was cancelled makes it fail, instead of leaving a *skipped* check, which GitHub counts as passing.
+- `ci` runs with `if: always()` and fails unless every job is `success` or `skipped` (`dependency-review` is skipped on pushes to `main`; path filters may skip jobs later). A job that never ran because the run was cancelled makes it fail, instead of leaving a *skipped* check, which GitHub counts as passing.
 - **Branches need not be up to date** before merging: after a merge the other pull requests are not rebased and tested again; the CI on the push to `main` catches the rare break caused by two pull requests together.
 - The other rules of the ruleset are unchanged ([repository-workflow.md](repository-workflow.md#protecting-main)).
 
@@ -105,6 +107,7 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 | commitlint with its configuration in `.github/commitlint` | Rules readable and versioned, usable locally, versions updated by Dependabot | [ADR-0030](../architecture/adr/0030-continuous-integration.md) |
 | Actions pinned to commit SHAs | Immutable; recommended by GitHub and OpenSSF Scorecard | [ADR-0030](../architecture/adr/0030-continuous-integration.md) |
 | Dynamic coverage instrumentation only | Static instrumentation breaks the architecture tests | — |
+| Dependency review on pull requests, moderate severity and up | A pull request cannot bring a vulnerable package; new vulnerabilities in existing ones come as security updates, not as red pull requests | [ADR-0031](../architecture/adr/0031-dependency-security.md) |
 
 ## Tests
 
@@ -124,7 +127,8 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 
 ## To do / open questions
 
-- Next DevOps blocks: dependency security (Dependabot alerts and security updates), images, exposure and backups, release workflow from tags ([README.md](README.md#to-do--open-questions)).
+- ✅ Dependency security: alerts, grouped security updates and the dependency review ([ADR-0031](../architecture/adr/0031-dependency-security.md)).
+- Next DevOps blocks: images, exposure and backups, release workflow from tags ([README.md](README.md#to-do--open-questions)).
 
 ---
 _Last updated: 2026-11-24_

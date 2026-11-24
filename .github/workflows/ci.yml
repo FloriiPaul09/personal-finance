@@ -160,6 +160,23 @@ jobs:
             frontend/test-results/
           retention-days: 7
 
+  # Pull requests only: fails when the pull request adds or changes a dependency (npm, NuGet,
+  # GitHub Actions) with a known vulnerability of moderate severity or more. Vulnerabilities found
+  # later in dependencies already on main come as Dependabot alerts and security updates (ADR-0031).
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: moderate
+          fail-on-scopes: runtime, development, unknown
+
   compose:
     name: compose
     runs-on: ubuntu-24.04
@@ -224,7 +241,7 @@ jobs:
   ci:
     name: ci
     if: always()
-    needs: [backend, frontend, api-contract, e2e, compose, coverage]
+    needs: [backend, frontend, api-contract, e2e, dependency-review, compose, coverage]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -233,7 +250,8 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          # "skipped" is accepted for jobs filtered out on purpose (path filters, later).
+          # "skipped" is accepted for jobs filtered out on purpose: dependency-review on pushes to
+          # main, path filters later.
           failed=$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key] | join(", ")')
           if [ -n "$failed" ]; then
             echo "::error title=CI failed::Jobs not successful: $failed"
