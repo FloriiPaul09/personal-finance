@@ -31,7 +31,7 @@
 - The same commands as on a developer machine: a red job is reproduced locally with the line in [ci-cd.md](../../devops/ci-cd.md).
 
 **Negative**
-- Every pull request waits for the end-to-end tests (about 8 minutes); a flaky test blocks the merge (one retry on CI mitigates it).
+- Every pull request waits for the end-to-end tests (about 3 minutes, 4 for the whole CI on the first run); a flaky test blocks the merge (one retry on CI mitigates it).
 - Coverage is read in the run summary, not as a pull request comment, and has no history.
 - One more small npm package (`.github/commitlint`) and one more Dependabot entry.
 - SHA-pinned lines are harder to read; patches of actions arrive only through Dependabot.

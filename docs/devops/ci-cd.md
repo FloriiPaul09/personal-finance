@@ -30,16 +30,16 @@ Every job runs on `ubuntu-24.04`, which has Docker. A new push to a pull request
 
 | Job | What it does | Commands (same as on a developer machine) | Time |
 |---|---|---|---|
-| `backend` | Build with warnings as errors (`CI=true`), every test project, coverage | in `backend/`: `dotnet build PersonalFinance.slnx`, `dotnet test --no-build --coverage …` | ~5 min |
-| `frontend` | Lint with module boundaries, unit tests with coverage, production build (bundle budget) | in `frontend/`: `pnpm lint`, `pnpm test:coverage`, `pnpm build` | ~3 min |
-| `api-contract` | The committed OpenAPI snapshot and `schema.ts` match the API | in `backend/`: `dotnet build src/Api -p:OpenApiGenerateDocuments=true`; in `frontend/`: `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`; `git diff --exit-code` on both files | ~2 min |
-| `e2e` | Playwright on the real stack, phone and desktop | `docker compose up --detach --wait db`, `dotnet build src/Api`, `pnpm exec playwright install --with-deps chromium`, `pnpm e2e` | ~8 min |
-| `compose` | `compose.yaml` is valid without `.env` and with every variable of `.env.example` | `docker compose config --quiet` twice | < 1 min |
+| `backend` | Build with warnings as errors (`CI=true`), every test project, coverage | in `backend/`: `dotnet build PersonalFinance.slnx`, `dotnet test --no-build --coverage …` | ~1.5 min |
+| `frontend` | Lint with module boundaries, unit tests with coverage, production build (bundle budget) | in `frontend/`: `pnpm lint`, `pnpm test:coverage`, `pnpm build` | ~1 min |
+| `api-contract` | The committed OpenAPI snapshot and `schema.ts` match the API | in `backend/`: `dotnet build src/Api -p:OpenApiGenerateDocuments=true`; in `frontend/`: `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`; `git diff --exit-code` on both files | ~1 min |
+| `e2e` | Playwright on the real stack, phone and desktop | `docker compose up --detach --wait db`, `dotnet build src/Api`, `pnpm exec playwright install --with-deps chromium`, `pnpm e2e` | ~3 min |
+| `compose` | `compose.yaml` is valid without `.env` and with every variable of `.env.example` | `docker compose config --quiet` twice | seconds |
 | `coverage` | One report for backend and frontend in the run summary | ReportGenerator on the artifacts of `backend` and `frontend` | < 1 min |
 | `ci` | Fails when any job above failed or was cancelled | `needs` of every job, results checked with `jq` | seconds |
 | `pr-title` | The title follows `type(area[/module]): description` | `pnpm lint-title` in `.github/commitlint/` | < 1 min |
 
-Times are estimates for a run with warm caches.
+Times measured on the first run (pull request #43): about 4 minutes from push to a green `ci`, the end-to-end tests being the longest job.
 
 - **Toolchain** from the repository, never repeated in the workflows: .NET SDK from `backend/global.json` (`actions/setup-dotnet`), Node.js from `frontend/.nvmrc`, pnpm from `packageManager` in `frontend/package.json` (`pnpm/action-setup`). Two local composite actions set them up: [`.github/actions/setup-backend`](../../.github/actions/setup-backend/action.yml) (SDK + NuGet cache keyed on `Directory.Packages.props`, the project files and `dotnet-tools.json`) and [`.github/actions/setup-frontend`](../../.github/actions/setup-frontend/action.yml) (pnpm, Node.js with the pnpm store cache, `pnpm install --frozen-lockfile`).
 - **.NET commands run in `backend/`**: `global.json` is found only from there. From the repository root `dotnet` picks the newest SDK installed and `dotnet test` falls back to VSTest, which does not understand the Microsoft Testing Platform options.
@@ -109,7 +109,7 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 
 - The workflows are checked with [actionlint](https://github.com/rhysd/actionlint) before each change (`pip install actionlint-py`, then `actionlint .github/workflows/*.yml`).
 - The commitlint configuration was run on every title of `main` before this check existed: all pass except one written before the convention (`Docs/database design`); wrong scopes (`accounts/backend`, `devops/accounts`), a missing scope, unknown types and capitalized types fail.
-- The pipeline checks itself: the pull request that added it had to pass all its jobs. Building the backend as the CI does (`CI=true`) found a real problem while writing it: `TestAuthenticationHandler.Scheme` hid a member of the base class (`CS0108`), a warning locally and an error in CI; the constant is now `SchemeName`.
+- The pipeline checks itself: the pull request that added it (#43) passed all its jobs on the first run — 653 backend tests (integration tests on Testcontainers included), 522 Vitest tests, 54 end-to-end tests passed and 5 skipped on purpose, contract without differences. Building the backend as the CI does (`CI=true`) found a real problem while writing it: `TestAuthenticationHandler.Scheme` hid a member of the base class (`CS0108`), a warning locally and an error in CI; the constant is now `SchemeName`.
 - Coverage with static instrumentation made `Architecture.Tests` fail (the Infrastructure assembly, rewritten on disk, appeared to depend on the Api assembly); with `tests/coverage.config.xml` the architecture tests pass with coverage on.
 - The `api-contract` commands were run locally on `main` and leave no diff.
 
