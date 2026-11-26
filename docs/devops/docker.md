@@ -50,7 +50,7 @@ Not created yet. Target: an `api` image (multi-stage .NET build) and a `frontend
 ## Tests
 
 - `PostgresImageTests`: the image is read from the `db` service, pinned to `major.minor`, not Alpine.
-- `docker compose config` validates the file (CI, part 2).
+- `docker compose config` validates the file with and without `.env` (the `compose` job of the CI, [ci-cd.md](ci-cd.md#jobs)); the E2E job starts `db` from this file, so a wrong tag fails the CI (PostgreSQL 18.7 was checked this way).
 - Integration tests prove that the pinned version works with migrations and queries ([testing-strategy.md](../architecture/testing-strategy.md)).
 
 ## Scalability
