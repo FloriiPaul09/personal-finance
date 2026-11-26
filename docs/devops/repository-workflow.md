@@ -72,6 +72,14 @@ On since 2026-11-24 (Settings → Advanced Security, [ADR-0031](../architecture/
 
 Security pull requests use the same `commit-message` prefix and go through the whole CI. On pull requests the CI also runs the **dependency review**, which fails when a dependency added or changed by the pull request has a known vulnerability ([ci-cd.md](ci-cd.md#jobs)).
 
+### Dismissed alerts
+
+An alert that cannot be fixed yet and does not reach the app is dismissed in GitHub as *Risk is tolerable*, with the reason as a comment, and listed here; the fix arrives with the weekly version updates. Review the list when the parent package is updated.
+
+| Alert | Package | Advisory | Why it is tolerable | Fixed when | Since |
+|---|---|---|---|---|---|
+| #1 | `minimatch` < 11.0.1 (npm, `frontend/`) | GHSA-g3hv-75wg-m249 / CVE-2026-118764, moderate: denial of service through amplified glob parts | Lint tooling only (`angular-eslint` → `typescript-eslint` → `minimatch`): it runs in `pnpm lint` on our own ESLint patterns, never in the app bundle and never on input from users | `typescript-eslint` depends on `minimatch` 11.0.1 or later | 2026-11-26 |
+
 ### Security fixes in transitive packages
 
 Normally a security update fixes a vulnerable transitive package by itself. When it cannot (e.g. the direct dependency has no fixed version yet), the vulnerability shows as restore warnings `NU1901`–`NU1904`, which become errors in CI, and is fixed by hand:
