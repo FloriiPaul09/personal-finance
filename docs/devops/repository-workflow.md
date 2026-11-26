@@ -68,6 +68,7 @@ On since 2026-11-24 (Settings → Advanced Security, [ADR-0031](../architecture/
 | Dependabot alerts | on | A known vulnerability in a dependency, also transitive, is listed under Security → Dependabot |
 | Dependabot security updates | on | Each alert opens a pull request with the fixed version at once, not on Monday |
 | Grouped security updates | on | One security pull request per ecosystem and folder, so related packages are fixed together |
+| Malware alerts | on | A dependency that is a known malicious package (mostly npm supply-chain attacks) is listed under Security → Dependabot |
 
 Security pull requests use the same `commit-message` prefix and go through the whole CI. On pull requests the CI also runs the **dependency review**, which fails when a dependency added or changed by the pull request has a known vulnerability ([ci-cd.md](ci-cd.md#jobs)).
 
@@ -81,7 +82,7 @@ Normally a security update fixes a vulnerable transitive package by itself. When
 
 Each pin is listed here (package, fixed version, advisories, pulled in by, since) until it is removed. **Current pins: none.**
 
-**History**: from 2026-11-12 the table held `System.Security.Cryptography.Pkcs` and `.Xml` 10.0.13 (CVE-2026-84008, CVE-2026-70162, CVE-2026-96958/96959/96960), brought at 10.0.11 by ASP.NET Core Data Protection. Removed on 2026-11-24: ASP.NET Core 10.0.15 depends on both at 10.0.15, and `dotnet list package --vulnerable --include-transitive` reports nothing without the pins. Today the `Security pins` section is empty and absent.
+**History**: from 2026-11-12 the table held `System.Security.Cryptography.Pkcs` and `.Xml` 10.0.13 (CVE-2026-84008, CVE-2026-70162, CVE-2026-96958/96959/96960), brought at 10.0.11 by ASP.NET Core Data Protection. Removed on 2026-11-26, after Dependabot #48 brought ASP.NET Core 10.0.15, which depends on both at 10.0.15: `dotnet list package --vulnerable --include-transitive` reports nothing without the pins. The same change removed a direct `Npgsql` reference that #48 had added to `Infrastructure` (the EF Core provider already brings Npgsql 10.0.4). Today the `Security pins` section is empty and absent.
 
 ### Formatting files
 
