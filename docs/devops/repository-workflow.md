@@ -47,30 +47,50 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 
 | Ecosystem | Folder | Grouping | Not updated by the bot |
 |---|---|---|---|
-| NuGet | `backend/` | minor + patch together | — |
+| NuGet | `backend/` | minor + patch together | Majors of the packages that follow .NET: `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `Microsoft.EntityFrameworkCore.*`, `Npgsql*`, `EFCore.NamingConventions`, `dotnet-ef` |
 | pnpm (`npm` ecosystem) | `frontend/` | Angular packages together; other minor + patch together | Angular, Angular DevKit, TypeScript and pnpm majors |
 | Docker Compose | `/` | — | PostgreSQL majors |
 | commitlint (`npm` ecosystem) | `.github/commitlint/` | all together | pnpm majors |
 | GitHub Actions | `/` and `.github/actions/*` (composite actions) | all together; SHA and version comment updated together | — |
 
 - Weekly on Monday morning (Europe/Rome), commit prefix `chore(<area>)`.
+- **A new .NET major is one planned change** (SDK in `global.json`, the packages above, runtime images, CI), with its own ADR: Dependabot never proposes it, as for Angular and PostgreSQL ([ADR-0031](../architecture/adr/0031-dependency-security.md)).
 - npm updates wait 3 days after a release (cooldown): pnpm 11 refuses packages younger than a day, and fresh releases are the riskiest.
 - **pnpm and Dependabot**: Dependabot supports pnpm 11 and 12, but with a pnpm-12 lockfile written as two YAML documents it loses alerts and security updates. The project stays on pnpm 11, whose lockfile is a single document, until that limitation is gone.
 
+### Security updates
+
+On since 2026-11-24 (Settings → Advanced Security, [ADR-0031](../architecture/adr/0031-dependency-security.md)):
+
+| Setting | State | Effect |
+|---|---|---|
+| Dependency graph | on (default for public repositories) | Needed by alerts and by the dependency review of the CI |
+| Dependabot alerts | on | A known vulnerability in a dependency, also transitive, is listed under Security → Dependabot |
+| Dependabot security updates | on | Each alert opens a pull request with the fixed version at once, not on Monday |
+| Grouped security updates | on | One security pull request per ecosystem and folder, so related packages are fixed together |
+| Malware alerts | on | A dependency that is a known malicious package (mostly npm supply-chain attacks) is listed under Security → Dependabot |
+
+Security pull requests use the same `commit-message` prefix and go through the whole CI. On pull requests the CI also runs the **dependency review**, which fails when a dependency added or changed by the pull request has a known vulnerability ([ci-cd.md](ci-cd.md#jobs)).
+
+### Dismissed alerts
+
+An alert that cannot be fixed yet and does not reach the app is dismissed in GitHub as *Risk is tolerable*, with the reason as a comment, and listed here; the fix arrives with the weekly version updates. Review the list when the parent package is updated.
+
+| Alert | Package | Advisory | Why it is tolerable | Fixed when | Since |
+|---|---|---|---|---|---|
+| #1 | `minimatch` < 11.0.1 (npm, `frontend/`) | GHSA-g3hv-75wg-m249 / CVE-2026-118764, moderate: denial of service through amplified glob parts | Lint tooling only (`angular-eslint` → `typescript-eslint` → `minimatch`): it runs in `pnpm lint` on our own ESLint patterns, never in the app bundle and never on input from users | `typescript-eslint` depends on `minimatch` 11.0.1 or later | 2026-11-26 |
+
 ### Security fixes in transitive packages
 
-Dependabot version updates only bump packages listed in `Directory.Packages.props`. A vulnerability in a package that comes **transitively** (restore warnings `NU1901`–`NU1904`, which become errors in CI) is fixed by hand until the direct dependency ships the fix:
+Normally a security update fixes a vulnerable transitive package by itself. When it cannot (e.g. the direct dependency has no fixed version yet), the vulnerability shows as restore warnings `NU1901`–`NU1904`, which become errors in CI, and is fixed by hand:
 
 1. Add the fixed version to `Directory.Packages.props` under `Security pins`.
 2. Reference the package directly in the lowest project that pulls it in (today `Infrastructure`), with a comment naming the advisories: projects that reference it get the fixed version too.
 3. Remove the pin when the direct dependency depends on the fixed version (Dependabot keeps the pin itself up to date meanwhile).
 
-| Package | Fixed version | Advisories | Pulled in by | Since |
-|---|---|---|---|---|
-| `System.Security.Cryptography.Pkcs` | 10.0.13 | CVE-2026-84008, CVE-2026-70162 | ASP.NET Core Data Protection 10.0.11 (`Infrastructure`) | 2026-11-12 |
-| `System.Security.Cryptography.Xml` | 10.0.13 | CVE-2026-96958, CVE-2026-96959, CVE-2026-96960 | ASP.NET Core Data Protection 10.0.11 (`Infrastructure`) | 2026-11-12 |
+Each pin is listed here (package, fixed version, advisories, pulled in by, since) until it is removed. **Current pins: none.**
 
-Dependabot alerts and security updates are not enabled on the repository yet (see To do): with them, GitHub opens these pull requests by itself.
+**History**: from 2026-11-12 the table held `System.Security.Cryptography.Pkcs` and `.Xml` 10.0.13 (CVE-2026-84008, CVE-2026-70162, CVE-2026-96958/96959/96960), brought at 10.0.11 by ASP.NET Core Data Protection. Removed on 2026-11-26, after Dependabot #48 brought ASP.NET Core 10.0.15, which depends on both at 10.0.15: `dotnet list package --vulnerable --include-transitive` reports nothing without the pins. The same change removed a direct `Npgsql` reference that #48 had added to `Infrastructure` (the EF Core provider already brings Npgsql 10.0.4). Today the `Security pins` section is empty and absent.
 
 ### Formatting files
 
@@ -89,13 +109,15 @@ Dependabot alerts and security updates are not enabled on the repository yet (se
 | Strict GitHub Flow, squash merge, tags | Every change reviewed and tested, readable history | [ADR-0009](../architecture/adr/0009-repository-workflow.md) |
 | Scope with area and module | Precise history and changelogs | [ADR-0009](../architecture/adr/0009-repository-workflow.md) |
 | Dependabot, grouped weekly updates, majors excluded where a migration is needed | Integrated in GitHub, little noise | [ADR-0009](../architecture/adr/0009-repository-workflow.md) |
+| Alerts and grouped security updates on, manual pins only as a fallback, .NET majors as one planned change | Fixes arrive by themselves; no half-upgraded runtime | [ADR-0031](../architecture/adr/0031-dependency-security.md) |
 | LF everywhere | Same files on Windows, macOS, Linux and in containers | — |
 
 ## Tests
 
 - Pull requests cannot be merged unless `ci` and `pr-title` pass ([ci-cd.md](ci-cd.md#required-checks)).
 - commitlint on pull request titles, checked against every title of `main` when it was introduced ([ci-cd.md](ci-cd.md#tests)).
-- Dependabot pull requests go through the same checks as any other.
+- Dependabot pull requests go through the same checks as any other, version and security updates alike.
+- Removing the pins was checked with `dotnet list package --vulnerable --include-transitive` (no vulnerable package) and `dotnet list package --include-transitive` (`Pkcs` and `Xml` at 10.0.15 from Data Protection).
 
 ## Scalability
 
@@ -108,7 +130,8 @@ Dependabot alerts and security updates are not enabled on the repository yet (se
 - ✅ `FloriiPaul09/personal-finance` created, ruleset and merge settings configured.
 - ✅ Required checks and commitlint — [ADR-0030](../architecture/adr/0030-continuous-integration.md). Release workflow: block 5 of `[DevOps]`.
 - Move to pnpm 12 once Dependabot fully supports its lockfile.
-- Enable **Dependabot alerts** and **Dependabot security updates** in the repository settings (Settings → Security), so vulnerable transitive packages arrive as pull requests.
+- ✅ Dependabot alerts, security updates and grouped security updates enabled; manual pins removed ([ADR-0031](../architecture/adr/0031-dependency-security.md)).
+- Move to a new .NET major when worth it (today .NET 10 LTS; .NET 11 released in November 2026): one pull request with SDK, packages, images and CI, and its ADR.
 - Docker images (part 2): base them on a .NET 10 runtime with the October 2026 security fixes (10.0.13 or later).
 
 ---
