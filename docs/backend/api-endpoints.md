@@ -91,7 +91,7 @@ internal static async Task<Results<Ok<Response>, NotFound>> Handle(
 | **Isolation** | No user data |
 | **Tests** | `ApiHostTests.Health_IsPublic` |
 
-Used by container health checks later ([devops/docker.md](../devops/docker.md)).
+Checked through nginx by the smoke test of the images ([devops/ci-cd.md](../devops/ci-cd.md#smoke-test-of-the-images)); the API container has no Docker health check (chiseled image, [devops/docker.md](../devops/docker.md)).
 
 ### OpenAPI
 
@@ -750,4 +750,4 @@ Amounts of different currencies are never added together: with only euros, `bala
 - `[Frontend]`: amounts are never added in floating point on the client; read `hasMovements` to lock the currency and to offer archive instead of delete.
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

@@ -54,6 +54,10 @@ cd frontend && pnpm install && pnpm start    # frontend → http://localhost:420
 - No `.env` is needed: development defaults are shared by `compose.yaml` and `appsettings.Development.json` ([configuration.md](configuration.md)).
 - Stop the database with `docker compose stop db`; `docker compose down -v` also deletes its data.
 
+### Running the whole application in containers
+
+To try the images as on a real instance (production build, nginx, API in `Production`): `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`), replace the placeholders, `docker compose up -d`, then http://localhost:8080. `.env` adds `compose.app.yaml`, which also takes the database port off `127.0.0.1:5432`: remove the `COMPOSE_FILE` line (or `.env`) to go back to the development setup above. Details in [docker.md](docker.md#the-whole-application-composeappyaml).
+
 ### Tests
 
 | Area | Command (from the folder) | Runner |
@@ -105,4 +109,4 @@ This document is verified by following it on a fresh clone: both test commands m
 - Optional `pnpm` scripts at the repository root are not planned: each area owns its tooling.
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

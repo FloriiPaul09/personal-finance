@@ -1,10 +1,10 @@
 # Docker Compose for Personal Finance — docs/devops/docker.md
 #
-# Development: start only the database and run API and frontend natively
+# Development: start only the database and run API and frontend natively (no .env needed)
 #   docker compose up -d db
 #
-# The api and frontend services are added when their Dockerfiles exist,
-# so that `docker compose up` starts the whole application (quick start).
+# The whole application (api and frontend images) is in compose.app.yaml, used together with this
+# file through COMPOSE_FILE in .env: `cp .env.example .env`, edit it, then `docker compose up -d`.
 
 name: personal-finance
 

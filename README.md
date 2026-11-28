@@ -30,7 +30,16 @@ pnpm start
 
 No configuration is needed for local development: Compose and `appsettings.Development.json` share development-only defaults. To change them, copy `.env.example` to `.env`. Details in [docs/devops/local-development.md](docs/devops/local-development.md).
 
-A one-command start of the whole application (`docker compose up`) arrives together with the API and frontend images.
+## Run the whole application in Docker
+
+Only Docker is needed: the API and the frontend (served by nginx) are built into images.
+
+```bash
+cp .env.example .env    # then replace every placeholder: database password, initial user
+docker compose up -d    # db + api + frontend → http://localhost:8080
+```
+
+`.env` selects `compose.app.yaml` (`COMPOSE_FILE`), which refuses to start without the database password and the initial user. The app is published on `127.0.0.1` only, until HTTPS is set up. Details in [docs/devops/docker.md](docs/devops/docker.md).
 
 ## Tests
 

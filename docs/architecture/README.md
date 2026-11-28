@@ -54,6 +54,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | [0029](adr/0029-precise-openapi-contract.md) | A precise OpenAPI contract, written at build time | Accepted | 2026-11-19 |
 | [0030](adr/0030-continuous-integration.md) | Continuous integration with GitHub Actions | Accepted | 2026-11-24 |
 | [0031](adr/0031-dependency-security.md) | Dependency security and .NET version upgrades | Accepted | 2026-11-24 |
+| [0032](adr/0032-container-images.md) | Container images and the Compose setup of a real instance | Accepted | 2026-11-28 |
 
 ## Current state
 
@@ -64,6 +65,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 - **Frontend MVP complete** in `[Frontend]` (blocks 1–8): foundation done (theme with dark mode from the system, structure by feature with boundaries checked by Sheriff, shell with navigation bar or rail, stores with signals, types generated from OpenAPI, `@angular/localize`, ADR-0021); backend integration done (antiforgery at startup without blocking offline, `ApiError` with messages by code, `If-Match` from the version, cursor pager, UUIDv7 ids, ADR-0022); authentication done (login, session asked on the first protected page, `canMatch` guards, expired session back to the login, logout with a reload, settings, Signal Forms, Playwright on the real stack, ADR-0023); shared components done (Italian amount input with `number` values, `YYYY-MM-DD` date adapter tested in three time zones, month selector, page states, development-only catalog, ADR-0024); accounts and categories done (pages and forms, one list of each in `core` refreshed through `DataChanges`, selectors, archive with undo and delete only when allowed, ADR-0025); transactions and transfers done (quick entry with recent categories, kind tabs with transfers as their own feature, list by day with infinite scroll and filters in the URL, "Annulla" after saving, tags with suggestions, ADR-0026); budgets done (progress of the month with an amber warning, budget form with its history, stop with "Annulla", categories that cannot get a budget disabled with the reason, ADR-0027); dashboard done (home page of the month from one request, totals per currency, top 3 budgets, spending as bars with their list, current balances, Chart.js 4 with ng2-charts only in `shared/charts`, chart colors as tokens, ADR-0028); API types generated from the document the API build writes, without adjustments (ADR-0029); see [frontend/README.md](../frontend/README.md).
 - **Continuous integration** in `[DevOps]` (block 1, ADR-0030): every pull request and push to `main` builds and tests backend and frontend with coverage, checks the OpenAPI contract, runs the end-to-end tests and validates Compose; titles are checked by commitlint; `ci` and `pr-title` are required to merge; see [devops/ci-cd.md](../devops/ci-cd.md).
 - **Dependency security** in `[DevOps]` (block 2, ADR-0031): Dependabot alerts and grouped security updates, no manual pins, dependency review on pull requests; a new .NET major is one planned change with its own ADR.
+- **Container images** in `[DevOps]` (block 3, ADR-0032): API on `aspnet` chiseled-extra and frontend on `nginx-unprivileged` (static files and `/api` proxy, one origin), `compose.app.yaml` beside the development `compose.yaml`, secrets required, built and smoke-tested in CI.
 - Detail questions are handed off to the other areas (see below).
 
 ## Decisions
@@ -102,6 +104,7 @@ ADRs live in [`adr/`](adr/) and are named `NNNN-short-title.md`. Each one record
 | 2026-11-19 | Precise OpenAPI contract: numbers only as JSON numbers (`NumberHandling = Strict`), `YearMonth` and `?month=` as `yyyy-MM` strings, `If-Match` / `ETag` / `412` / `428` and a `ProblemDetails` schema by convention, `errors` keys in camelCase, document written at build time on request; frontend types generated without adjustments (decided in `[Backend]`) | [ADR-0029](adr/0029-precise-openapi-contract.md) |
 | 2026-11-24 | CI with GitHub Actions: every job on every pull request and push to `main`, end-to-end tests included; a summarizing `ci` job and `pr-title` as required checks; coverage in the run summary without a service; commitlint configured in `.github/commitlint`; actions pinned to commit SHAs (decided in `[DevOps]`) | [ADR-0030](adr/0030-continuous-integration.md) |
 | 2026-11-24 | Dependency security: Dependabot alerts and grouped security updates, manual pins of transitive packages removed, dependency review on pull requests (moderate and up), majors of the packages that follow .NET excluded from Dependabot — a new .NET is one planned change with its own ADR (decided in `[DevOps]`) | [ADR-0031](adr/0031-dependency-security.md) |
+| 2026-11-28 | Container images: API on `aspnet:10.0.15-noble-chiseled-extra` (non-root, no shell, ICU), frontend on `nginx-unprivileged` with the `/api` proxy, security and cache headers; `compose.app.yaml` beside `compose.yaml`, selected by `COMPOSE_FILE` in `.env`, secrets required, database port not published; images built and smoke-tested in CI (decided in `[DevOps]`) | [ADR-0032](adr/0032-container-images.md) |
 
 ## Tests
 
@@ -162,7 +165,7 @@ Questions raised here that belong to another conversation. Each one is detailed 
 - ✅ From `[Frontend]`: run `pnpm lint` and `pnpm test:coverage` (`lcov` report) in `frontend/` on every pull request — done in `[DevOps]`: the `frontend` job (plus `pnpm build`), lcov merged with the backend coverage in the run summary, [devops/ci-cd.md](../devops/ci-cd.md#coverage)
 - ✅ From `[Backend]` / `[Frontend]`: check the API contract in CI — done in `[DevOps]`: the `api-contract` job, [devops/ci-cd.md](../devops/ci-cd.md#jobs). ✅ The document is exported at build time (`dotnet build backend/src/Api -p:OpenApiGenerateDocuments=true` → `backend/artifacts/openapi/openapi.json`, [ADR-0029](adr/0029-precise-openapi-contract.md)); the CI job runs that build (.NET SDK only, no database), then `pnpm api:types --file ../backend/artifacts/openapi/openapi.json` in `frontend/`, and fails when `frontend/src/app/core/api/openapi.json` or `schema.ts` change (`git diff --exit-code`) — [frontend/app-structure.md](../frontend/app-structure.md#api-types)
 - ✅ Repository name, `.editorconfig` / `.gitattributes`, branch strategy, dependency updates — [ADR-0009](adr/0009-repository-workflow.md)
-- ✅ Compose for development — [ADR-0008](adr/0008-local-development-environment.md); production setup still open — [devops/docker.md](../devops/docker.md)
+- ✅ Compose for development — [ADR-0008](adr/0008-local-development-environment.md); ✅ images and the Compose setup of a real instance — done in `[DevOps]`, [ADR-0032](adr/0032-container-images.md), [devops/docker.md](../devops/docker.md); HTTPS, exposure and backups — next block
 - ✅ License section in the README, `CONTRIBUTING.md`; `LICENSE` with copyright holder Paul Florii, 2026 — [ADR-0005](adr/0005-license.md)
 
 ## To do / open questions
@@ -170,4 +173,4 @@ Questions raised here that belong to another conversation. Each one is detailed 
 None for the initial phase. This macro reopens when a new cross-cutting decision is needed (e.g. multi-user rollout, Worker host, native clients): each one gets its own ADR.
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

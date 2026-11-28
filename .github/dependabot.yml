@@ -82,6 +82,30 @@ updates:
       - dependency-name: postgres
         update-types: [version-update:semver-major]
 
+  # --- Dockerfiles of the images (compose.app.yaml) ---
+  - package-ecosystem: docker
+    directories: ["/backend", "/frontend"]
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    commit-message:
+      prefix: chore(devops)
+    labels: [dependencies, devops]
+    groups:
+      images:
+        update-types: [minor, patch]
+    ignore:
+      # .NET follows global.json and the packages: a new major is one planned change (ADR-0031).
+      - dependency-name: "dotnet/sdk"
+        update-types: [version-update:semver-major]
+      - dependency-name: "dotnet/aspnet"
+        update-types: [version-update:semver-major]
+      # Node.js follows frontend/.nvmrc (checked in CI): a new major is changed by hand.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
   # --- Pull request title check (.github/commitlint) ---
   - package-ecosystem: npm
     directory: /.github/commitlint

@@ -13,10 +13,12 @@ personal-finance/
 ├── .github/
 │   ├── actions/                # composite actions: setup-backend, setup-frontend → devops/ci-cd.md
 │   ├── commitlint/             # pull request title rules (own package.json and lockfile)
+│   ├── scripts/                # smoke-test.sh: checks a running instance through nginx (CI, ADR-0032)
 │   ├── dependabot.yml          # weekly grouped updates → devops/repository-workflow.md
 │   ├── pull_request_template.md # Definition of Done checklist
 │   └── workflows/              # ci.yml, pr-title.yml (ADR-0030) → devops/ci-cd.md
 ├── backend/
+│   ├── Dockerfile              # API image (ADR-0032) → devops/docker.md
 │   ├── PersonalFinance.slnx
 │   ├── global.json             # .NET SDK + Microsoft Testing Platform
 │   ├── Directory.Build.props   # shared build settings
@@ -31,9 +33,10 @@ personal-finance/
 │       ├── Api.Tests/          # PersonalFinance.Api.Tests
 │       ├── Architecture.Tests/ # PersonalFinance.Architecture.Tests
 │       └── Testing/            # PersonalFinance.Testing — shared test support, not a test project
-├── frontend/                   # Angular 22 workspace, pnpm, Vitest → frontend/app-structure.md
+├── frontend/                   # Angular 22 workspace, pnpm, Vitest → frontend/app-structure.md; Dockerfile + nginx/ (ADR-0032)
 ├── docs/                       # documentation by macro/micro category
-├── compose.yaml                # db today; api and frontend (nginx) later → devops/docker.md
+├── compose.yaml                # db, for development and tests → devops/docker.md
+├── compose.app.yaml            # api + frontend for a real instance, selected by COMPOSE_FILE in .env (ADR-0032)
 ├── .env.example                # every variable, with placeholder values → devops/configuration.md
 ├── .editorconfig               # formatting shared by .NET and Angular
 ├── .gitattributes              # LF line endings, binary files
@@ -47,7 +50,7 @@ personal-finance/
 
 - **No secrets in the repository**: `.env` is ignored; `.env.example` is versioned and lists every variable with placeholder values. The only versioned values are documented development-only defaults ([devops/configuration.md](../devops/configuration.md)).
 - **Each top-level area owns its tooling**: .NET in `backend/` (SDK pinned in `global.json`), pnpm in `frontend/` (Node.js in `.nvmrc`, pnpm in `packageManager`). The root only holds orchestration (Compose, CI) and project-wide files.
-- **Quick start stays one command**: today `docker compose up -d db` plus the native API and frontend; `docker compose up` for the whole app once the images exist ([ADR-0008](adr/0008-local-development-environment.md)).
+- **Quick start stays one command**: `docker compose up -d db` plus the native API and frontend for development; `cp .env.example .env` then `docker compose up -d` for the whole app ([ADR-0008](adr/0008-local-development-environment.md), [ADR-0032](adr/0032-container-images.md)).
 - **Documentation lives with the code**: `docs/` mirrors the conversation macros; a change that alters behavior updates its docs in the same pull request.
 - **Commits** follow Conventional Commits with `type(area[/module])` ([devops/repository-workflow.md](../devops/repository-workflow.md)).
 
@@ -79,9 +82,9 @@ personal-finance/
 ## To do / open questions
 
 - ✅ `[DevOps]` Repository published on GitHub, ruleset on `main` with the required checks `ci` and `pr-title` ([devops/repository-workflow.md](../devops/repository-workflow.md#protecting-main), [devops/ci-cd.md](../devops/ci-cd.md#required-checks)).
-- `[DevOps]` Production Compose setup (required variables, HTTPS) when the `api` and `frontend` images exist.
+- ✅ `[DevOps]` Images and `compose.app.yaml` with required variables ([ADR-0032](adr/0032-container-images.md)); HTTPS in the next block.
 - ✅ `[Frontend]` Location of Playwright end-to-end tests: `frontend/e2e/` ([ADR-0023](adr/0023-frontend-authentication.md)).
 - ✅ `[Frontend]` API client: types generated from OpenAPI into `frontend/src/app/core/api/schema.ts`, services by hand ([ADR-0021](adr/0021-frontend-foundation.md)).
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_
