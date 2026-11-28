@@ -1,0 +1,10 @@
+# Build context of frontend/Dockerfile: sources and configuration only.
+node_modules/
+dist/
+coverage/
+.angular/
+playwright-report/
+test-results/
+e2e/.auth/
+Dockerfile
+.dockerignore

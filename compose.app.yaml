@@ -1,0 +1,53 @@
+# The whole application in containers: db + api + frontend — docs/devops/docker.md, ADR-0032.
+#
+# Used together with compose.yaml, through COMPOSE_FILE in .env:
+#   cp .env.example .env        # then replace every placeholder
+#   docker compose up -d        # builds the images the first time
+#
+# Development does not use this file: `docker compose up -d db` reads compose.yaml only and needs no .env.
+# Every secret below is required (${VAR:?}): Compose refuses to start an instance with missing values.
+
+services:
+  db:
+    environment:
+      # No development default here: a real instance has its own password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # The database is reachable only by the api container; use `docker compose exec db psql` to inspect it.
+    ports: !reset []
+
+  api:
+    image: ${API_IMAGE:-personal-finance-api:local}
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Migrations run at startup (ADR-0010): the database must accept connections first.
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Built from the POSTGRES_* variables, so the password is written once. Avoid ";" in it.
+      ConnectionStrings__Default: >-
+        Host=db;Port=5432;Database=${POSTGRES_DB:-personal_finance};Username=${POSTGRES_USER:-personal_finance};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      Auth__AllowRegistration: ${Auth__AllowRegistration:-false}
+      Auth__InitialUser__Email: ${Auth__InitialUser__Email:?set Auth__InitialUser__Email in .env}
+      Auth__InitialUser__Password: ${Auth__InitialUser__Password:?set Auth__InitialUser__Password in .env}
+      Auth__LoginRateLimit__PermitLimit: ${Auth__LoginRateLimit__PermitLimit:-10}
+      Auth__LoginRateLimit__WindowSeconds: ${Auth__LoginRateLimit__WindowSeconds:-60}
+    # No published port: the API is reached only through nginx (frontend), on the same origin as the app.
+    # No health check: the chiseled image has no shell or HTTP client; nginx answers 502 until the API is up.
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-personal-finance-frontend:local}
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # Bound to this machine only until HTTPS and the way in from other devices are set up (block 4):
+      # the session cookie is Secure, which browsers accept over plain HTTP only on localhost.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

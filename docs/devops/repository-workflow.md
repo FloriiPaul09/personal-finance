@@ -50,6 +50,7 @@ Configured in [`.github/dependabot.yml`](../../.github/dependabot.yml):
 | NuGet | `backend/` | minor + patch together | Majors of the packages that follow .NET: `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `Microsoft.EntityFrameworkCore.*`, `Npgsql*`, `EFCore.NamingConventions`, `dotnet-ef` |
 | pnpm (`npm` ecosystem) | `frontend/` | Angular packages together; other minor + patch together | Angular, Angular DevKit, TypeScript and pnpm majors |
 | Docker Compose | `/` | — | PostgreSQL majors |
+| Docker (Dockerfiles) | `backend/`, `frontend/` | minor + patch together | .NET (`dotnet/sdk`, `dotnet/aspnet`) and Node.js majors |
 | commitlint (`npm` ecosystem) | `.github/commitlint/` | all together | pnpm majors |
 | GitHub Actions | `/` and `.github/actions/*` (composite actions) | all together; SHA and version comment updated together | — |
 
@@ -135,4 +136,4 @@ Each pin is listed here (package, fixed version, advisories, pulled in by, since
 - Docker images (part 2): base them on a .NET 10 runtime with the October 2026 security fixes (10.0.13 or later).
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

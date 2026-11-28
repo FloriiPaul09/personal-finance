@@ -10,7 +10,7 @@ The GitHub Actions workflows: which jobs run, when, with which tools; how covera
 
 | Workflow | File | Runs on | Jobs |
 |---|---|---|---|
-| CI | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | every pull request, every push to `main`, by hand (`workflow_dispatch`) | `backend`, `frontend`, `api-contract`, `e2e`, `dependency-review` (pull requests only), `compose`, `coverage`, `ci` |
+| CI | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | every pull request, every push to `main`, by hand (`workflow_dispatch`) | `backend`, `frontend`, `api-contract`, `e2e`, `images`, `dependency-review` (pull requests only), `compose`, `coverage`, `ci` |
 | PR title | [`.github/workflows/pr-title.yml`](../../.github/workflows/pr-title.yml) | pull requests: opened, edited, reopened, new commits | `pr-title` |
 
 ```
@@ -19,6 +19,7 @@ pull request / push to main
  ├─ frontend ────┴─► coverage ─┐
  ├─ api-contract ──────────────┤
  ├─ e2e ───────────────────────┤
+ ├─ images ────────────────────┤
  ├─ dependency-review (PR) ────┼─► ci   (required)
  └─ compose ───────────────────┘
 pull request (title)
@@ -35,6 +36,7 @@ Every job runs on `ubuntu-24.04`, which has Docker. A new push to a pull request
 | `frontend` | Lint with module boundaries, unit tests with coverage, production build (bundle budget) | in `frontend/`: `pnpm lint`, `pnpm test:coverage`, `pnpm build` | ~1 min |
 | `api-contract` | The committed OpenAPI snapshot and `schema.ts` match the API | in `backend/`: `dotnet build src/Api -p:OpenApiGenerateDocuments=true`; in `frontend/`: `pnpm api:types --file ../backend/artifacts/openapi/openapi.json`; `git diff --exit-code` on both files | ~1 min |
 | `e2e` | Playwright on the real stack, phone and desktop | `docker compose up --detach --wait db`, `dotnet build src/Api`, `pnpm exec playwright install --with-deps chromium`, `pnpm e2e` | ~3 min |
+| `images` | The images of `compose.app.yaml` ([docker.md](docker.md)): versions in the Dockerfiles follow `.nvmrc`, `global.json` and the ASP.NET Core packages; both images built (layers in the GitHub Actions cache); stack started with `.env.example` and test values; smoke test through nginx; database port not published | `docker/build-push-action` ×2, `docker compose up --wait`, `bash .github/scripts/smoke-test.sh http://127.0.0.1:8080` | ~4 min (first run), less with the cache |
 | `dependency-review` | Pull requests only: no dependency added or changed with a known vulnerability of moderate severity or more (npm, NuGet, GitHub Actions; runtime, development and unknown scopes) | `actions/dependency-review-action`, reading the dependency graph of GitHub | seconds |
 | `compose` | `compose.yaml` is valid without `.env` and with every variable of `.env.example` | `docker compose config --quiet` twice | seconds |
 | `coverage` | One report for backend and frontend in the run summary | ReportGenerator on the artifacts of `backend` and `frontend` | < 1 min |
@@ -47,6 +49,16 @@ Times measured on the first run (pull request #43): about 4 minutes from push to
 - **.NET commands run in `backend/`**: `global.json` is found only from there. From the repository root `dotnet` picks the newest SDK installed and `dotnet test` falls back to VSTest, which does not understand the Microsoft Testing Platform options.
 - **Integration tests** (`Infrastructure.Tests`, `Api.Tests`) start PostgreSQL with Testcontainers on the runner's Docker, with the image read from `compose.yaml` ([ADR-0011](../architecture/adr/0011-persistence-testing.md)): nothing else to configure.
 - **End-to-end**: the database comes from `compose.yaml` (same image and development defaults as locally), the API is built first so that Playwright's `dotnet run` only starts it; `playwright.config.ts` starts the API and the dev server, never reuses running ones, and retries a failed test once when `CI` is set ([frontend/testing.md](../frontend/testing.md#end-to-end-playwright)). On failure the HTML report and the traces are uploaded as the `playwright-report` artifact (7 days).
+
+### Smoke test of the images
+
+`.github/scripts/smoke-test.sh [base-url] [email] [password]` checks a running instance through nginx, and works on a real one too (`bash .github/scripts/smoke-test.sh http://127.0.0.1:8080 you@example.com '…'`):
+
+1. `GET /api/health` answers `Healthy` (waits up to 2 minutes: migrations run at startup);
+2. `/` and a route of the app return the Angular app, a missing file `404`;
+3. security headers, `index.html` not cached, the main script cached as immutable;
+4. `/api/accounts` without a session is `401` `auth.required`; no OpenAPI document in Production;
+5. antiforgery token, login of the initial user, session cookie, default categories.
 
 ### Coverage
 
@@ -107,6 +119,7 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 | commitlint with its configuration in `.github/commitlint` | Rules readable and versioned, usable locally, versions updated by Dependabot | [ADR-0030](../architecture/adr/0030-continuous-integration.md) |
 | Actions pinned to commit SHAs | Immutable; recommended by GitHub and OpenSSF Scorecard | [ADR-0030](../architecture/adr/0030-continuous-integration.md) |
 | Dynamic coverage instrumentation only | Static instrumentation breaks the architecture tests | — |
+| Images built and started on every pull request, with a smoke test through nginx | A broken Dockerfile, nginx rule or production startup never reaches `main` | [ADR-0032](../architecture/adr/0032-container-images.md) |
 | Dependency review on pull requests, moderate severity and up | A pull request cannot bring a vulnerable package; new vulnerabilities in existing ones come as security updates, not as red pull requests | [ADR-0031](../architecture/adr/0031-dependency-security.md) |
 
 ## Tests
@@ -128,7 +141,9 @@ The ruleset `Main` (Settings → Rules → Rulesets) requires **two checks**, bo
 ## To do / open questions
 
 - ✅ Dependency security: alerts, grouped security updates and the dependency review ([ADR-0031](../architecture/adr/0031-dependency-security.md)).
-- Next DevOps blocks: images, exposure and backups, release workflow from tags ([README.md](README.md#to-do--open-questions)).
+- ✅ Images built and started in CI ([ADR-0032](../architecture/adr/0032-container-images.md)).
+- End-to-end tests on the containers instead of the dev servers, once HTTPS is decided (closest to production).
+- Next DevOps blocks: exposure and backups, release workflow from tags ([README.md](README.md#to-do--open-questions)).
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

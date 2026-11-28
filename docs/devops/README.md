@@ -9,7 +9,7 @@ Everything needed to build, run, test and ship the project outside the applicati
 | Document | Covers | Status |
 |---|---|---|
 | [local-development.md](local-development.md) | Prerequisites, how to run database, API and frontend, ports, test commands | Decided — ADR-0008 |
-| [docker.md](docker.md) | `compose.yaml`, the `db` service, PostgreSQL version pinning shared with Testcontainers | Decided — ADR-0008 |
+| [docker.md](docker.md) | `compose.yaml` (`db`), `compose.app.yaml` (`api`, `frontend`), the images and nginx, PostgreSQL version pinning shared with Testcontainers | Decided — ADR-0008, ADR-0032 |
 | [configuration.md](configuration.md) | Environment variables, `.env.example`, development defaults | Decided — ADR-0008 |
 | [repository-workflow.md](repository-workflow.md) | Repository name, branch strategy, commit format, dependency updates, security updates, formatting files | Decided — ADR-0009, ADR-0031 |
 | [ci-cd.md](ci-cd.md) | GitHub Actions: jobs, when they run, coverage report, pull request title, required checks, security of the workflows | Decided — ADR-0030; releases in a later block |
@@ -22,7 +22,8 @@ Everything needed to build, run, test and ship the project outside the applicati
 - **CI** (part 2, block 1): GitHub Actions on every pull request and push to `main` — backend build and tests with coverage, frontend lint, unit tests with coverage and build, OpenAPI contract check, end-to-end tests, `docker compose config`, one coverage report; pull request titles checked by commitlint; `ci` and `pr-title` required by the ruleset of `main` ([ci-cd.md](ci-cd.md), [ADR-0030](../architecture/adr/0030-continuous-integration.md)).
 - **Dependency security** (block 2): Dependabot alerts and grouped security updates on, manual pins of transitive packages removed, dependency review on pull requests, .NET majors excluded from Dependabot ([repository-workflow.md](repository-workflow.md#security-updates), [ADR-0031](../architecture/adr/0031-dependency-security.md)).
 - Repository public on GitHub with the ruleset `Main` ([repository-workflow.md](repository-workflow.md#protecting-main)).
-- Not yet: the `api` and `frontend` container images, the production setup, releases.
+- **Images** (block 3): `backend/Dockerfile` (API on `aspnet` chiseled-extra, non-root), `frontend/Dockerfile` (nginx unprivileged with the `/api` proxy), `compose.app.yaml` with the secrets required, selected by `COMPOSE_FILE` in `.env`; built, started and smoke-tested in CI ([docker.md](docker.md), [ADR-0032](../architecture/adr/0032-container-images.md)).
+- Not yet: HTTPS and access from other devices, backups, releases.
 
 ## Decisions
 
@@ -38,6 +39,7 @@ Everything needed to build, run, test and ship the project outside the applicati
 | 2026-11-09 | Dependabot for NuGet, pnpm, Docker Compose, GitHub Actions; majors of Angular, TypeScript, pnpm and PostgreSQL excluded | [ADR-0009](../architecture/adr/0009-repository-workflow.md) |
 | 2026-11-24 | CI with GitHub Actions: every job on every pull request and push to `main`, E2E included; summarizing `ci` job + `pr-title` as required checks, branches not required up to date; coverage in the run summary; commitlint in `.github/commitlint`; actions pinned to commit SHAs | [ADR-0030](../architecture/adr/0030-continuous-integration.md) |
 | 2026-11-24 | Dependabot alerts and grouped security updates, `Security pins` removed, dependency review on pull requests, majors of the packages that follow .NET excluded (a new .NET is one planned change with its ADR) | [ADR-0031](../architecture/adr/0031-dependency-security.md) |
+| 2026-11-28 | Images: API on `aspnet:10.0.15-noble-chiseled-extra`, frontend on `nginx-unprivileged:1.30.8-alpine` with the `/api` proxy; `compose.app.yaml` beside `compose.yaml`, selected by `COMPOSE_FILE`, secrets required, database port not published; images built and smoke-tested in CI | [ADR-0032](../architecture/adr/0032-container-images.md) |
 
 ## Tests
 
@@ -58,11 +60,11 @@ Everything needed to build, run, test and ship the project outside the applicati
 - ✅ Part 2, block 1: `ci-cd.md` and the GitHub Actions workflows (jobs, coverage, Docker for Testcontainers, E2E on every pull request, commitlint, `docker compose config`, required checks) — [ADR-0030](../architecture/adr/0030-continuous-integration.md).
 - ✅ Block 2: Dependabot alerts and grouped security updates, pins removed, dependency review, .NET majors excluded — [ADR-0031](../architecture/adr/0031-dependency-security.md).
 - Block 5: release workflow from `vX.Y.Z` tags, published images, changelog, final README.
-- `api` and `frontend` Dockerfiles, nginx configuration, services in `compose.yaml` with required production variables.
+- ✅ `api` and `frontend` Dockerfiles, nginx configuration, services in `compose.app.yaml` with required production variables — [ADR-0032](../architecture/adr/0032-container-images.md).
 - HTTPS and reverse proxy; how the app is reached from the phone (LAN/VPN vs public exposure) — from [authentication.md](../architecture/authentication.md).
 - ✅ Storage of Data Protection keys: in the database, no volume needed ([ADR-0014](../architecture/adr/0014-authentication-endpoints-and-sessions.md)).
 - From `[Backend]`: HTTPS is required for login outside `localhost` (`Secure` cookies); forwarded headers behind the reverse proxy, so rate limiting sees client addresses.
 - ✅ GitHub repository created, ruleset `Main` configured; required checks `ci` and `pr-title` added with the CI ([repository-workflow.md](repository-workflow.md#protecting-main)).
 
 ---
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-28_

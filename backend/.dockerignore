@@ -1,0 +1,11 @@
+# Build context of backend/Dockerfile: only what the API needs.
+**/bin/
+**/obj/
+artifacts/
+tests/
+TestResults/
+**/*.user
+**/appsettings.Development.json
+.config/
+Dockerfile
+.dockerignore
