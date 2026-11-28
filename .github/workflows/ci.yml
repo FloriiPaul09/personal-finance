@@ -250,10 +250,13 @@ jobs:
           Auth__InitialUser__Password: ci-only-password-1234
         run: |
           bash .github/scripts/smoke-test.sh http://127.0.0.1:8080
-          # With compose.app.yaml the database port is not published.
-          if docker compose port db 5432 2>/dev/null | grep -q .; then
-            echo "::error::the database port is published"; exit 1
+          # With compose.app.yaml the database port is not published: no "host->container" mapping.
+          # (`docker compose port` prints ":0" even for an unpublished port, so it cannot be used.)
+          db_ports="$(docker compose ps db --format '{{.Ports}}')"
+          if grep -q -- '->' <<<"$db_ports"; then
+            echo "::error::the database port is published: $db_ports"; exit 1
           fi
+          echo "db ports: $db_ports (not published)"
 
       - name: Logs of the stack
         if: failure()
